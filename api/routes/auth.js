@@ -14,6 +14,33 @@ router.get('/callback', async (req, res) => {
 
     if (!code) {
         return res.status(400).send('No code provided');
+    }
+
+    try {
+        const tokenData = await getTokensFromCode(code);
+
+        // Store tokens in session
+        req.session.accessToken = tokenData.access_token;
+        req.session.refreshToken = tokenData.refresh_token;
+        req.session.membershipId = tokenData.membership_id;
+        req.session.expiresAt = Date.now() + (tokenData.expires_in * 1000);
+
+        // Redirect to frontend
+        res.redirect('/dashboard');
+    } catch (error) {
+        console.error('Auth Error:', error);
+        res.status(500).send('Authentication failed');
+    }
+});
+
+// Status Route - Check if user is logged in
+router.get('/status', (req, res) => {
+    if (req.session.accessToken) {
+        res.json({
+            isAuthenticated: true,
+            membershipId: req.session.membershipId
+        });
+    } else {
         res.json({ isAuthenticated: false });
     }
 });
