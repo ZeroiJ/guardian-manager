@@ -14,27 +14,14 @@ router.get('/callback', async (req, res) => {
 
     if (!code) {
         return res.status(400).send('No code provided');
+        res.json({ isAuthenticated: false });
     }
+});
 
-    try {
-        const tokenData = await getTokensFromCode(code);
+// Logout Route
+router.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ success: true });
+});
 
-        // Store tokens in session
-        router.get('/status', (req, res) => {
-            if (req.session.accessToken) {
-                res.json({
-                    isAuthenticated: true,
-                    membershipId: req.session.membershipId
-                });
-            } else {
-                res.json({ isAuthenticated: false });
-            }
-        });
-
-        // Logout Route
-        router.get('/logout', (req, res) => {
-            req.session.destroy();
-            res.json({ success: true });
-        });
-
-        module.exports = router;
+module.exports = router;
