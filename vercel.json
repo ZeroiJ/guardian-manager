@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/auth/callback",
-            "destination": "/api/auth/callback"
+            "destination": "/api/index.js"
         },
         {
             "source": "/api/(.*)",

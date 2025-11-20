@@ -23,6 +23,7 @@ app.use(cookieSession({
 }));
 
 // Routes
+app.use('/auth', authRoutes); // Handle /auth/callback from Vercel rewrite
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
