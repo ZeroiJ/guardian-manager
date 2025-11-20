@@ -29,7 +29,11 @@ router.get('/callback', async (req, res) => {
         res.redirect('/dashboard');
     } catch (error) {
         console.error('Auth Error:', error);
-        res.status(500).send('Authentication failed');
+        res.status(500).json({
+            error: 'Authentication failed',
+            details: error.message,
+            response: error.response ? error.response.data : null
+        });
     }
 });
 
