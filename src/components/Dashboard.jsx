@@ -8,7 +8,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/profile', {
+                const response = await fetch('/api/profile', {
                     credentials: 'include' // Important for sending cookies
                 });
 

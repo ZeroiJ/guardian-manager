@@ -5,7 +5,11 @@ const sqlite3 = require('sqlite3').verbose();
 
 const BUNGIE_API_ROOT = 'https://www.bungie.net';
 const MANIFEST_URL = `${BUNGIE_API_ROOT}/Platform/Destiny2/Manifest/`;
-const MANIFEST_DB_PATH = path.join(__dirname, '..', 'data', 'manifest.content');
+
+// Vercel only allows writing to /tmp
+const IS_VERCEL = process.env.VERCEL === '1';
+const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, '..', 'data');
+const MANIFEST_DB_PATH = path.join(DATA_DIR, 'manifest.content');
 
 let currentManifestVersion = null;
 let db = null;
@@ -21,17 +25,16 @@ async function checkAndDownloadManifest() {
         const version = manifestData.version;
         const contentPath = manifestData.mobileWorldContentPaths.en;
 
+        // Check if file exists and version matches
         if (version === currentManifestVersion && fs.existsSync(MANIFEST_DB_PATH)) {
             console.log('Manifest is up to date.');
             return;
         }
 
-        console.log(`New manifest version found: ${version}. Downloading...`);
+        console.log(`New manifest version found: ${version}. Downloading to ${MANIFEST_DB_PATH}...`);
 
-        // Ensure data directory exists
-        const dataDir = path.dirname(MANIFEST_DB_PATH);
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
         }
 
         const writer = fs.createWriteStream(MANIFEST_DB_PATH);
@@ -48,7 +51,6 @@ async function checkAndDownloadManifest() {
             writer.on('finish', () => {
                 console.log('Manifest downloaded.');
                 currentManifestVersion = version;
-                // Close existing DB connection if open
                 if (db) {
                     db.close();
                     db = null;
@@ -71,21 +73,19 @@ function getManifestDb() {
             });
         } else {
             console.warn('Manifest DB not found. Please wait for download.');
+            // Trigger download if missing (lazy load)
+            checkAndDownloadManifest();
             return null;
         }
     }
     return db;
 }
 
-// Helper to query the manifest
 function getDefinition(tableName, hash) {
     return new Promise((resolve, reject) => {
         const database = getManifestDb();
         if (!database) return resolve(null);
 
-        // SQLite stores hashes as signed 32-bit integers, but API returns unsigned.
-        // We need to convert if necessary, but usually the manifest uses the signed value.
-        // Actually, Bungie manifest uses signed 32-bit ints.
         let signedHash = hash >> 0;
 
         database.get(`SELECT json FROM ${tableName} WHERE id = ? OR id = ?`, [hash, signedHash], (err, row) => {
