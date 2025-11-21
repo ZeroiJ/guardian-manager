@@ -10,7 +10,8 @@ async function getTokensFromCode(code) {
         client_id: process.env.BUNGIE_CLIENT_ID
     };
 
-    if (process.env.BUNGIE_CLIENT_SECRET) {
+    // Only add client_secret if it exists and is NOT the placeholder
+    if (process.env.BUNGIE_CLIENT_SECRET && process.env.BUNGIE_CLIENT_SECRET !== 'YOUR_CLIENT_SECRET_HERE') {
         body.client_secret = process.env.BUNGIE_CLIENT_SECRET;
     }
 
@@ -36,7 +37,8 @@ async function refreshAccessToken(refreshToken) {
         client_id: process.env.BUNGIE_CLIENT_ID
     };
 
-    if (process.env.BUNGIE_CLIENT_SECRET) {
+    // Only add client_secret if it exists and is NOT the placeholder
+    if (process.env.BUNGIE_CLIENT_SECRET && process.env.BUNGIE_CLIENT_SECRET !== 'YOUR_CLIENT_SECRET_HERE') {
         body.client_secret = process.env.BUNGIE_CLIENT_SECRET;
     }
 
