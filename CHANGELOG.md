@@ -2,7 +2,23 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
-## [Unreleased]
+## [0.2.0] - 2025-11-22
+
+### Added
+- **Premium Design Integration**: Integrated a new high-fidelity UI ("Arsenal" theme) with a dark, sci-fi aesthetic.
+- **Starfield Background**: Added an animated canvas-based starfield background (`StarfieldBackground.jsx`).
+- **Arsenal View**: Implemented the main inventory interface (`Arsenal.jsx`) featuring a sidebar and categorized weapon grids.
+- **Real Data Wiring**: Connected the new UI to the Bungie API, fetching real user inventory, equipment, and item definitions.
+- **Item Cards**: Enhanced `ItemCard.jsx` with rarity-based borders (using the new color palette), power levels, and tooltips.
+
+### Changed
+- **UI Overhaul**: Replaced the basic Dashboard with the new Arsenal layout.
+- **Styling**: Overwrote `index.css` with a comprehensive Tailwind setup for the new theme (custom scrollbars, fonts, animations).
+- **Routing**: Updated `App.jsx` to support the new Home and Dashboard views with smooth transitions.
+
+### Fixed
+- **Data Merging**: Solved an issue where item instance data (Power Level, Perks) was not correctly merging with item definitions.
+- **CSS Lints**: Fixed minor CSS validation errors in `index.css`.
 
 ## [0.1.0] - 2025-11-21
 
