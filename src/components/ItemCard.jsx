@@ -1,11 +1,11 @@
 import React from 'react';
 
 const TIER_COLORS = {
-    Exotic: 'border-yellow-400 bg-yellow-400/10',
-    Legendary: 'border-purple-500 bg-purple-500/10',
-    Rare: 'border-blue-500 bg-blue-500/10',
-    Common: 'border-green-500 bg-green-500/10',
-    Basic: 'border-gray-400 bg-gray-400/10',
+    Exotic: 'border-[#f4c430] bg-[#f4c430]/10',
+    Legendary: 'border-[#a359ff] bg-[#a359ff]/10',
+    Rare: 'border-[#4a9eff] bg-[#4a9eff]/10',
+    Common: 'border-[#28a745] bg-[#28a745]/10',
+    Basic: 'border-[#e8e9ed] bg-[#e8e9ed]/10',
 };
 
 const ItemCard = ({ item, definition }) => {
