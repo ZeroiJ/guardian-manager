@@ -67,9 +67,19 @@ const Dashboard = () => {
 
     // Helper to get items for the active character
     const getCharacterItems = () => {
-        const equipment = profile.characterEquipment.data[activeCharacterId].items;
-        const inventory = profile.characterInventories.data[activeCharacterId].items;
-        return [...equipment, ...inventory];
+        if (!profile || !activeCharacterId) return [];
+
+        const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
+        const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
+        const rawItems = [...equipment, ...inventory];
+
+        // Merge Instance Data (Power Level, Perks, etc.)
+        const itemInstances = profile.itemComponents?.instances?.data || {};
+
+        return rawItems.map(item => ({
+            ...item,
+            instanceData: itemInstances[item.itemInstanceId]
+        }));
     };
 
     const allCharItems = getCharacterItems();
