@@ -81,6 +81,34 @@ function getManifestDb() {
     return db;
 }
 
+function getDefinitions(tableName, hashes) {
+    return new Promise((resolve, reject) => {
+        const database = getManifestDb();
+        if (!database) return resolve({});
+
+        if (!hashes || hashes.length === 0) return resolve({});
+
+        // Deduplicate hashes and convert to signed 32-bit integers
+        const uniqueHashes = [...new Set(hashes)];
+        const signedHashes = uniqueHashes.map(h => h >> 0);
+
+        // Create placeholders for IN clause
+        const placeholders = signedHashes.map(() => '?').join(',');
+        const sql = `SELECT id, json FROM ${tableName} WHERE id IN (${placeholders})`;
+
+        database.all(sql, signedHashes, (err, rows) => {
+            if (err) return reject(err);
+
+            const result = {};
+            rows.forEach(row => {
+                const unsignedId = row.id >>> 0;
+                result[unsignedId] = JSON.parse(row.json);
+            });
+            resolve(result);
+        });
+    });
+}
+
 function getDefinition(tableName, hash) {
     return new Promise((resolve, reject) => {
         const database = getManifestDb();
@@ -96,4 +124,4 @@ function getDefinition(tableName, hash) {
     });
 }
 
-module.exports = { checkAndDownloadManifest, getDefinition };
+module.exports = { checkAndDownloadManifest, getDefinition, getDefinitions };

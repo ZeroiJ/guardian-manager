@@ -5,6 +5,7 @@ const cookieSession = require('cookie-session');
 const { checkAndDownloadManifest } = require('./services/manifestService');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
+const manifestRoutes = require('./routes/manifest');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(cookieSession({
 // Routes
 app.use('/auth', authRoutes); // Handle /auth/callback from Vercel rewrite
 app.use('/api/auth', authRoutes);
+app.use('/api/manifest', manifestRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/api', (req, res) => {
@@ -32,9 +34,7 @@ app.get('/api', (req, res) => {
 });
 
 // Vercel Serverless Entry Point
-// We do NOT call app.listen() here. Vercel handles it.
 module.exports = app;
 
-// Attempt to check manifest on cold start (might timeout, but worth a try)
-// In a real serverless app, you might trigger this via a cron job or check lazily.
+// Attempt to check manifest on cold start
 checkAndDownloadManifest().catch(err => console.error("Manifest check failed:", err));
