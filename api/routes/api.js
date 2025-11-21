@@ -17,6 +17,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
         const profileData = await getProfile(
             req.session.accessToken,
             req.session.membershipId,
+            req.session.membershipType,
             req.session.refreshToken
         );
         res.json(profileData);

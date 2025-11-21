@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getTokensFromCode } = require('../services/authService');
+const { getDestinyMemberships } = require('../services/bungieService');
 
 // Login Route - Redirects to Bungie
 router.get('/login', (req, res) => {
@@ -19,10 +20,18 @@ router.get('/callback', async (req, res) => {
     try {
         const tokenData = await getTokensFromCode(code);
 
-        // Store tokens in session
+        // Fetch Destiny Membership ID (Crucial Step!)
+        const destinyMemberships = await getDestinyMemberships(tokenData.access_token);
+
+        if (!destinyMemberships) {
+            return res.status(400).send('No Destiny 2 account found.');
+        }
+
+        // Store tokens and Destiny ID in session
         req.session.accessToken = tokenData.access_token;
         req.session.refreshToken = tokenData.refresh_token;
-        req.session.membershipId = tokenData.membership_id;
+        req.session.membershipId = destinyMemberships.membershipId; // Use Destiny ID, not Bungie ID
+        req.session.membershipType = destinyMemberships.membershipType;
         req.session.expiresAt = Date.now() + (tokenData.expires_in * 1000);
 
         // Redirect to frontend
