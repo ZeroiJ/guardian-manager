@@ -111,8 +111,8 @@ const Dashboard = () => {
                                 key={char.characterId}
                                 onClick={() => setActiveCharacterId(char.characterId)}
                                 className={`relative h-16 w-48 flex-shrink-0 overflow-hidden border-b-2 transition-all ${activeCharacterId === char.characterId
-                                        ? 'border-yellow-500 opacity-100'
-                                        : 'border-transparent opacity-50 hover:opacity-80'
+                                    ? 'border-yellow-500 opacity-100'
+                                    : 'border-transparent opacity-50 hover:opacity-80'
                                     }`}
                             >
                                 {/* Emblem Background */}
@@ -189,6 +189,15 @@ const Dashboard = () => {
                         />
                     </div>
                 </div>
+            </div>
+            {/* Debug Section */}
+            <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800 mt-8">
+                <details className="bg-gray-900 p-4 rounded">
+                    <summary className="cursor-pointer text-gray-400 font-mono text-sm">Debug: View Raw Profile Data</summary>
+                    <pre className="mt-4 text-xs text-green-400 overflow-auto max-h-96">
+                        {JSON.stringify(profile, null, 2)}
+                    </pre>
+                </details>
             </div>
         </div>
     );
