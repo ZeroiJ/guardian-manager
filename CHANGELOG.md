@@ -2,6 +2,18 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.2.1] - 2025-11-22
+
+### Changed
+- **Manifest Strategy**: Switched from downloading the SQLite database to fetching definitions directly from the Bungie API (`/Platform/Destiny2/Manifest/...`). This resolves timeout issues on Vercel Serverless.
+- **Inventory UI**: Revamped `Arsenal.jsx` to include Armor sections (Helmet, Gauntlets, Chest, Legs, Class).
+- **Grid Layout**: Updated `WeaponGrid.jsx` to use a responsive auto-fill grid for better adaptability.
+- **Item Cards**: Increased card size, added a premium hover glow, and improved the tooltip design.
+
+### Fixed
+- **Vercel 500 Error**: Resolved the "Internal Server Error" caused by the manifest download timeout.
+- **Dependencies**: Removed `sqlite3` from `api/package.json` as it is no longer needed.
+
 ## [0.2.0] - 2025-11-22
 
 ### Added
