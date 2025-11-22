@@ -164,6 +164,17 @@ export function Arsenal() {
                                 title="Power Weapons"
                                 items={powerWeapons}
                             />
+
+                            {/* Armor Section Divider */}
+                            <div className="pt-8 border-t border-[#252a38]">
+                                <h2 className="text-2xl font-bold mb-6 text-[#e8e9ed]">Armor</h2>
+                            </div>
+
+                            <WeaponGrid title="Helmet" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Helmet)} />
+                            <WeaponGrid title="Gauntlets" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Gauntlets)} />
+                            <WeaponGrid title="Chest Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Chest)} />
+                            <WeaponGrid title="Leg Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Legs)} />
+                            <WeaponGrid title="Class Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Class)} />
                         </div>
                     </div>
                 </div>

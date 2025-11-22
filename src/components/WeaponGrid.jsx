@@ -12,7 +12,7 @@ export function WeaponGrid({ title, items }) {
                 <span className="text-sm text-[#9199a8] ml-2">({items.length})</span>
             </h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-4">
                 {items.map((item) => (
                     <ItemCard
                         key={item.itemInstanceId || item.itemHash}

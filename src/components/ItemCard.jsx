@@ -20,28 +20,45 @@ const ItemCard = ({ item, definition }) => {
     const borderClass = TIER_COLORS[tier] || 'border-gray-600';
 
     return (
-        <div className="relative group w-20 h-20 cursor-pointer transition-transform transform hover:scale-105">
+        <div className="relative group w-24 h-24 cursor-pointer transition-all duration-300 hover:scale-105 hover:z-10">
             {/* Item Icon */}
-            <img
-                src={iconUrl}
-                alt={name}
-                className={`w-full h-full object-cover border-2 ${borderClass} rounded-sm`}
-            />
+            <div className={`w-full h-full rounded-sm overflow-hidden border-2 ${borderClass} relative shadow-lg group-hover:shadow-[0_0_15px_rgba(74,158,255,0.3)]`}>
+                <img
+                    src={iconUrl}
+                    alt={name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                />
+
+                {/* Gradient Overlay for Text Readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+            </div>
 
             {/* Power Level Overlay */}
             {power && (
-                <div className="absolute bottom-0.5 right-0.5 bg-black/80 text-yellow-300 text-[10px] font-bold px-1 rounded-tl-sm">
-                    {power}
+                <div className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-[#0a0e14]/90 backdrop-blur-sm border border-[#252a38] px-1.5 py-0.5 rounded-sm z-20">
+                    <span className="text-[10px] text-[#f4c430]">✦</span>
+                    <span className="text-xs font-bold text-[#e8e9ed] leading-none">{power}</span>
                 </div>
             )}
 
-            {/* Tooltip (Simple Hover) */}
-            <div className="absolute z-50 hidden group-hover:block w-48 bg-[#1a1a1a] border border-gray-700 p-2 rounded shadow-xl -top-2 left-full ml-2">
-                <div className={`font-bold text-sm ${tier === 'Exotic' ? 'text-yellow-400' : 'text-gray-200'}`}>
+            {/* Tooltip (Enhanced) */}
+            <div className="absolute z-50 hidden group-hover:block w-64 bg-[#0a0e14]/95 backdrop-blur-xl border border-[#252a38] p-3 rounded-lg shadow-2xl -top-4 left-full ml-4">
+                <div className={`font-bold text-base mb-1 ${tier === 'Exotic' ? 'text-[#f4c430]' : 'text-[#e8e9ed]'}`}>
                     {name}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">{definition.itemTypeDisplayName}</div>
-                {power && <div className="text-xs text-yellow-300 mt-1">Power: {power}</div>}
+                <div className="flex items-center justify-between text-xs text-[#9199a8] border-b border-[#252a38] pb-2 mb-2">
+                    <span>{definition.itemTypeDisplayName}</span>
+                    <span className={tier === 'Exotic' ? 'text-[#f4c430]' : tier === 'Legendary' ? 'text-[#a359ff]' : 'text-[#4a9eff]'}>
+                        {tier}
+                    </span>
+                </div>
+                {power && (
+                    <div className="text-sm font-medium text-[#e8e9ed] flex items-center gap-2">
+                        <span className="text-[#f4c430]">✦ {power}</span>
+                        <span className="text-[#9199a8]">Power</span>
+                    </div>
+                )}
             </div>
         </div>
     );
