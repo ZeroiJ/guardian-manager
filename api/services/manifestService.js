@@ -1,127 +1,53 @@
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 
 const BUNGIE_API_ROOT = 'https://www.bungie.net';
-const MANIFEST_URL = `${BUNGIE_API_ROOT}/Platform/Destiny2/Manifest/`;
 
-// Vercel only allows writing to /tmp
-const IS_VERCEL = process.env.VERCEL === '1';
-const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, '..', 'data');
-const MANIFEST_DB_PATH = path.join(DATA_DIR, 'manifest.content');
+// In-memory cache for the lifetime of the serverless function instance
+const definitionCache = new Map();
 
-let currentManifestVersion = null;
-let db = null;
+async function getDefinition(tableName, hash) {
+    // Check cache first
+    const cacheKey = `${tableName}:${hash}`;
+    if (definitionCache.has(cacheKey)) {
+        return definitionCache.get(cacheKey);
+    }
 
-async function checkAndDownloadManifest() {
     try {
-        console.log('Checking for manifest updates...');
-        const response = await axios.get(MANIFEST_URL, {
+        const response = await axios.get(`${BUNGIE_API_ROOT}/Platform/Destiny2/Manifest/${tableName}/${hash}/`, {
             headers: { 'X-API-Key': process.env.BUNGIE_API_KEY }
         });
 
-        const manifestData = response.data.Response;
-        const version = manifestData.version;
-        const contentPath = manifestData.mobileWorldContentPaths.en;
-
-        // Check if file exists and version matches
-        if (version === currentManifestVersion && fs.existsSync(MANIFEST_DB_PATH)) {
-            console.log('Manifest is up to date.');
-            return;
-        }
-
-        console.log(`New manifest version found: ${version}. Downloading to ${MANIFEST_DB_PATH}...`);
-
-        if (!fs.existsSync(DATA_DIR)) {
-            fs.mkdirSync(DATA_DIR, { recursive: true });
-        }
-
-        const writer = fs.createWriteStream(MANIFEST_DB_PATH);
-
-        const fileResponse = await axios({
-            url: `${BUNGIE_API_ROOT}${contentPath}`,
-            method: 'GET',
-            responseType: 'stream'
-        });
-
-        fileResponse.data.pipe(writer);
-
-        return new Promise((resolve, reject) => {
-            writer.on('finish', () => {
-                console.log('Manifest downloaded.');
-                currentManifestVersion = version;
-                if (db) {
-                    db.close();
-                    db = null;
-                }
-                resolve();
-            });
-            writer.on('error', reject);
-        });
-
+        const definition = response.data.Response;
+        definitionCache.set(cacheKey, definition);
+        return definition;
     } catch (error) {
-        console.error('Error updating manifest:', error);
+        console.error(`Error fetching definition ${tableName}/${hash}:`, error.message);
+        return null;
     }
 }
 
-function getManifestDb() {
-    if (!db) {
-        if (fs.existsSync(MANIFEST_DB_PATH)) {
-            db = new sqlite3.Database(MANIFEST_DB_PATH, sqlite3.OPEN_READONLY, (err) => {
-                if (err) console.error('Error opening manifest DB:', err);
-            });
-        } else {
-            console.warn('Manifest DB not found. Please wait for download.');
-            // Trigger download if missing (lazy load)
-            checkAndDownloadManifest();
-            return null;
+async function getDefinitions(tableName, hashes) {
+    if (!hashes || hashes.length === 0) return {};
+
+    const uniqueHashes = [...new Set(hashes)];
+    const results = {};
+
+    // Fetch in parallel
+    const promises = uniqueHashes.map(async (hash) => {
+        const def = await getDefinition(tableName, hash);
+        if (def) {
+            results[hash] = def;
         }
-    }
-    return db;
+    });
+
+    await Promise.all(promises);
+    return results;
 }
 
-function getDefinitions(tableName, hashes) {
-    return new Promise((resolve, reject) => {
-        const database = getManifestDb();
-        if (!database) return resolve({});
-
-        if (!hashes || hashes.length === 0) return resolve({});
-
-        // Deduplicate hashes and convert to signed 32-bit integers
-        const uniqueHashes = [...new Set(hashes)];
-        const signedHashes = uniqueHashes.map(h => h >> 0);
-
-        // Create placeholders for IN clause
-        const placeholders = signedHashes.map(() => '?').join(',');
-        const sql = `SELECT id, json FROM ${tableName} WHERE id IN (${placeholders})`;
-
-        database.all(sql, signedHashes, (err, rows) => {
-            if (err) return reject(err);
-
-            const result = {};
-            rows.forEach(row => {
-                const unsignedId = row.id >>> 0;
-                result[unsignedId] = JSON.parse(row.json);
-            });
-            resolve(result);
-        });
-    });
-}
-
-function getDefinition(tableName, hash) {
-    return new Promise((resolve, reject) => {
-        const database = getManifestDb();
-        if (!database) return resolve(null);
-
-        let signedHash = hash >> 0;
-
-        database.get(`SELECT json FROM ${tableName} WHERE id = ? OR id = ?`, [hash, signedHash], (err, row) => {
-            if (err) return reject(err);
-            if (!row) return resolve(null);
-            resolve(JSON.parse(row.json));
-        });
-    });
+// No-op for compatibility
+async function checkAndDownloadManifest() {
+    console.log('Using direct Bungie API for definitions. No download needed.');
 }
 
 module.exports = { checkAndDownloadManifest, getDefinition, getDefinitions };
+
