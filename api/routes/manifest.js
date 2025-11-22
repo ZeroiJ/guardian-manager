@@ -19,7 +19,11 @@ router.post('/definitions', async (req, res) => {
         res.json(definitions);
     } catch (error) {
         console.error('Error fetching definitions:', error);
-        res.status(500).json({ error: 'Failed to fetch definitions' });
+        res.status(500).json({
+            error: 'Failed to fetch definitions',
+            details: error.message,
+            stack: error.stack
+        });
     }
 });
 
