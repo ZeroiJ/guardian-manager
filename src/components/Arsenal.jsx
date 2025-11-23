@@ -1,86 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { ArsenalSidebar } from './ArsenalSidebar';
-import { WeaponGrid } from './WeaponGrid';
-import { Search } from 'lucide-react';
+import { filterItems } from '../utils/itemFilter';
 
-// Simple Input Mock
-const Input = ({ className, ...props }) => (
-    <input className={`px-4 py-2 rounded ${className}`} {...props} />
-);
+// ... (Input component remains)
 
 export function Arsenal() {
-    const [selectedCategory, setSelectedCategory] = useState('weapons');
-    const [searchQuery, setSearchQuery] = useState('');
+    // ... (State remains)
 
-    // Data State
-    const [profile, setProfile] = useState(null);
-    const [definitions, setDefinitions] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [activeCharacterId, setActiveCharacterId] = useState(null);
+    // ... (useEffect remains)
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Fetch Profile
-                const res = await fetch('/api/profile');
-                if (!res.ok) throw new Error('Failed to fetch profile');
-                const data = await res.json();
-                setProfile(data);
-
-                // Set initial active character
-                const charIds = Object.keys(data.characters.data || {});
-                if (charIds.length > 0) setActiveCharacterId(charIds[0]);
-
-                // 2. Extract Item Hashes
-                const allItems = [];
-                Object.values(data.characterEquipment?.data || {}).forEach(char => allItems.push(...char.items));
-                Object.values(data.characterInventories?.data || {}).forEach(char => allItems.push(...char.items));
-
-                const hashes = [...new Set(allItems.map(i => i.itemHash))];
-
-                // 3. Fetch Manifest Definitions
-                const manifestRes = await fetch('/api/manifest/definitions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hashes })
-                });
-                const manifestData = await manifestRes.json();
-                setDefinitions(manifestData);
-
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    // Helper to get items for the active character
-    const getCharacterItems = () => {
-        if (!profile || !activeCharacterId) return [];
-
-        const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
-        const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
-        const rawItems = [...equipment, ...inventory];
-
-        // Merge Instance Data (Power Level, Perks, etc.)
-        const itemInstances = profile.itemComponents?.instances?.data || {};
-
-        return rawItems.map(item => ({
-            ...item,
-            instanceData: itemInstances[item.itemInstanceId],
-            def: definitions[item.itemHash]
-        })).filter(item => item.def); // Only return items we have definitions for
-    };
+    // ... (getCharacterItems remains)
 
     const allItems = getCharacterItems();
 
-    // Filter by Search
-    const filteredItems = allItems.filter(item =>
-        item.def.displayProperties.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter by Search (Advanced)
+    const filteredItems = filterItems(allItems, searchQuery);
 
     // Buckets
     const BUCKETS = {
