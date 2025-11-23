@@ -1,11 +1,62 @@
+import React, { useState, useEffect } from 'react';
+import { ArsenalSidebar } from './ArsenalSidebar';
+import { WeaponGrid } from './WeaponGrid';
+import { Search } from 'lucide-react';
 import { filterItems } from '../utils/itemFilter';
 
-// ... (Input component remains)
+// Simple Input Mock
+const Input = ({ className, ...props }) => (
+    <input className={`px-4 py-2 rounded ${className}`} {...props} />
+);
 
 export function Arsenal() {
-    // ... (State remains)
+    const [selectedCategory, setSelectedCategory] = useState('weapons');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // ... (useEffect remains)
+    // Data State
+    const [profile, setProfile] = useState(null);
+    const [definitions, setDefinitions] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [activeCharacterId, setActiveCharacterId] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // 1. Fetch Profile
+                const res = await fetch('/api/profile');
+                if (!res.ok) throw new Error('Failed to fetch profile');
+                const data = await res.json();
+                setProfile(data);
+
+                // Set initial active character
+                const charIds = Object.keys(data.characters.data || {});
+                if (charIds.length > 0) setActiveCharacterId(charIds[0]);
+
+                // 2. Extract Item Hashes
+                const allItems = [];
+                Object.values(data.characterEquipment?.data || {}).forEach(char => allItems.push(...char.items));
+                Object.values(data.characterInventories?.data || {}).forEach(char => allItems.push(...char.items));
+
+                const hashes = [...new Set(allItems.map(i => i.itemHash))];
+
+                // 3. Fetch Manifest Definitions
+                const manifestRes = await fetch('/api/manifest/definitions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hashes })
+                });
+                const manifestData = await manifestRes.json();
+                setDefinitions(manifestData);
+
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     // Helper to get items for the active character
     const getCharacterItems = () => {
