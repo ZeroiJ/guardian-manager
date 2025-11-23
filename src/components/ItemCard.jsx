@@ -8,7 +8,7 @@ const TIER_COLORS = {
     Basic: 'border-[#e8e9ed] bg-[#e8e9ed]/10',
 };
 
-const ItemCard = ({ item, definition }) => {
+const ItemCard = ({ item, definition, isEquipped }) => {
     if (!definition) return <div className="w-16 h-16 bg-gray-800 animate-pulse rounded" />;
 
     const tier = definition.inventory.tierTypeName; // e.g., "Exotic"
@@ -20,7 +20,7 @@ const ItemCard = ({ item, definition }) => {
     const borderClass = TIER_COLORS[tier] || 'border-gray-600';
 
     return (
-        <div className="relative group w-24 h-24 cursor-pointer transition-all duration-300 hover:scale-105 hover:z-10">
+        <div className={`relative group w-24 h-24 cursor-pointer transition-all duration-300 hover:scale-105 hover:z-10 ${isEquipped ? 'ring-2 ring-[#e8e9ed] ring-offset-2 ring-offset-[#0a0e14]' : ''}`}>
             {/* Item Icon */}
             <div className={`w-full h-full rounded-sm overflow-hidden border-2 ${borderClass} relative shadow-lg group-hover:shadow-[0_0_15px_rgba(74,158,255,0.3)]`}>
                 <img
