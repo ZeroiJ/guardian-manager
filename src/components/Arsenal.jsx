@@ -84,9 +84,11 @@ export function Arsenal() {
     };
 
     const allItems = getCharacterItems();
+    console.log('All Items:', allItems.length, allItems);
 
     // Filter by Search (Advanced)
     const filteredItems = filterItems(allItems, searchQuery);
+    console.log('Filtered Items:', filteredItems.length);
 
     // Buckets
     const BUCKETS = {
