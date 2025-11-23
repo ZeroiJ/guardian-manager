@@ -7,7 +7,23 @@ export function Arsenal() {
 
     // ... (useEffect remains)
 
-    // ... (getCharacterItems remains)
+    // Helper to get items for the active character
+    const getCharacterItems = () => {
+        if (!profile || !activeCharacterId) return [];
+
+        const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
+        const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
+        const rawItems = [...equipment, ...inventory];
+
+        // Merge Instance Data (Power Level, Perks, etc.)
+        const itemInstances = profile.itemComponents?.instances?.data || {};
+
+        return rawItems.map(item => ({
+            ...item,
+            instanceData: itemInstances[item.itemInstanceId],
+            def: definitions[item.itemHash]
+        })).filter(item => item.def); // Only return items we have definitions for
+    };
 
     const allItems = getCharacterItems();
 
