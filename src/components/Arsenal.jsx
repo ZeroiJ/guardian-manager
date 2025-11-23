@@ -64,16 +64,23 @@ export function Arsenal() {
 
         const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
         const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
-        const rawItems = [...equipment, ...inventory];
 
         // Merge Instance Data (Power Level, Perks, etc.)
         const itemInstances = profile.itemComponents?.instances?.data || {};
 
-        return rawItems.map(item => ({
+        const processItems = (items, isEquipped) => items.map(item => ({
             ...item,
-            instanceData: itemInstances[item.itemInstanceId],
+            instanceData: {
+                ...itemInstances[item.itemInstanceId],
+                isEquipped // Explicitly override/set isEquipped
+            },
             def: definitions[item.itemHash]
-        })).filter(item => item.def); // Only return items we have definitions for
+        })).filter(item => item.def);
+
+        const equippedItems = processItems(equipment, true);
+        const inventoryItems = processItems(inventory, false);
+
+        return [...equippedItems, ...inventoryItems];
     };
 
     const allItems = getCharacterItems();
