@@ -87,7 +87,9 @@ export function Arsenal() {
     };
 
     const allItems = getCharacterItems();
-    console.log('All Items:', allItems.length, allItems);
+    console.log('All Items:', allItems.length);
+    console.log('Vault Items (Raw):', profile?.profileInventory?.data?.items?.length);
+    console.log('Vault Items (Processed):', allItems.filter(i => i.instanceData.location === 'vault').length);
 
     // Filter by Search (Advanced)
     const filteredItems = filterItems(allItems, searchQuery);
