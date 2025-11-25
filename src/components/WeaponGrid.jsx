@@ -9,8 +9,6 @@ export function WeaponGrid({ title, items }) {
     const inHandItems = items.filter(i => i.instanceData?.location === 'inHand');
     const vaultItems = items.filter(i => i.instanceData?.location === 'vault');
 
-    console.log(`[${title}] Vault Items:`, vaultItems.length);
-
     return (
         <div className="mb-8">
             <h2 className="text-sm font-bold text-[#9199a8] uppercase tracking-wider mb-2 border-b border-[#252a38] pb-1">
@@ -60,7 +58,7 @@ export function WeaponGrid({ title, items }) {
                 {/* Column 3: Vault / Inventory */}
                 <div className="flex-1 min-w-0">
                     <div className="text-xs text-[#9199a8] mb-1 uppercase tracking-wider">Vault</div>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(3rem,1fr))] gap-1 bg-[#101419]/50 p-2 rounded-lg border border-[#252a38]/50 min-h-[150px]">
+                    <div className="flex flex-wrap gap-1 bg-[#101419]/50 p-2 rounded-lg border border-[#252a38]/50 min-h-[150px]">
                         {vaultItems.map((item) => (
                             <div key={item.itemInstanceId || item.itemHash} className="w-12 h-12">
                                 <ItemCard
@@ -72,7 +70,7 @@ export function WeaponGrid({ title, items }) {
                             </div>
                         ))}
                         {vaultItems.length === 0 && (
-                            <div className="col-span-full flex items-center justify-center text-[#9199a8] text-sm italic h-full">
+                            <div className="w-full flex items-center justify-center text-[#9199a8] text-sm italic h-full">
                                 No items in Vault
                             </div>
                         )}

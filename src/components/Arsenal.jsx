@@ -111,11 +111,6 @@ export function Arsenal() {
     const energyWeapons = filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Energy);
     const powerWeapons = filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Power);
 
-    console.log('Kinetic Total:', kineticWeapons.length, 'Vault:', kineticWeapons.filter(i => i.instanceData.location === 'vault').length);
-    if (kineticWeapons.filter(i => i.instanceData.location === 'vault').length > 0) {
-        console.log('Sample Vault Kinetic:', kineticWeapons.find(i => i.instanceData.location === 'vault'));
-    }
-
     if (loading) return <div className="min-h-screen bg-[#0a0e14] text-white flex items-center justify-center">Loading Arsenal...</div>;
 
     return (
