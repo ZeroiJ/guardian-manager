@@ -15,7 +15,7 @@ export function WeaponGrid({ title, items }) {
                 {title}
             </h2>
 
-            <div className="flex gap-6 items-start">
+            <div className="flex gap-6 items-start w-full">
                 {/* Column 1: Equipped Slot */}
                 <div className="flex-shrink-0 w-24">
                     <div className="text-xs text-[#9199a8] mb-1 uppercase tracking-wider">Equipped</div>
@@ -56,11 +56,11 @@ export function WeaponGrid({ title, items }) {
                 </div>
 
                 {/* Column 3: Vault / Inventory */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     <div className="text-xs text-[#9199a8] mb-1 uppercase tracking-wider">Vault</div>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-2 bg-[#101419]/50 p-2 rounded-lg border border-[#252a38]/50 min-h-[150px]">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(3rem,1fr))] gap-1 bg-[#101419]/50 p-2 rounded-lg border border-[#252a38]/50 min-h-[150px]">
                         {vaultItems.map((item) => (
-                            <div key={item.itemInstanceId || item.itemHash} className="w-16 h-16">
+                            <div key={item.itemInstanceId || item.itemHash} className="w-12 h-12">
                                 <ItemCard
                                     item={item}
                                     definition={item.def}
