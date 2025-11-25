@@ -65,7 +65,7 @@ async function getDestinyMemberships(accessToken) {
 }
 
 async function getProfile(accessToken, membershipId, membershipType, refreshToken) {
-    const components = '100,200,201,205,300';
+    const components = '100,102,200,201,205,300';
     const url = `${BUNGIE_API_ROOT}/Destiny2/${membershipType}/Profile/${membershipId}/?components=${components}`;
 
     try {

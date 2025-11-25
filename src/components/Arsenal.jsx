@@ -36,6 +36,7 @@ export function Arsenal() {
                 const allItems = [];
                 Object.values(data.characterEquipment?.data || {}).forEach(char => allItems.push(...char.items));
                 Object.values(data.characterInventories?.data || {}).forEach(char => allItems.push(...char.items));
+                allItems.push(...(data.profileInventory?.data?.items || []));
 
                 const hashes = [...new Set(allItems.map(i => i.itemHash))];
 
@@ -64,23 +65,25 @@ export function Arsenal() {
 
         const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
         const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
+        const vault = profile.profileInventory?.data?.items || [];
 
         // Merge Instance Data (Power Level, Perks, etc.)
         const itemInstances = profile.itemComponents?.instances?.data || {};
 
-        const processItems = (items, isEquipped) => items.map(item => ({
+        const processItems = (items, location) => items.map(item => ({
             ...item,
             instanceData: {
                 ...itemInstances[item.itemInstanceId],
-                isEquipped // Explicitly override/set isEquipped
+                location // 'equipped', 'inHand', 'vault'
             },
             def: definitions[item.itemHash]
         })).filter(item => item.def);
 
-        const equippedItems = processItems(equipment, true);
-        const inventoryItems = processItems(inventory, false);
+        const equippedItems = processItems(equipment, 'equipped');
+        const inventoryItems = processItems(inventory, 'inHand');
+        const vaultItems = processItems(vault, 'vault');
 
-        return [...equippedItems, ...inventoryItems];
+        return [...equippedItems, ...inventoryItems, ...vaultItems];
     };
 
     const allItems = getCharacterItems();
