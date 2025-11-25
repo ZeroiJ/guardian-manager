@@ -9,6 +9,8 @@ export function WeaponGrid({ title, items }) {
     const inHandItems = items.filter(i => i.instanceData?.location === 'inHand');
     const vaultItems = items.filter(i => i.instanceData?.location === 'vault');
 
+    console.log(`[${title}] Vault Items:`, vaultItems.length);
+
     return (
         <div className="mb-8">
             <h2 className="text-sm font-bold text-[#9199a8] uppercase tracking-wider mb-2 border-b border-[#252a38] pb-1">
