@@ -10,7 +10,6 @@ export function WeaponGrid({ title, items }) {
     const vaultItems = items.filter(i => i.instanceData?.location === 'vault');
 
     return (
-    return (
         <div className="mb-12">
             <div className="flex items-center gap-4 mb-6 border-b border-white/20 pb-2">
                 <div className="w-2 h-2 bg-solar animate-pulse" />
