@@ -17,6 +17,8 @@ export default {
                 primary: '#ffffff',
                 surface: '#111111',
                 border: '#333333',
+                'tavus-pink': '#ff90e8',
+                'acid-green': '#00ff00',
             },
             boxShadow: {
                 'neo': '4px 4px 0px rgba(0, 0, 0, 0.5)',

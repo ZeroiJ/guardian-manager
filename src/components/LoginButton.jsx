@@ -8,7 +8,7 @@ const LoginButton = () => {
     return (
         <button
             onClick={handleLogin}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-tavus-pink text-black font-sans font-bold uppercase tracking-wider py-4 px-8 border-2 border-black shadow-neo hover:shadow-neo-hover hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200"
         >
             Login with Bungie
         </button>
