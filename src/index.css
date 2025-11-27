@@ -455,10 +455,39 @@
         line-height: 1.5;
     }
 
-    :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) input {
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-normal);
-        line-height: 1.5;
+    :root {
+        --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+        --font-serif: "Playfair Display", ui-serif, serif;
+    }
+
+    body {
+        background-color: #050505;
+        color: #ffffff;
+        font-family: var(--font-sans);
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    }
+
+    ::selection {
+        background-color: #a359ff;
+        color: #ffffff;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #111;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border: 1px solid #000;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 }
 

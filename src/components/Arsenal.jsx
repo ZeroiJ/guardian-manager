@@ -114,32 +114,45 @@ export function Arsenal() {
     if (loading) return <div className="min-h-screen bg-[#0a0e14] text-white flex items-center justify-center">Loading Arsenal...</div>;
 
     return (
-        <div className="min-h-screen bg-[#0a0e14] text-[#e8e9ed]">
-            {/* Header */}
-            <div className="border-b border-[#252a38] bg-[#101419]/80 backdrop-blur-sm">
-                <div className="container mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="size-16 bg-gradient-to-br from-[#4a9eff] to-[#00d4ff] rounded-lg flex items-center justify-center">
-                                <div className="size-10 bg-[#0a0e14] rounded-sm" />
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-void selection:text-white">
+            {/* Header Window */}
+            <div className="sticky top-4 z-50 px-4 mb-8">
+                <div className="container mx-auto bg-surface/80 backdrop-blur-md border border-white/20 shadow-neo">
+                    {/* Title Bar */}
+                    <div className="flex items-center justify-between px-2 py-1 bg-white/5 border-b border-white/10">
+                        <div className="flex gap-2">
+                            <div className="w-3 h-3 bg-red-500 border border-black/50" />
+                            <div className="w-3 h-3 bg-yellow-500 border border-black/50" />
+                            <div className="w-3 h-3 bg-green-500 border border-black/50" />
+                        </div>
+                        <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Guardian_Nexus.exe</span>
+                        <div className="w-12" /> {/* Spacer */}
+                    </div>
+
+                    {/* Header Content */}
+                    <div className="px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                            <div className="size-12 bg-void flex items-center justify-center border border-white shadow-neo-hover">
+                                <span className="font-serif text-2xl text-white font-bold">G</span>
                             </div>
                             <div>
-                                <h1 className="text-3xl">Guardian</h1>
-                                <div className="flex items-center gap-4 text-sm text-[#9199a8] mt-1">
-                                    <span>⚡ {profile?.characters?.data?.[activeCharacterId]?.light}</span>
+                                <h1 className="text-4xl font-serif tracking-tight">Guardian</h1>
+                                <div className="flex items-center gap-2 text-sm font-mono text-gray-400 mt-1">
+                                    <span className="text-solar">⚡ {profile?.characters?.data?.[activeCharacterId]?.light}</span>
+                                    <span>// LIGHT_LEVEL</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Search */}
-                        <div className="relative w-80">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#9199a8]" />
+                        <div className="relative w-96">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
                             <Input
                                 type="text"
-                                placeholder="<enter item name>"
+                                placeholder="SEARCH_DATABASE..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 bg-[#1a1f2e]/80 border-[#252a38] text-[#e8e9ed] placeholder:text-[#9199a8]/50 focus:border-[#4a9eff]"
+                                className="w-full pl-12 pr-4 py-3 bg-black border border-white/20 text-white placeholder:text-gray-600 focus:border-void focus:outline-none font-mono text-sm shadow-neo-hover transition-all"
                             />
                         </div>
                     </div>
@@ -151,10 +164,15 @@ export function Arsenal() {
                 <div className="grid grid-cols-12 gap-6">
                     {/* Left Sidebar */}
                     <div className="col-span-2">
-                        <ArsenalSidebar
-                            selectedCategory={selectedCategory}
-                            onCategoryChange={setSelectedCategory}
-                        />
+                        <div className="sticky top-32 bg-surface/50 border border-white/10 p-4 shadow-neo backdrop-blur-sm">
+                            <div className="mb-4 pb-2 border-b border-white/10">
+                                <span className="text-xs font-mono text-gray-500">NAVIGATION</span>
+                            </div>
+                            <ArsenalSidebar
+                                selectedCategory={selectedCategory}
+                                onCategoryChange={setSelectedCategory}
+                            />
+                        </div>
                     </div>
 
                     {/* Main Content */}
