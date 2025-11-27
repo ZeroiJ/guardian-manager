@@ -1,0 +1,11 @@
+name = "guardian-nexus"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[vars]
+# These will be overridden by the actual environment variables in Cloudflare Dashboard
+# BUNGIE_CLIENT_ID = ""
+# BUNGIE_CLIENT_SECRET = ""
+# BUNGIE_API_KEY = ""
+# SESSION_SECRET = ""
+# FRONTEND_URL = ""
