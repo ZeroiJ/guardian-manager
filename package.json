@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev . -- npm run dev",
-    "deploy": "npm run build && wrangler pages deploy dist"
+    "deploy": "wrangler pages deploy dist"
   },
   "dependencies": {
     "clsx": "^2.1.1",
