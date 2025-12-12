@@ -1,6 +1,6 @@
-import { getTokensFromCode } from '../../../services/authService';
-import { getDestinyMemberships } from '../../../services/bungieService';
-import { setSession } from '../../../utils/session';
+import { getTokensFromCode } from '../../services/authService';
+import { getDestinyMemberships } from '../../services/bungieService';
+import { setSession } from '../../utils/session';
 
 export async function onRequest(context) {
     const { request, env } = context;

@@ -1,4 +1,4 @@
-import { getDefinitions } from '../../services/manifestService';
+import { getDefinitions } from '../services/manifestService';
 
 export async function onRequestPost(context) {
     const { request, env } = context;

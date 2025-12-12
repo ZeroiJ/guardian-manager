@@ -1,4 +1,4 @@
-import { getSession } from '../../../utils/session';
+import { getSession } from '../../utils/session';
 
 export async function onRequest(context) {
     const { request, env } = context;

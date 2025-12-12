@@ -1,4 +1,4 @@
-import { destroySession } from '../../../utils/session';
+import { destroySession } from '../../utils/session';
 
 export async function onRequest(context) {
     const cookie = destroySession();

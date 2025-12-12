@@ -1,6 +1,6 @@
-import { getSession, setSession } from '../../utils/session';
-import { getProfile } from '../../services/bungieService';
-import { refreshAccessToken } from '../../services/authService';
+import { getSession, setSession } from '../utils/session';
+import { getProfile } from '../services/bungieService';
+import { refreshAccessToken } from '../services/authService';
 
 export async function onRequest(context) {
     const { request, env } = context;
