@@ -38,8 +38,10 @@ export function Arsenal() {
                 Object.values(data.characterInventories?.data || {}).forEach(char => allItems.push(...char.items));
                 allItems.push(...(data.profileInventory?.data?.items || []));
 
-                const hashes = [...new Set(allItems.map(i => i.itemHash))];
-
+                // 3. Fetch Manifest Definitions (Optimized)
+                // Filter out non-instanced items (Materials, Shaders, etc.) to prevent API rate limiting
+                const instancedItems = allItems.filter(i => i.itemInstanceId);
+                const hashes = [...new Set(instancedItems.map(i => i.itemHash))];
                 // 3. Fetch Manifest Definitions
                 const manifestRes = await fetch('/api/manifest/definitions', {
                     method: 'POST',
