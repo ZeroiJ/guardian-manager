@@ -83,11 +83,15 @@ export function Arsenal() {
         if (!profile) return [];
         const vault = profile.profileInventory?.data?.items || [];
         const itemInstances = profile.itemComponents?.instances?.data || {};
-        return vault.map(item => ({
+
+        const filtered = vault.map(item => ({
             ...item,
             instanceData: itemInstances[item.itemInstanceId],
             def: definitions[item.itemHash]
         })).filter(i => i.def);
+
+        console.log(`Debug: Vault Items - Total: ${vault.length}, With Def: ${filtered.length}`);
+        return filtered;
     };
 
     if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center font-mono animate-pulse">Initializing Guardian_Nexus...</div>;
