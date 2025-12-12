@@ -112,7 +112,6 @@ export function Arsenal() {
             def: definitions[item.itemHash]
         })).filter(i => i.def);
 
-        console.log(`Debug: Vault Items - Total: ${vault.length}, With Def: ${filtered.length}`);
         return filtered;
     };
 
