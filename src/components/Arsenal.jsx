@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArsenalSidebar } from './ArsenalSidebar';
-import { WeaponGrid } from './WeaponGrid';
 import { Search } from 'lucide-react';
-import { filterItems } from '../utils/itemFilter';
-
-// Simple Input Mock
-const Input = ({ className, ...props }) => (
-    <input className={`px-4 py-2 rounded ${className}`} {...props} />
-);
+import { CharacterColumn } from './CharacterColumn';
+import ItemCard from './ItemCard';
 
 export function Arsenal() {
-    const [selectedCategory, setSelectedCategory] = useState('weapons');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Data State
@@ -61,167 +54,102 @@ export function Arsenal() {
         fetchData();
     }, []);
 
-    // Helper to get items for the active character
-    const getCharacterItems = () => {
-        if (!profile || !activeCharacterId) return [];
+    // Helper to get items for a specific character
+    const getItemsForCharacter = (charId) => {
+        if (!profile) return { equipment: [], inventory: [] };
 
-        const equipment = profile.characterEquipment?.data?.[activeCharacterId]?.items || [];
-        const inventory = profile.characterInventories?.data?.[activeCharacterId]?.items || [];
-        const vault = profile.profileInventory?.data?.items || [];
-
-        // Merge Instance Data (Power Level, Perks, etc.)
+        const equipment = profile.characterEquipment?.data?.[charId]?.items || [];
+        const inventory = profile.characterInventories?.data?.[charId]?.items || [];
         const itemInstances = profile.itemComponents?.instances?.data || {};
 
-        const processItems = (items, location) => items.map(item => {
-            const def = definitions[item.itemHash];
-            if (!def) {
-                // console.warn('Missing definition for item:', item.itemHash);
-                return null;
-            }
-            return {
-                ...item,
-                instanceData: {
-                    ...itemInstances[item.itemInstanceId],
-                    location
-                },
-                def
-            };
-        }).filter(item => item !== null);
+        const enhance = (items) => items.map(item => ({
+            ...item,
+            instanceData: itemInstances[item.itemInstanceId],
+            def: definitions[item.itemHash]
+        })).filter(i => i.def); // Only show if definition exists
 
-        const equippedItems = processItems(equipment, 'equipped');
-        const inventoryItems = processItems(inventory, 'inHand');
-        const vaultItems = processItems(vault, 'vault');
-
-
-        if (vault.length > 0) {
-            console.log('Sample Vault Item:', vault[0]);
-        }
-        console.log(`Vault Debug: Total ${vault.length}, Instanced ${vault.filter(i => i.itemInstanceId).length}, Processed ${vaultItems.length}`);
-
-        return [...equippedItems, ...inventoryItems, ...vaultItems];
+        return {
+            equipment: enhance(equipment),
+            inventory: enhance(inventory)
+        };
     };
 
-    const allItems = getCharacterItems();
-    console.log('All Items:', allItems.length);
-    console.log('Vault Items (Raw):', profile?.profileInventory?.data?.items?.length);
-    console.log('Vault Items (Processed):', allItems.filter(i => i.instanceData.location === 'vault').length);
-
-    // Filter by Search (Advanced)
-    const filteredItems = filterItems(allItems, searchQuery);
-    console.log('Filtered Items:', filteredItems.length);
-
-    // Buckets
-    const BUCKETS = {
-        Kinetic: 1498876634,
-        Energy: 2465295065,
-        Power: 953998645,
-        Helmet: 3448274439,
-        Gauntlets: 3551918588,
-        Chest: 14239492,
-        Legs: 20886954,
-        Class: 1585787867
+    const getVaultItems = () => {
+        if (!profile) return [];
+        const vault = profile.profileInventory?.data?.items || [];
+        const itemInstances = profile.itemComponents?.instances?.data || {};
+        return vault.map(item => ({
+            ...item,
+            instanceData: itemInstances[item.itemInstanceId],
+            def: definitions[item.itemHash]
+        })).filter(i => i.def);
     };
 
-    const kineticWeapons = filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Kinetic);
-    const energyWeapons = filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Energy);
-    const powerWeapons = filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Power);
+    if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center font-mono animate-pulse">Initializing Guardian_Nexus...</div>;
 
-    if (loading) return <div className="min-h-screen bg-[#0a0e14] text-white flex items-center justify-center">Loading Arsenal...</div>;
+    const characters = profile?.characters?.data ? Object.values(profile.characters.data) : [];
+    const vaultItems = getVaultItems();
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-void selection:text-white">
-            {/* Header Window */}
-            <div className="sticky top-4 z-50 px-4 mb-8">
-                <div className="container mx-auto bg-[#f0f0f0] border-2 border-black shadow-neo">
-                    {/* Title Bar */}
-                    <div className="flex items-center justify-between px-2 py-1 bg-white border-b-2 border-black">
-                        <div className="flex gap-2">
-                            <div className="w-3 h-3 bg-white border border-black hover:bg-black transition-colors" />
-                            <div className="w-3 h-3 bg-white border border-black hover:bg-black transition-colors" />
-                        </div>
-                        <span className="text-xs font-mono text-black uppercase tracking-widest">Guardian_Nexus.exe</span>
-                        <div className="w-8" />
-                    </div>
+        <div className="h-screen bg-[#050505] text-[#e8e9ed] font-sans flex flex-col overflow-hidden">
+            {/* Top Bar (DIM Style) */}
+            <div className="h-12 bg-[#141414] border-b border-white/10 flex items-center px-4 justify-between flex-shrink-0 z-50">
+                <div className="flex items-center gap-4">
+                    <span className="font-bold text-xl tracking-tight text-white">Guardian<span className="text-[#e1c564]">Nexus</span></span>
+                    <nav className="flex gap-4 text-sm font-medium text-gray-400">
+                        <button className="text-white hover:text-white transition-colors">Inventory</button>
+                        <button className="hover:text-white transition-colors">Progress</button>
+                        <button className="hover:text-white transition-colors">Vendors</button>
+                    </nav>
+                </div>
 
-                    {/* Header Content */}
-                    <div className="px-6 py-4 flex items-center justify-between bg-[#f0f0f0]">
-                        <div className="flex items-center gap-6">
-                            <div className="size-12 bg-black flex items-center justify-center border-2 border-black shadow-sm">
-                                <span className="font-serif text-2xl text-white font-bold">G</span>
-                            </div>
-                            <div>
-                                <h1 className="text-4xl font-serif tracking-tight text-black">Guardian</h1>
-                                <div className="flex items-center gap-2 text-sm font-mono text-gray-600 mt-1">
-                                    <span className="text-tavus-pink font-bold">⚡ {profile?.characters?.data?.[activeCharacterId]?.light}</span>
-                                    <span>// LIGHT_LEVEL</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Search */}
-                        <div className="relative w-96">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
-                            <Input
-                                type="text"
-                                placeholder="SEARCH_DATABASE..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-black text-black placeholder:text-gray-400 focus:border-tavus-pink focus:outline-none font-mono text-sm shadow-sm transition-all"
-                            />
-                        </div>
+                <div className="flex-1 max-w-xl px-8">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Search item, perk, is:dupe..."
+                            className="w-full bg-black/50 border border-white/10 rounded-sm py-1.5 pl-9 pr-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors font-mono"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <button className="hover:text-white">Settings</button>
+                    <div className="size-6 bg-gradient-to-tr from-yellow-500 to-orange-500 rounded-full" />
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="container mx-auto px-4 py-6">
-                <div className="grid grid-cols-12 gap-6">
-                    {/* Left Sidebar */}
-                    <div className="col-span-2">
-                        <div className="sticky top-32 bg-[#f0f0f0] border-2 border-black p-0 shadow-neo">
-                            <div className="px-3 py-2 border-b-2 border-black bg-white">
-                                <span className="text-xs font-mono text-black uppercase tracking-widest">NAVIGATION</span>
-                            </div>
-                            <div className="p-4">
-                                <ArsenalSidebar
-                                    selectedCategory={selectedCategory}
-                                    onCategoryChange={setSelectedCategory}
-                                />
-                            </div>
-                        </div>
+            {/* Horizontal Scroll Content */}
+            <div className="flex-1 overflow-x-auto flex">
+                {characters.map(char => {
+                    const { equipment, inventory } = getItemsForCharacter(char.characterId);
+                    return (
+                        <CharacterColumn
+                            key={char.characterId}
+                            character={char}
+                            equipment={equipment}
+                            inventory={inventory}
+                            definitions={definitions}
+                        />
+                    );
+                })}
+
+                {/* Vault Column */}
+                <div className="flex-shrink-0 w-[400px] bg-[#101010] flex flex-col h-full border-r border-white/10">
+                    <div className="h-12 flex items-center px-4 bg-[#141414] border-b border-white/10 justify-between">
+                        <span className="font-bold text-gray-300">Vault</span>
+                        <span className="text-sm font-mono text-gray-500">{vaultItems.length} / 600</span>
                     </div>
-
-                    {/* Main Content */}
-                    <div className="col-span-10">
-                        <div className="space-y-6">
-                            {/* Kinetic Weapons */}
-                            <WeaponGrid
-                                title="Kinetic Weapons"
-                                items={kineticWeapons}
-                            />
-
-                            {/* Energy Weapons */}
-                            <WeaponGrid
-                                title="Energy Weapons"
-                                items={energyWeapons}
-                            />
-
-                            {/* Power Weapons */}
-                            <WeaponGrid
-                                title="Power Weapons"
-                                items={powerWeapons}
-                            />
-
-                            {/* Armor Section Divider */}
-                            <div className="pt-8 border-t border-[#252a38]">
-                                <h2 className="text-2xl font-bold mb-6 text-[#e8e9ed]">Armor</h2>
-                            </div>
-
-                            <WeaponGrid title="Helmet" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Helmet)} />
-                            <WeaponGrid title="Gauntlets" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Gauntlets)} />
-                            <WeaponGrid title="Chest Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Chest)} />
-                            <WeaponGrid title="Leg Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Legs)} />
-                            <WeaponGrid title="Class Armor" items={filteredItems.filter(i => i.def.inventory.bucketTypeHash === BUCKETS.Class)} />
+                    <div className="flex-1 p-2 overflow-y-auto">
+                        <div className="flex flex-wrap gap-1 content-start">
+                            {vaultItems.map(item => (
+                                <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px]">
+                                    <ItemCard item={item} definition={item.def} compact={true} />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
