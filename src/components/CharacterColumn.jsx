@@ -1,15 +1,23 @@
-import React from 'react';
-import ItemCard from './ItemCard';
+import { STAT_HASHES } from '../utils/constants';
 
 export function CharacterColumn({ character, equipment, inventory, definitions }) {
     if (!character) return null;
 
-    const { light, raceType, classType, genderType, emblemBackgroundPath } = character;
+    const { light, raceType, classType, genderType, emblemBackgroundPath, stats } = character;
     const raceNames = { 0: 'Human', 1: 'Awoken', 2: 'Exo' };
     const classNames = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
 
     // Sort Helper
     const sortByKey = (a, b) => (definitions[a.itemHash]?.inventory?.bucketTypeHash || 0) - (definitions[b.itemHash]?.inventory?.bucketTypeHash || 0);
+
+    const STAT_LABELS = {
+        [STAT_HASHES.Mobility]: 'Mob',
+        [STAT_HASHES.Resilience]: 'Res',
+        [STAT_HASHES.Recovery]: 'Rec',
+        [STAT_HASHES.Discipline]: 'Dis',
+        [STAT_HASHES.Intellect]: 'Int',
+        [STAT_HASHES.Strength]: 'Str'
+    };
 
     return (
         <div className="flex-shrink-0 w-[320px] bg-[#141414] border-r border-white/10 flex flex-col h-full overflow-hidden">
@@ -30,21 +38,14 @@ export function CharacterColumn({ character, equipment, inventory, definitions }
                 </div>
             </div>
 
-            {/* Stats Row (Placeholder for now) */}
-            <div className="flex justify-between px-4 py-2 bg-[#0a0a0a] border-b border-white/5">
-                {/* Mobility */}
-                <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">Mob</span>
-                    <span className="text-sm font-bold text-white">??</span>
-                </div>
-                <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">Res</span>
-                    <span className="text-sm font-bold text-white">??</span>
-                </div>
-                <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">Rec</span>
-                    <span className="text-sm font-bold text-white">??</span>
-                </div>
+            {/* Stats Row */}
+            <div className="grid grid-cols-6 gap-1 px-2 py-2 bg-[#0a0a0a] border-b border-white/5">
+                {Object.entries(STAT_HASHES).map(([name, hash]) => (
+                    <div key={name} className="flex flex-col items-center">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-widest">{name.substring(0, 3)}</span>
+                        <span className="text-sm font-bold text-white">{stats[hash] || 0}</span>
+                    </div>
+                ))}
             </div>
 
             {/* Inventory Content (Scrollable) */}
