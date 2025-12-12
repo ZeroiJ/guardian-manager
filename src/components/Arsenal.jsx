@@ -92,6 +92,10 @@ export function Arsenal() {
         const inventoryItems = processItems(inventory, 'inHand');
         const vaultItems = processItems(vault, 'vault');
 
+
+        if (vault.length > 0) {
+            console.log('Sample Vault Item:', vault[0]);
+        }
         console.log(`Vault Debug: Total ${vault.length}, Instanced ${vault.filter(i => i.itemInstanceId).length}, Processed ${vaultItems.length}`);
 
         return [...equippedItems, ...inventoryItems, ...vaultItems];
