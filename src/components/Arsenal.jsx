@@ -31,23 +31,45 @@ export function Arsenal() {
                 Object.values(data.characterInventories?.data || {}).forEach(char => allItems.push(...char.items));
                 allItems.push(...(data.profileInventory?.data?.items || []));
 
-                // 3. Fetch Manifest Definitions (Optimized)
+                // 3. Fetch Manifest Definitions (Optimized with Client-Side Chunking)
                 // Filter out non-instanced items (Materials, Shaders, etc.) to prevent API rate limiting
                 const instancedItems = allItems.filter(i => i.itemInstanceId);
-                const hashes = [...new Set(instancedItems.map(i => i.itemHash))];
+                const uniqueHashes = [...new Set(instancedItems.map(i => i.itemHash))];
 
-                console.log(`Debug: Instanced Items: ${instancedItems.length}, Unique Hashes: ${hashes.length}`);
+                console.log(`Debug: Instanced Items: ${instancedItems.length}, Unique Hashes: ${uniqueHashes.length}`);
 
-                // 3. Fetch Manifest Definitions
-                const manifestRes = await fetch('/api/manifest/definitions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hashes })
-                });
-                const manifestData = await manifestRes.json();
-                console.log(`Debug: Loaded Definitions: ${Object.keys(manifestData).length}`);
+                // Helper to fetch in chunks
+                const chunkArray = (arr, size) => {
+                    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+                        arr.slice(i * size, i * size + size)
+                    );
+                };
 
-                setDefinitions(manifestData);
+                const chunks = chunkArray(uniqueHashes, 50); // 50 items per request to avoid backend timeout
+                let loadedCount = 0;
+
+                // Process chunks sequentially to avoid overwhelming the backend
+                for (const chunk of chunks) {
+                    try {
+                        const res = await fetch('/api/manifest/definitions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ hashes: chunk })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            loadedCount += Object.keys(data).length;
+                            setDefinitions(prev => ({ ...prev, ...data })); // Incremental update
+                        } else {
+                            console.warn('Failed to fetch chunk', res.status);
+                        }
+                    } catch (e) {
+                        console.error('Error fetching chunk:', e);
+                    }
+                }
+
+                console.log(`Debug: Total Loaded Definitions: ${loadedCount}`);
 
             } catch (error) {
                 console.error(error);
