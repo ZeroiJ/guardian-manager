@@ -1,3 +1,5 @@
+import React from 'react';
+import ItemCard from './ItemCard';
 import { STAT_HASHES } from '../utils/constants';
 
 export function CharacterColumn({ character, equipment, inventory, definitions }) {
