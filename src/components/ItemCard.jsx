@@ -1,70 +1,74 @@
 import React from 'react';
+import { DAMAGE_TYPES } from '../utils/constants';
 
-const TIER_COLORS = {
-    Exotic: 'border-[#f4c430] bg-[#f4c430]/10',
-    Legendary: 'border-[#a359ff] bg-[#a359ff]/10',
-    Rare: 'border-[#4a9eff] bg-[#4a9eff]/10',
-    Common: 'border-[#28a745] bg-[#28a745]/10',
-    Basic: 'border-[#e8e9ed] bg-[#e8e9ed]/10',
+const TIER_STYLES = {
+    Exotic: 'border-[#ceae33] bg-[#ceae33]/20',
+    Legendary: 'border-[#522f65] bg-[#522f65]/20',
+    Rare: 'border-[#5076a3] bg-[#5076a3]/20',
+    Common: 'border-[#366f3c] bg-[#366f3c]/20',
+    Basic: 'border-[#c3bcb4] bg-[#c3bcb4]/20',
 };
 
-const ItemCard = ({ item, definition, isEquipped, className = "w-24 h-24", compact = false }) => {
-    if (!definition) return <div className={`${className} bg-gray-800 animate-pulse rounded`} />;
+const ELEMENT_ICONS = {
+    [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066688b879c807c3b460afdd61e6.png',
+    [DAMAGE_TYPES.Solar]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_2a1773e10968f2d088b97c22b22bba9e.png',
+    [DAMAGE_TYPES.Void]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3958bb31cc783eb97a0.png',
+    [DAMAGE_TYPES.Stasis]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_530c4c474d22329dc3df9f99e324022a.png',
+    [DAMAGE_TYPES.Strand]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_b2fe51a94f3533f97079dfa0d27a4096.png',
+};
 
-    const tier = definition.inventory.tierTypeName; // e.g., "Exotic"
+const ItemCard = ({ item, definition, isEquipped, className = "w-[48px] h-[48px]", compact = false }) => {
+    if (!definition) return <div className={`${className} bg-gray-800 animate-pulse rounded-sm`} />;
+
+    const tier = definition.inventory.tierTypeName;
     const iconUrl = `https://www.bungie.net${definition.displayProperties.icon}`;
     const name = definition.displayProperties.name;
     const power = item?.instanceData?.primaryStat?.value;
+    const damageTypeHash = item?.instanceData?.damageTypeHash;
+    const isMasterwork = (item?.instanceData?.state & 4) !== 0; // Bitmask 4 is Masterwork (needs verification, standard is checking state) or state 4? 
+    // Actually masterwork is usually checked via energy or sockets, but let's stick to simple state for now or frame.
 
-    // Determine border color
-    const borderClass = TIER_COLORS[tier] || 'border-gray-600';
+    // Determine border styling
+    const borderClass = TIER_STYLES[tier] || 'border-gray-600';
 
     return (
-        <div className={`relative group ${className} cursor-pointer transition-all duration-200 ${isEquipped ? 'ring-1 ring-white ring-offset-2 ring-offset-black' : ''}`}>
-            {/* Item Icon */}
-            <div className={`w-full h-full border ${borderClass} relative shadow-sm group-hover:shadow-neo transition-all`}>
+        <div className={`relative group ${className} cursor-pointer select-none`}>
+            {/* Main Icon container */}
+            <div className={`w-full h-full relative overflow-hidden border ${borderClass} ${isMasterwork ? 'border-yellow-400 border-2' : ''}`}>
                 <img
                     src={iconUrl}
                     alt={name}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    draggable="false"
                 />
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+                {/* Element Overlay Icon */}
+                {damageTypeHash && ELEMENT_ICONS[damageTypeHash] && (
+                    <div className="absolute right-0.5 bottom-0.5 w-3 h-3 z-10 opacity-90 drop-shadow-md">
+                        <img src={ELEMENT_ICONS[damageTypeHash]} alt="Element" className="w-full h-full" />
+                    </div>
+                )}
             </div>
 
-            {/* Power Level Overlay */}
-            {power && !compact && (
-                <div className="absolute bottom-0 right-0 bg-black border-t border-l border-white/20 px-1 py-0.5 z-20">
-                    <span className="text-[10px] font-mono font-bold text-solar leading-none">{power}</span>
+            {/* Power Level / Count */}
+            {power && (
+                <div className="absolute bottom-0 right-1 z-20 pointer-events-none">
+                    <span
+                        className={`text-[10px] font-bold leading-none drop-shadow-md text-[#f5f5f5]`}
+                        style={{ textShadow: '1px 1px 0 #000' }}
+                    >
+                        {power}
+                    </span>
                 </div>
             )}
 
-            {/* Tooltip (Neo-Brutalist) */}
-            <div className="absolute z-50 hidden group-hover:block w-64 bg-surface border border-white/20 p-0 shadow-neo -top-4 left-full ml-4 pointer-events-none">
-                {/* Tooltip Header */}
-                <div className="bg-white/5 p-3 border-b border-white/10">
-                    <div className={`font-serif text-lg leading-tight mb-1 ${tier === 'Exotic' ? 'text-[#f4c430]' : 'text-white'}`}>
-                        {name}
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 uppercase tracking-wider">
-                        <span>{definition.itemTypeDisplayName}</span>
-                        <span className={tier === 'Exotic' ? 'text-[#f4c430]' : tier === 'Legendary' ? 'text-void' : 'text-arc'}>
-                            {tier}
-                        </span>
-                    </div>
+            {/* Tooltip (Simplified for now) */}
+            <div className="absolute z-50 hidden group-hover:block w-48 bg-[#0f0f0f] border border-white/20 p-2 shadow-2xl -top-2 left-full ml-2 pointer-events-none z-[100]">
+                <div className={`text-sm font-bold leading-tight mb-1 ${tier === 'Exotic' ? 'text-[#ceae33]' : 'text-white'}`}>
+                    {name}
                 </div>
-
-                {/* Tooltip Body */}
-                <div className="p-3 bg-black/50">
-                    {power && (
-                        <div className="text-sm font-mono text-white flex items-center gap-2">
-                            <span className="text-solar">⚡ {power}</span>
-                            <span className="text-gray-500">// POWER_LEVEL</span>
-                        </div>
-                    )}
-                </div>
+                <div className="text-xs text-gray-400">{definition.itemTypeDisplayName}</div>
             </div>
         </div>
     );

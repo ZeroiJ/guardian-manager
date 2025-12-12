@@ -31,3 +31,13 @@ export const STAT_HASHES = {
     Intellect: 144602215,
     Strength: 4244567218,
 };
+
+export const DAMAGE_TYPES = {
+    None: 0,
+    Kinetic: 3373582085,
+    Arc: 2303181850,
+    Solar: 1847026933,
+    Void: 3454344768,
+    Stasis: 151347233,
+    Strand: 3949783978,
+};
