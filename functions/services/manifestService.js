@@ -30,5 +30,5 @@ export async function getDefinitions(tableName, hashes, env) {
     }
 
     return results;
-    return results;
+
 }
