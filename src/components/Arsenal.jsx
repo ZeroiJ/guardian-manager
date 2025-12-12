@@ -36,7 +36,7 @@ export function Arsenal() {
                 const instancedItems = allItems.filter(i => i.itemInstanceId);
                 const uniqueHashes = [...new Set(instancedItems.map(i => i.itemHash))];
 
-                console.log(`Debug: Instanced Items: ${instancedItems.length}, Unique Hashes: ${uniqueHashes.length}`);
+
 
                 // Helper to fetch in chunks
                 const chunkArray = (arr, size) => {
@@ -69,7 +69,7 @@ export function Arsenal() {
                     }
                 }
 
-                console.log(`Debug: Total Loaded Definitions: ${loadedCount}`);
+
 
             } catch (error) {
                 console.error(error);
