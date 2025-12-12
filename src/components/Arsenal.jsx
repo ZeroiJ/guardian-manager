@@ -72,18 +72,27 @@ export function Arsenal() {
         // Merge Instance Data (Power Level, Perks, etc.)
         const itemInstances = profile.itemComponents?.instances?.data || {};
 
-        const processItems = (items, location) => items.map(item => ({
-            ...item,
-            instanceData: {
-                ...itemInstances[item.itemInstanceId],
-                location // 'equipped', 'inHand', 'vault'
-            },
-            def: definitions[item.itemHash]
-        })).filter(item => item.def);
+        const processItems = (items, location) => items.map(item => {
+            const def = definitions[item.itemHash];
+            if (!def) {
+                // console.warn('Missing definition for item:', item.itemHash);
+                return null;
+            }
+            return {
+                ...item,
+                instanceData: {
+                    ...itemInstances[item.itemInstanceId],
+                    location
+                },
+                def
+            };
+        }).filter(item => item !== null);
 
         const equippedItems = processItems(equipment, 'equipped');
         const inventoryItems = processItems(inventory, 'inHand');
         const vaultItems = processItems(vault, 'vault');
+
+        console.log(`Vault Debug: Total ${vault.length}, Instanced ${vault.filter(i => i.itemInstanceId).length}, Processed ${vaultItems.length}`);
 
         return [...equippedItems, ...inventoryItems, ...vaultItems];
     };
