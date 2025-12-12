@@ -35,6 +35,9 @@ export function Arsenal() {
                 // Filter out non-instanced items (Materials, Shaders, etc.) to prevent API rate limiting
                 const instancedItems = allItems.filter(i => i.itemInstanceId);
                 const hashes = [...new Set(instancedItems.map(i => i.itemHash))];
+
+                console.log(`Debug: Instanced Items: ${instancedItems.length}, Unique Hashes: ${hashes.length}`);
+
                 // 3. Fetch Manifest Definitions
                 const manifestRes = await fetch('/api/manifest/definitions', {
                     method: 'POST',
@@ -42,6 +45,8 @@ export function Arsenal() {
                     body: JSON.stringify({ hashes })
                 });
                 const manifestData = await manifestRes.json();
+                console.log(`Debug: Loaded Definitions: ${Object.keys(manifestData).length}`);
+
                 setDefinitions(manifestData);
 
             } catch (error) {
@@ -107,6 +112,8 @@ export function Arsenal() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
                         <input
+                            id="search-items"
+                            name="search"
                             type="text"
                             placeholder="Search item, perk, is:dupe..."
                             className="w-full bg-black/50 border border-white/10 rounded-sm py-1.5 pl-9 pr-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors font-mono"
