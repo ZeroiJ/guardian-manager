@@ -1,6 +1,6 @@
 import React from 'react';
-import ItemCard from './ItemCard';
-import { STAT_HASHES, BUCKETS } from '../utils/constants';
+import ItemCard from '../common/ItemCard';
+import { STAT_HASHES, BUCKETS } from '../../utils/constants';
 
 // Helper component for a single slot row (e.g. Kinetic Weapons)
 const EquipmentRow = ({ label, bucketHash, equipment, inventory, definitions }) => {

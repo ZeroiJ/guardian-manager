@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginButton from './components/LoginButton';
-import { Arsenal } from './components/Arsenal';
+import LoginButton from './components/common/LoginButton';
+import { ArsenalPage } from './pages/ArsenalPage';
 
-import { Home } from './components/Home';
+import { Home } from './pages/Home';
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -38,7 +38,7 @@ function App() {
                     </button>
                   </div>
                 </div>
-                <Arsenal />
+                <ArsenalPage />
               </>
             } />
           </Routes>
