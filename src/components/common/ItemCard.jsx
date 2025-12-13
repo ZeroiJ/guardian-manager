@@ -1,5 +1,5 @@
 import React from 'react';
-import { DAMAGE_TYPES } from '../utils/constants';
+import { DAMAGE_TYPES } from '../../utils/constants';
 
 const TIER_STYLES = {
     Exotic: 'border-[#ceae33] bg-[#ceae33]/20',
