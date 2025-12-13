@@ -18,23 +18,27 @@ const ELEMENT_ICONS = {
 };
 
 const ItemCard = ({ item, definition, isEquipped, className = "w-[48px] h-[48px]", compact = false }) => {
-    if (!definition) return <div className={`${className} bg-gray-800 animate-pulse rounded-sm`} />;
+    if (!definition) return <div className={`${className} bg-gray-800 animate-pulse`} />;
 
     const tier = definition.inventory.tierTypeName;
     const iconUrl = `https://www.bungie.net${definition.displayProperties.icon}`;
     const name = definition.displayProperties.name;
     const power = item?.instanceData?.primaryStat?.value;
     const damageTypeHash = item?.instanceData?.damageTypeHash;
-    const isMasterwork = (item?.instanceData?.state & 4) !== 0; // Bitmask 4 is Masterwork (needs verification, standard is checking state) or state 4? 
-    // Actually masterwork is usually checked via energy or sockets, but let's stick to simple state for now or frame.
+    const isMasterwork = (item?.instanceData?.state & 4) !== 0; 
+    const isDeepsight = (item?.instanceData?.state & 1) !== 0; // Simplified deepsight check (needs robust plug check usually)
 
     // Determine border styling
-    const borderClass = TIER_STYLES[tier] || 'border-gray-600';
+    // DIM Style: Border is usually 1px solid based on rarity.
+    const borderClass = TIER_STYLES[tier] || 'border-gray-800';
+    
+    // Masterwork: Gold Border Overlay
+    const masterworkClass = isMasterwork ? 'border-[#eec24e] border-2' : 'border';
 
     return (
-        <div className={`relative group ${className} cursor-pointer select-none`}>
+        <div className={`relative group ${className} cursor-pointer select-none bg-[#101010]`}>
             {/* Main Icon container */}
-            <div className={`w-full h-full relative overflow-hidden border ${borderClass} ${isMasterwork ? 'border-yellow-400 border-2' : ''}`}>
+            <div className={`w-full h-full relative overflow-hidden ${borderClass} ${masterworkClass} box-border`}>
                 <img
                     src={iconUrl}
                     alt={name}
@@ -43,32 +47,33 @@ const ItemCard = ({ item, definition, isEquipped, className = "w-[48px] h-[48px]
                     draggable="false"
                 />
 
-                {/* Element Overlay Icon */}
+                {/* Element Overlay Icon (Bottom Left - subtle) */}
                 {damageTypeHash && ELEMENT_ICONS[damageTypeHash] && (
-                    <div className="absolute right-0.5 bottom-0.5 w-3 h-3 z-10 opacity-90 drop-shadow-md">
+                    <div className="absolute left-0.5 bottom-0.5 w-2.5 h-2.5 z-10 opacity-90 drop-shadow-md">
                         <img src={ELEMENT_ICONS[damageTypeHash]} alt="Element" className="w-full h-full" />
                     </div>
                 )}
             </div>
 
-            {/* Power Level / Count */}
+            {/* Power Level / Count (Bottom Right - Bold, Yellow/White) */}
             {power && (
-                <div className="absolute bottom-0 right-1 z-20 pointer-events-none">
+                <div className="absolute bottom-[1px] right-[2px] z-20 pointer-events-none">
                     <span
-                        className={`text-[10px] font-bold leading-none drop-shadow-md text-[#f5f5f5]`}
-                        style={{ textShadow: '1px 1px 0 #000' }}
+                        className={`text-[9px] font-bold leading-none text-[#eec24e] font-mono`}
+                        style={{ textShadow: '1px 1px 0 #000, 0px 0px 2px black' }}
                     >
                         {power}
                     </span>
                 </div>
             )}
 
-            {/* Tooltip (Simplified for now) */}
-            <div className="absolute z-50 hidden group-hover:block w-48 bg-[#0f0f0f] border border-white/20 p-2 shadow-2xl -top-2 left-full ml-2 pointer-events-none z-[100]">
+            {/* Tooltip (Hover) */}
+            <div className="absolute z-[100] hidden group-hover:block w-52 bg-[#080808]/95 border border-white/10 p-2 shadow-2xl -top-2 left-full ml-1 pointer-events-none backdrop-blur-sm">
                 <div className={`text-sm font-bold leading-tight mb-1 ${tier === 'Exotic' ? 'text-[#ceae33]' : 'text-white'}`}>
                     {name}
                 </div>
-                <div className="text-xs text-gray-400">{definition.itemTypeDisplayName}</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">{definition.itemTypeDisplayName}</div>
+                {power && <div className="text-xs text-[#eec24e] font-bold mb-1">⚡ {power}</div>}
             </div>
         </div>
     );
