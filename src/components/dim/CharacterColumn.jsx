@@ -9,23 +9,25 @@ const EquipmentRow = ({ label, bucketHash, equipment, inventory, definitions }) 
     const inventoryItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
     return (
-        <div className="flex gap-1 mb-0.5 h-[50px]">
-            {/* Equipped Item (Left) */}
-            <div className="w-[50px] h-[50px] flex-shrink-0 bg-[#292929] border border-white/5 relative group">
-                {/* Slot Label Overlay (Only visible if empty) */}
-                {!equippedItem && <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[9px] uppercase tracking-widest">{label}</div>}
+        <div className="flex items-start mb-1 min-h-[56px]">
+            {/* Equipped Item (Hero Slot) - Scaled Up + Gutter */}
+            <div className="flex-shrink-0 mr-3">
+                <div className="w-[54px] h-[54px] bg-[#292929] border border-white/10 relative group shadow-lg">
+                    {/* Slot Label Overlay (Only visible if empty) */}
+                    {!equippedItem && <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[9px] uppercase tracking-widest">{label}</div>}
 
-                {equippedItem && (
-                    <ItemCard item={equippedItem} definition={definitions[equippedItem.itemHash]} className="w-full h-full" />
-                )}
+                    {equippedItem && (
+                        <ItemCard item={equippedItem} definition={definitions[equippedItem.itemHash]} className="w-full h-full" />
+                    )}
+                </div>
             </div>
 
-            {/* Inventory Grid (Right) */}
-            <div className="flex-1 grid grid-cols-3 gap-[2px] content-start">
+            {/* Inventory Grid (Backpack) */}
+            <div className="flex-1 grid grid-cols-3 gap-[2px] content-start mt-[3px]">
                 {[...Array(9)].map((_, idx) => {
                     const item = inventoryItems[idx];
                     return (
-                        <div key={idx} className="w-[50px] h-[50px] bg-[#1a1a1a] relative border border-white/5">
+                        <div key={idx} className="w-[48px] h-[48px] bg-[#1a1a1a] relative border border-white/5">
                             {item && (
                                 <ItemCard
                                     item={item}
