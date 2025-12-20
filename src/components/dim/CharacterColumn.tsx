@@ -2,8 +2,16 @@ import React from 'react';
 import ItemCard from '../common/ItemCard';
 import { STAT_HASHES, BUCKETS } from '../../utils/constants';
 
+interface EquipmentRowProps {
+    label: string;
+    bucketHash: number;
+    equipment: any[]; // TODO: BungieItem[]
+    inventory: any[]; // TODO: BungieItem[]
+    definitions: Record<string, any>; // TODO: Definitions Manifest
+}
+
 // Helper component for a single slot row (e.g. Kinetic Weapons)
-const EquipmentRow = ({ label, bucketHash, equipment, inventory, definitions }) => {
+const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipment, inventory, definitions }) => {
     // specific bucket item
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const inventoryItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
@@ -48,12 +56,20 @@ const EquipmentRow = ({ label, bucketHash, equipment, inventory, definitions }) 
     );
 };
 
-export function CharacterColumn({ character, equipment, inventory, definitions }) {
+interface CharacterColumnProps {
+    character: any; // TODO: Bungie Character Interface
+    equipment: any[];
+    inventory: any[];
+    definitions: Record<string, any>;
+}
+
+export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions }) => {
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
-    const raceNames = { 0: 'Human', 1: 'Awoken', 2: 'Exo' };
-    const classNames = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+    // ... mapped to numeric enums usually, but keying by number here
+    const raceNames: Record<number, string> = { 0: 'Human', 1: 'Awoken', 2: 'Exo' };
+    const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
     const classNameText = classNames[classType];
 
     return (

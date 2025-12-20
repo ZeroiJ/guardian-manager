@@ -2,7 +2,7 @@ import React from 'react';
 import { DAMAGE_TYPES } from '../../utils/constants';
 
 // Mapped from InventoryItem.m.scss
-const RARITY_COLORS = {
+const RARITY_COLORS: Record<number, string> = {
     6: 'var(--color-exotic)',    // Exotic
     5: 'var(--color-legendary)', // Legendary
     4: 'var(--color-rare)',      // Rare
@@ -11,7 +11,25 @@ const RARITY_COLORS = {
     0: 'var(--color-common)'     // Basic
 };
 
-const ItemCard = ({ item, definition, onClick, compact = false, className = '' }) => {
+const ELEMENT_ICONS: Record<number, string> = {
+    [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066688b879c807c3b460afdd61e6.png',
+    [DAMAGE_TYPES.Solar]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_2a1773e10968f2d088b97c22b22bba9e.png',
+    [DAMAGE_TYPES.Void]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3958bb31cc783eb97a0.png',
+    [DAMAGE_TYPES.Stasis]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_530c4c474d22329dc3df9f99e324022a.png',
+    [DAMAGE_TYPES.Strand]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_b2fe51a94f3533f97079dfa0d27a4096.png',
+    [DAMAGE_TYPES.Kinetic]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_3385a924fd3ccb936fe904098a655da0.png'
+};
+
+interface ItemCardProps {
+    item: any; // TODO: Define specific Bungie Item Interface
+    definition: any; // TODO: Define specific Bungie Definition Interface
+    onClick?: () => void;
+    compact?: boolean;
+    className?: string;
+    isEquipped?: boolean;
+}
+
+const ItemCard: React.FC<ItemCardProps> = ({ item, definition, onClick, compact = false, className = '' }) => {
     if (!item || !definition) return <div className={`w-[var(--item-size)] h-[var(--item-size)] bg-[#1a1a1a]`} />;
 
     const { itemInstanceId, itemHash, state } = item;
@@ -21,8 +39,8 @@ const ItemCard = ({ item, definition, onClick, compact = false, className = '' }
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
-    const damageType = item.instanceData?.damageType || definition.defaultDamageType;
-    const elementIcon = DAMAGE_TYPES[damageType];
+    const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
+    const elementIcon = damageTypeHash ? ELEMENT_ICONS[damageTypeHash] : null;
 
     // Border Logic
     const borderColor = RARITY_COLORS[rarity] || 'var(--color-common)';
@@ -38,7 +56,7 @@ const ItemCard = ({ item, definition, onClick, compact = false, className = '' }
             `}
             style={{
                 '--item-border-color': borderColor
-            }}
+            } as React.CSSProperties}
             onClick={onClick}
         >
             {/* The Item Icon (Background) */}

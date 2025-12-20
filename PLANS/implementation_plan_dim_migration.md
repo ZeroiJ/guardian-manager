@@ -66,10 +66,10 @@ Each character column is identical in structure:
 -   **Currency**: Glimmer, Legendary Shards (Component `100` - ProfileCurrencies). [ ] (Nice to have)
 
 ### Phase 3: The "DIM Tile" Component [x] DONE
--   Rebuild `ItemCard.jsx` completely. [x]
--   Remove "Tavus" styling (no window borders, no pink shadows). [x]
--   Implement the "Border-only" rarity style. [x]
--   Add distinct overlays for Power, Element, and Season. [x] (Implemented Element & Power)
+-   [x] Rebuild `ItemCard.jsx` completely.
+-   [x] Remove "Tavus" styling (no window borders, no pink shadows).
+-   [x] Implement the "Border-only" rarity style.
+-   [x] Add distinct overlays for Power, Element, and Season.
 
 ### Phase 4: Drag & Drop Implementation
 -   Install `@dnd-kit/core` (or similar library).

@@ -1,6 +1,5 @@
-
 // BUCKET HASHES for Sorting/Grouping
-export const BUCKETS = {
+export const BUCKETS: Record<string, number> = {
     // Weapons
     Kinetic: 1498876634,
     Energy: 2465295065,
@@ -23,7 +22,7 @@ export const BUCKETS = {
     Modifications: 3313201758,
 };
 
-export const STAT_HASHES = {
+export const STAT_HASHES: Record<string, number> = {
     Mobility: 2996146975,
     Resilience: 392767087,
     Recovery: 1943323491,
@@ -32,7 +31,7 @@ export const STAT_HASHES = {
     Strength: 4244567218,
 };
 
-export const DAMAGE_TYPES = {
+export const DAMAGE_TYPES: Record<string, number> = {
     None: 0,
     Kinetic: 3373582085,
     Arc: 2303181850,
