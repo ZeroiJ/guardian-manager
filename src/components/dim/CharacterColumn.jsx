@@ -22,12 +22,17 @@ const EquipmentRow = ({ label, bucketHash, equipment, inventory, definitions }) 
                 </div>
             </div>
 
-            {/* Inventory Grid (Backpack) */}
-            <div className="flex-1 grid grid-cols-3 gap-[2px] content-start mt-[3px]">
+            {/* Inventory Grid (Backpack) - DIM Reference Grid */}
+            <div
+                className="flex-1 grid gap-[2px] content-start mt-[3px]"
+                style={{
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(calc(var(--item-size) - 2px), 1fr))'
+                }}
+            >
                 {[...Array(9)].map((_, idx) => {
                     const item = inventoryItems[idx];
                     return (
-                        <div key={idx} className="w-[48px] h-[48px] bg-[#1a1a1a] relative border border-white/5">
+                        <div key={idx} className="w-[var(--item-size)] h-[var(--item-size)] bg-[#1a1a1a] relative border border-white/5 box-border">
                             {item && (
                                 <ItemCard
                                     item={item}

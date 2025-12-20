@@ -456,6 +456,25 @@
     }
 
     :root {
+        /* DIM Reference Variables ("Operation Copycat") */
+        --item-size: 50px;
+        --item-border-width: 2px;
+        --badge-height: 16px;
+        /* Inferred from DIM UI */
+
+        /* Theme Colors */
+        --theme-item-sheet-bg: #11111b;
+        --theme-text: #e8e9ed;
+        --theme-accent-primary: #f5dc56;
+        --theme-accent-secondary: #fffa;
+
+        /* Rarity Colors (Standard Destiny 2) */
+        --color-exotic: #f5dc56;
+        --color-legendary: #522f65;
+        --color-rare: #5076a3;
+        --color-uncommon: #366f42;
+        --color-common: #c3bcb4;
+
         --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
         --font-serif: "Playfair Display", ui-serif, serif;
     }
