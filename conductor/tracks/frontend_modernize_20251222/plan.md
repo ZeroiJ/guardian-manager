@@ -19,7 +19,7 @@
     - Implement immediate UI feedback with background sync to the D1 database.
 
 ## Phase 3: UI/UX Refinement (The "DIM Standard")
-- [ ] Task: Refactor ArsenalPage Layout
+- [x] Task: Refactor ArsenalPage Layout 19347b9
     - Standardize the horizontal character column layout.
     - Ensure consistent header spacing and high-contrast typography.
 - [ ] Task: Polish ItemCard & Grid
