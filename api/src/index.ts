@@ -73,6 +73,45 @@ app.get('/auth/callback', async (c) => {
   return c.text('Authenticated successfully! You can close this tab.')
 })
 
+app.get('/api/profile', async (c) => {
+  const config = getBungieConfig(c.env)
+  const authCookie = getCookie(c, 'bungie_auth')
+  if (!authCookie) return c.text('Unauthorized', 401)
+
+  const tokens = JSON.parse(authCookie)
+  
+  // 1. Get Membership Data for Current User
+  const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
+    headers: {
+      'X-API-Key': config.apiKey,
+      'Authorization': `Bearer ${tokens.access_token}`
+    }
+  })
+
+  if (!membershipsRes.ok) return c.text('Failed to fetch memberships', membershipsRes.status)
+  const membershipsData = await membershipsRes.json() as any
+  
+  const destinyMembership = membershipsData.Response.destinyMemberships[0]
+  if (!destinyMembership) return c.text('No Destiny membership found', 404)
+
+  const { membershipType, membershipId } = destinyMembership
+
+  // 2. Get Profile Data (Components: 100, 102, 200, 201, 205, 300)
+  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
+  
+  const profileRes = await fetch(profileUrl, {
+    headers: {
+      'X-API-Key': config.apiKey,
+      'Authorization': `Bearer ${tokens.access_token}`
+    }
+  })
+
+  if (!profileRes.ok) return c.text('Failed to fetch profile', profileRes.status)
+  const profileData = await profileRes.json() as any
+
+  return c.json(profileData.Response)
+})
+
 app.get('/api/manifest/version', async (c) => {
   const cacheKey = 'manifest_version'
   const cached = await c.env.guardian_kv.get(cacheKey)

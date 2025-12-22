@@ -6,10 +6,11 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./src/index");
 	}
 	interface Env {
-		guardian_kv: KVNamespace;
+		BUNGIE_API_KEY: string;
 		BUNGIE_CLIENT_ID: string;
 		BUNGIE_CLIENT_SECRET: string;
 		guardian_db: D1Database;
+		guardian_kv: KVNamespace;
 	}
 }
 interface Env extends Cloudflare.Env {}
