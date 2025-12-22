@@ -61,9 +61,35 @@ export function useProfile() {
         }
     }, []);
 
+    const updateItemMetadata = useCallback(async (itemId: string, type: 'tag' | 'note', value: string | null) => {
+        // Optimistic Update
+        setProfile(prev => {
+            if (!prev) return null;
+            const newItems = prev.items.map(item => {
+                if (item.itemInstanceId === itemId) {
+                    return {
+                        ...item,
+                        [type === 'tag' ? 'userTag' : 'userNote']: value
+                    };
+                }
+                return item;
+            });
+            return { ...prev, items: newItems };
+        });
+
+        // Background Sync
+        try {
+            await APIClient.updateMetadata(itemId, type, value);
+        } catch (err) {
+            console.error('Failed to sync metadata:', err);
+            // TODO: Rollback on error (requires keeping previous state or refetching)
+            // For now, a refresh would fix it eventually
+        }
+    }, []);
+
     useEffect(() => {
         refresh();
     }, [refresh]);
 
-    return { profile, loading, error, refresh };
+    return { profile, loading, error, refresh, updateItemMetadata };
 }
