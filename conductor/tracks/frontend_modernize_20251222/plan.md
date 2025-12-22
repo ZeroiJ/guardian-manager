@@ -11,7 +11,7 @@
     - Create a hook `useDefinitions(hashes)` for efficient item data lookups.
 
 ## Phase 2: Data Layer & "Zipper" Logic
-- [ ] Task: Implement Profile Data Service
+- [x] Task: Implement Profile Data Service 2af911d
     - Create a central hook/context to fetch and manage live Bungie profile data.
     - Implement "Zipper" selectors that merge Bungie items with local D1 metadata (Tags/Notes).
 - [ ] Task: Implement Optimistic Metadata Updates
