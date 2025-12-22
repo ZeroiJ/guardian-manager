@@ -2,6 +2,19 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.4.0] - 2025-12-22
+
+### Added
+- **Cloudflare Worker Backend**: Initialized a new serverless backend in `api/` using Hono and Cloudflare Workers.
+- **Bungie OAuth Proxy**: Implemented secure OAuth 2.0 flow with state validation and HTTP-only cookies (`/auth/login`, `/auth/callback`).
+- **Manifest Infrastructure**: Created a dedicated Manifest Service (`src/manifest.ts`) with Cloudflare KV caching for version metadata.
+- **Manifest Proxy Endpoint**: Added `/api/manifest/definitions/:table` to proxy and cache Bungie manifest requests.
+- **User Metadata Database**: Configured Cloudflare D1 database (`guardian-db`) and applied initial migration for `UserMetadata` (Tags, Notes).
+- **Environment Security**: Implemented secure secret management using `.dev.vars` (local) and Wrangler secrets (production).
+
+### Infrastructure
+- **Deployment**: Successfully deployed the API worker to `https://guardian-nexus-api.zeroij.workers.dev`.
+
 ## [0.3.0] - 2025-12-13
 
 ### Added
