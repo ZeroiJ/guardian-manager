@@ -10,7 +10,7 @@
     - Implement logic to check `manifest/version` and download/cache missing tables.
     - Create a hook `useDefinitions(hashes)` for efficient item data lookups.
 
-## Phase 2: Data Layer & "Zipper" Logic
+## Phase 2: Data Layer & "Zipper" Logic [checkpoint: 69870b1]
 - [x] Task: Implement Profile Data Service 2af911d
     - Create a central hook/context to fetch and manage live Bungie profile data.
     - Implement "Zipper" selectors that merge Bungie items with local D1 metadata (Tags/Notes).
