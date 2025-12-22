@@ -26,7 +26,7 @@
     - Create a D1 database: `wrangler d1 create guardian-db`.
     - Bind D1 to the worker in `wrangler.toml`.
     - Create an initial schema migration for `UserMetadata` (bungieMembershipId, tags, notes).
-- [ ] Task: Implement Manifest Fetcher Service
+- [x] Task: Implement Manifest Fetcher Service 0d26440
     - Create a service function that calls `GET /Platform/Destiny2/Manifest/`.
     - *Optimization:* For the free tier, we might need a scheduled trigger (Cron) to fetch this daily, rather than on user request, to save CPU.
 - [ ] Task: Create Manifest Proxy Endpoint
