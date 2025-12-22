@@ -1,7 +1,7 @@
 # Plan: Cloudflare Worker Backend & Manifest Service
 
 ## Phase 1: Project Initialization & Cloudflare Setup
-- [ ] Task: Install Wrangler CLI & Initialize Worker Project
+- [x] Task: Install Wrangler CLI & Initialize Worker Project c01cb1a
     - Install `wrangler` globally or as a dev dependency.
     - Initialize a new Worker project (e.g., `guardian-nexus-api`) in a subfolder.
     - Configure `wrangler.toml` (name, compatibility dates).
