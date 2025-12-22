@@ -10,6 +10,9 @@ export interface GuardianItem {
     lockable: boolean;
     state: number;
     
+    // Added by useProfile hook
+    owner: string; 
+
     // Instance Data (if applicable)
     instanceData?: {
         damageType?: number;

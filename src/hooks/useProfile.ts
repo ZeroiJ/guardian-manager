@@ -22,13 +22,19 @@ export function useProfile() {
 
             // Extract all items from all sources
             if (bungieProfile.profileInventory?.data?.items) {
-                rawItems.push(...bungieProfile.profileInventory.data.items);
+                // Profile Inventory (Vault, etc.) - Not Equipped
+                const items = bungieProfile.profileInventory.data.items.map((i: any) => ({ ...i, isEquipped: false, owner: 'vault' }));
+                rawItems.push(...items);
             }
-            Object.values(bungieProfile.characterInventories?.data || {}).forEach((c: any) => {
-                rawItems.push(...c.items);
+            
+            Object.entries(bungieProfile.characterInventories?.data || {}).forEach(([charId, data]: [string, any]) => {
+                const items = data.items.map((i: any) => ({ ...i, isEquipped: false, owner: charId }));
+                rawItems.push(...items);
             });
-            Object.values(bungieProfile.characterEquipment?.data || {}).forEach((c: any) => {
-                rawItems.push(...c.items);
+
+            Object.entries(bungieProfile.characterEquipment?.data || {}).forEach(([charId, data]: [string, any]) => {
+                const items = data.items.map((i: any) => ({ ...i, isEquipped: true, owner: charId }));
+                rawItems.push(...items);
             });
 
             const instanceData = bungieProfile.itemComponents?.instances?.data || {};
@@ -42,7 +48,11 @@ export function useProfile() {
 
                 return {
                     ...item,
-                    instanceData: inst,
+                    instanceData: {
+                        ...inst,
+                        isEquipped: item.isEquipped // Hoist this flag to instanceData for easy access
+                    },
+                    owner: item.owner, // Ensure owner is preserved
                     userTag: tag,
                     userNote: note
                 };
@@ -55,6 +65,7 @@ export function useProfile() {
             });
 
         } catch (err) {
+            console.error(err);
             setError(err instanceof Error ? err : new Error('Unknown profile error'));
         } finally {
             setLoading(false);
@@ -82,8 +93,6 @@ export function useProfile() {
             await APIClient.updateMetadata(itemId, type, value);
         } catch (err) {
             console.error('Failed to sync metadata:', err);
-            // TODO: Rollback on error (requires keeping previous state or refetching)
-            // For now, a refresh would fix it eventually
         }
     }, []);
 
