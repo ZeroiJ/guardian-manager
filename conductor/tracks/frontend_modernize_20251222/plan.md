@@ -22,7 +22,7 @@
 - [x] Task: Refactor ArsenalPage Layout 19347b9
     - Standardize the horizontal character column layout.
     - Ensure consistent header spacing and high-contrast typography.
-- [ ] Task: Polish ItemCard & Grid
+- [x] Task: Polish ItemCard & Grid 0dec6c0
     - Ensure strict 48x48px tiles.
     - Refine element/power overlays to match DIM's precision.
     - Implement smooth hover tooltips with item stats.
