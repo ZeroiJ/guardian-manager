@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Initialize Cloudflare Worker Backend & Manifest Service
+## [~] Track: Initialize Cloudflare Worker Backend & Manifest Service
 *Link: [./conductor/tracks/backend_init_20251222/](./conductor/tracks/backend_init_20251222/)*
