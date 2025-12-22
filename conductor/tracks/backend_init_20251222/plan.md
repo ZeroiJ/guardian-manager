@@ -10,7 +10,7 @@
     - Add `hono` or `itty-router` for lightweight routing.
     - Add `.gitignore` for worker-specific files.
 
-## Phase 2: Bungie OAuth Proxy
+## Phase 2: Bungie OAuth Proxy [checkpoint: 80576d9]
 - [x] Task: Define Environment Secrets 151ccb9
     - Use `wrangler secret put` to store `BUNGIE_CLIENT_ID` and `BUNGIE_CLIENT_SECRET`.
     - Create a utility to load these securely in the worker.
