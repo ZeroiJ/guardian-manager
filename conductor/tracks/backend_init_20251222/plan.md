@@ -16,7 +16,7 @@
     - Create a utility to load these securely in the worker.
 - [x] Task: Implement OAuth Redirect Endpoint d79497b
     - Create `GET /auth/login` that redirects to Bungie's authorization URL.
-- [ ] Task: Implement OAuth Callback Endpoint
+- [x] Task: Implement OAuth Callback Endpoint 1c5ac51
     - Create `GET /auth/callback` to handle the auth code.
     - Exchange code for tokens (Access + Refresh) via Bungie API.
     - Return a secure HTTP-only cookie or session token to the client.
