@@ -5,7 +5,7 @@
     - Define TypeScript interfaces for API responses (Profile, Definitions, Metadata).
     - Implement a Fetch-based client that points to `guardian-nexus-api.zeroij.workers.dev`.
     - Handle Auth redirects and error states.
-- [ ] Task: Implement Local Manifest Manager
+- [x] Task: Implement Local Manifest Manager 1a586d0
     - Use `idb-keyval` to set up IndexedDB storage.
     - Implement logic to check `manifest/version` and download/cache missing tables.
     - Create a hook `useDefinitions(hashes)` for efficient item data lookups.
