@@ -14,7 +14,7 @@
 - [x] Task: Implement Profile Data Service 2af911d
     - Create a central hook/context to fetch and manage live Bungie profile data.
     - Implement "Zipper" selectors that merge Bungie items with local D1 metadata (Tags/Notes).
-- [ ] Task: Implement Optimistic Metadata Updates
+- [x] Task: Implement Optimistic Metadata Updates 06e10fa
     - Create actions to update Tags/Notes.
     - Implement immediate UI feedback with background sync to the D1 database.
 
