@@ -21,7 +21,7 @@
     - Exchange code for tokens (Access + Refresh) via Bungie API.
     - Return a secure HTTP-only cookie or session token to the client.
 
-## Phase 3: Manifest Infrastructure (The "Zipper" Foundation)
+## Phase 3: Manifest Infrastructure (The "Zipper" Foundation) [checkpoint: 1af4c99]
 - [x] Task: Setup Cloudflare D1 Database 91272c3
     - Create a D1 database: `wrangler d1 create guardian-db`.
     - Bind D1 to the worker in `wrangler.toml`.
