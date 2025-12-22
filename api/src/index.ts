@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { setCookie, getCookie } from 'hono/cookie'
 import { getBungieConfig } from './config'
-import { getManifestMetadata } from './manifest'
+import { getManifestMetadata, getManifestTablePath } from './manifest'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -90,6 +90,27 @@ app.get('/api/manifest/version', async (c) => {
   } catch (error) {
     return c.text('Failed to fetch manifest', 500)
   }
+})
+
+app.get('/api/manifest/definitions/:table', async (c) => {
+  const table = c.req.param('table')
+  const path = await getManifestTablePath(table)
+
+  if (!path) {
+    return c.text('Table not found', 404)
+  }
+
+  const fullUrl = `https://www.bungie.net${path}`
+  
+  const response = await fetch(fullUrl)
+
+  return new Response(response.body, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*',
+    }
+  })
 })
 
 export default app

@@ -8,3 +8,9 @@ export const getManifestMetadata = async (): Promise<DestinyManifest> => {
   const data = await response.json() as any;
   return data.Response as DestinyManifest;
 };
+
+export const getManifestTablePath = async (table: string, language: string = 'en'): Promise<string | undefined> => {
+  const manifest = await getManifestMetadata();
+  const paths = manifest.jsonWorldComponentContentPaths[language];
+  return paths ? (paths as any)[table] : undefined;
+};

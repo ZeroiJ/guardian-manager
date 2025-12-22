@@ -84,4 +84,38 @@ describe('Hello World worker', () => {
 		
 		vi.unstubAllGlobals();
 	});
+
+	it('proxies manifest definitions', async () => {
+		// Mock Bungie manifest metadata and definition calls
+		vi.stubGlobal('fetch', vi.fn(async (url) => {
+			const urlStr = url.toString();
+			if (urlStr.includes('Manifest/')) {
+				return new Response(JSON.stringify({
+					Response: { 
+						jsonWorldComponentContentPaths: { 
+							en: { DestinyInventoryItemDefinition: '/test-path.json' } 
+						} 
+					}
+				}), { 
+					status: 200, 
+					headers: { 'Content-Type': 'application/json' } 
+				});
+			}
+			if (urlStr.includes('/test-path.json')) {
+				return new Response(JSON.stringify({ test: 'data' }), { 
+					status: 200,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			}
+			return new Response('Not found', { status: 404 });
+		}));
+
+		const response = await SELF.fetch('https://example.com/api/manifest/definitions/DestinyInventoryItemDefinition');
+		expect(response.status).toBe(200);
+		const data = await response.json() as any;
+		expect(data.test).toBe('data');
+		expect(response.headers.get('Cache-Control')).toContain('max-age=86400');
+		
+		vi.unstubAllGlobals();
+	});
 });
