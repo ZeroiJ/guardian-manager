@@ -17,8 +17,23 @@ describe('Hello World worker', () => {
 		expect(await response.text()).toMatchInlineSnapshot(`"Guardian Nexus API is running!"`);
 	});
 
-	it('responds with Hello World! (integration style)', async () => {
+	it('responds with Guardian Nexus API is running! (integration style)', async () => {
 		const response = await SELF.fetch('https://example.com');
 		expect(await response.text()).toMatchInlineSnapshot(`"Guardian Nexus API is running!"`);
+	});
+
+	it('redirects to Bungie OAuth on /auth/login', async () => {
+		const response = await SELF.fetch('https://example.com/auth/login', {
+			redirect: 'manual',
+		});
+		expect(response.status).toBe(302);
+		const location = response.headers.get('Location');
+		expect(location).toContain('bungie.net/en/OAuth/Authorize');
+		expect(location).toContain('client_id=51042');
+		expect(location).toContain('response_type=code');
+		expect(location).toContain('state=');
+		
+		const setCookie = response.headers.get('Set-Cookie');
+		expect(setCookie).toContain('oauth_state=');
 	});
 });
