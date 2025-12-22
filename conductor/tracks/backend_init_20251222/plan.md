@@ -29,7 +29,7 @@
 - [x] Task: Implement Manifest Fetcher Service 0d26440
     - Create a service function that calls `GET /Platform/Destiny2/Manifest/`.
     - *Optimization:* For the free tier, we might need a scheduled trigger (Cron) to fetch this daily, rather than on user request, to save CPU.
-- [ ] Task: Create Manifest Proxy Endpoint
+- [x] Task: Create Manifest Proxy Endpoint 27b3c1a
     - Create `GET /api/manifest/definitions` that serves processed/cached definitions to the frontend.
     - Ensure robust caching headers (Cache-Control) are set.
 
