@@ -2,6 +2,25 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.5.0] - 2025-12-22
+
+### Added
+- **Frontend Refactor**: Migrated frontend to a modern, typed architecture under `src/services`, `src/hooks`, and `src/components/{inventory,destiny,auth,ui}`.
+- **Typed API Client**: Implemented a robust `APIClient` (`src/services/api/client.ts`) for centralized backend communication.
+- **Local Manifest Manager**: Created `ManifestManager` (`src/services/manifest/manager.ts`) with IndexedDB (`idb-keyval`) caching for high-performance definition lookups.
+- **Zipper Data Model**: Implemented `useProfile` hook that "zips" live Bungie data with local user metadata (Tags/Notes).
+- **Optimistic Updates**: Added support for immediate UI feedback when updating item metadata, with background synchronization.
+- **DIM-Standard UI**: Refactored `ArsenalPage.tsx` and `ItemCard.tsx` to meet DIM's density and precision standards (48x48px tiles, rarity borders, power/element overlays).
+
+### Changed
+- **Vite Proxy**: Configured local development proxy to forward `/api` requests to the Cloudflare Worker.
+
+### Fixed
+- **Dashboard Stability**: Resolved crash issues on Dashboard load by implementing robust error boundaries and loading states in hooks.
+
+### Known Issues
+- **Last Line Failure**: Encountered 3 errors on the last line which need addressing later.
+
 ## [0.4.0] - 2025-12-22
 
 ### Added
