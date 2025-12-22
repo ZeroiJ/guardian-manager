@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { setCookie } from 'hono/cookie'
+import { setCookie, getCookie } from 'hono/cookie'
 import { getBungieConfig } from './config'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -28,6 +28,48 @@ app.get('/auth/login', (c) => {
   })
 
   return c.redirect(`${config.authUrl}?${params.toString()}`)
+})
+
+app.get('/auth/callback', async (c) => {
+  const config = getBungieConfig(c.env)
+  const code = c.req.query('code')
+  const state = c.req.query('state')
+  const storedState = getCookie(c, 'oauth_state')
+
+  if (!code || !state || state !== storedState) {
+    return c.text('Invalid state or missing code', 400)
+  }
+
+  // Exchange code for tokens
+  const response = await fetch(config.tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    return c.text(`Token exchange failed: ${error}`, 400)
+  }
+
+  const tokens = await response.json() as any
+  
+  // Store tokens in a secure session cookie
+  setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
+    path: '/',
+    secure: true,
+    httpOnly: true,
+    maxAge: 3600 * 24 * 30, // 30 days (refresh token usually lasts longer)
+    sameSite: 'Lax',
+  })
+
+  return c.text('Authenticated successfully! You can close this tab.')
 })
 
 export default app

@@ -1,5 +1,5 @@
 import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloudflare:test';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import worker from '../src/index';
 
 // For now, you'll need to do something like this to get a correctly-typed
@@ -35,5 +35,34 @@ describe('Hello World worker', () => {
 		
 		const setCookie = response.headers.get('Set-Cookie');
 		expect(setCookie).toContain('oauth_state=');
+	});
+
+	it('handles /auth/callback successfully', async () => {
+		const state = 'test-state';
+		const code = 'test-code';
+		
+		// Mock Bungie token response
+		vi.stubGlobal('fetch', vi.fn(async () => {
+			return new Response(JSON.stringify({
+				access_token: 'abc',
+				expires_in: 3600,
+				membership_id: '123'
+			}), { 
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}));
+
+		const response = await SELF.fetch(`https://example.com/auth/callback?code=${code}&state=${state}`, {
+			headers: {
+				'Cookie': `oauth_state=${state}`
+			}
+		});
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toContain('Authenticated successfully');
+		expect(response.headers.get('Set-Cookie')).toContain('bungie_auth=');
+		
+		vi.unstubAllGlobals();
 	});
 });
