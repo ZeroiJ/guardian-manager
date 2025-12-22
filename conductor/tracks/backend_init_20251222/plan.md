@@ -33,7 +33,7 @@
     - Create `GET /api/manifest/definitions` that serves processed/cached definitions to the frontend.
     - Ensure robust caching headers (Cache-Control) are set.
 
-## Phase 4: Integration Verification
+## Phase 4: Integration Verification [checkpoint: 9c6ed78]
 - [x] Task: Verify Deployment 2af12b9
     - Deploy the worker: `wrangler deploy`.
     - Verify endpoints using `curl` or Postman.
