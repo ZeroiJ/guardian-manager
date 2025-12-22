@@ -1,6 +1,6 @@
 import React from 'react';
-import ItemCard from '../common/ItemCard';
-import { STAT_HASHES, BUCKETS } from '../../utils/constants';
+import ItemCard from '../destiny/ItemCard';
+import { STAT_HASHES, BUCKETS } from '../../data/constants';
 
 interface EquipmentRowProps {
     label: string;

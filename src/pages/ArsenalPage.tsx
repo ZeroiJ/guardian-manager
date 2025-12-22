@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { CharacterColumn } from '../components/dim/CharacterColumn';
-import ItemCard from '../components/common/ItemCard';
+import { CharacterColumn } from '../components/inventory/CharacterColumn';
+import ItemCard from '../components/destiny/ItemCard';
 
 export function ArsenalPage() {
     const [searchQuery, setSearchQuery] = useState('');

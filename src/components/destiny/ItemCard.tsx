@@ -1,5 +1,5 @@
 import React from 'react';
-import { DAMAGE_TYPES } from '../../utils/constants';
+import { DAMAGE_TYPES } from '../../data/constants';
 
 // Mapped from InventoryItem.m.scss
 const RARITY_COLORS: Record<number, string> = {

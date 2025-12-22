@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginButton from './components/common/LoginButton';
+import LoginButton from './components/auth/LoginButton';
 import { ArsenalPage } from './pages/ArsenalPage';
 
 import { Home } from './pages/Home';

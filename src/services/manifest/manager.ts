@@ -1,5 +1,5 @@
 import { get, set, keys, del } from 'idb-keyval';
-import { APIClient } from './api-client';
+import { APIClient } from '../api/client';
 
 const MANIFEST_VERSION_KEY = 'manifest_version';
 const TABLE_PREFIX = 'def:';

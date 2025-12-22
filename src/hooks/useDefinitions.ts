@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ManifestManager } from './manifest-manager';
+import { ManifestManager } from '../services/manifest/manager';
 
 /**
  * Hook to retrieve definitions from a manifest table.
