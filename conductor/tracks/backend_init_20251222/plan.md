@@ -11,7 +11,7 @@
     - Add `.gitignore` for worker-specific files.
 
 ## Phase 2: Bungie OAuth Proxy
-- [ ] Task: Define Environment Secrets
+- [x] Task: Define Environment Secrets 151ccb9
     - Use `wrangler secret put` to store `BUNGIE_CLIENT_ID` and `BUNGIE_CLIENT_SECRET`.
     - Create a utility to load these securely in the worker.
 - [ ] Task: Implement OAuth Redirect Endpoint
