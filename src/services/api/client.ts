@@ -45,4 +45,25 @@ export class APIClient {
     static async getDefinitions(table: string): Promise<Record<string, any>> {
         return this.request(`/api/manifest/definitions/${table}`);
     }
+
+    /**
+     * Fetches user metadata (tags, notes) from our D1 database.
+     */
+    static async getMetadata(): Promise<{ tags: Record<string, string>, notes: Record<string, string> }> {
+        // TODO: Implement the backend endpoint for this
+        // return this.request('/api/metadata');
+        return { tags: {}, notes: {} }; // Stub for now
+    }
+
+    /**
+     * Updates user metadata for an item.
+     */
+    static async updateMetadata(itemId: string, type: 'tag' | 'note', value: string | null): Promise<void> {
+        // TODO: Implement the backend endpoint for this
+        // return this.request('/api/metadata', {
+        //     method: 'POST',
+        //     body: JSON.stringify({ itemId, type, value })
+        // });
+        console.log(`[Stub] Updating ${type} for ${itemId} to ${value}`);
+    }
 }
