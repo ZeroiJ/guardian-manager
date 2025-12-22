@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { setCookie, getCookie } from 'hono/cookie'
 import { getBungieConfig } from './config'
+import { getManifestMetadata } from './manifest'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -65,11 +66,30 @@ app.get('/auth/callback', async (c) => {
     path: '/',
     secure: true,
     httpOnly: true,
-    maxAge: 3600 * 24 * 30, // 30 days (refresh token usually lasts longer)
+    maxAge: 3600 * 24 * 30, // 30 days
     sameSite: 'Lax',
   })
 
   return c.text('Authenticated successfully! You can close this tab.')
+})
+
+app.get('/api/manifest/version', async (c) => {
+  const cacheKey = 'manifest_version'
+  const cached = await c.env.guardian_kv.get(cacheKey)
+  
+  if (cached) {
+    return c.json(JSON.parse(cached))
+  }
+
+  try {
+    const manifest = await getManifestMetadata()
+    await c.env.guardian_kv.put(cacheKey, JSON.stringify(manifest), {
+      expirationTtl: 3600 // 1 hour
+    })
+    return c.json(manifest)
+  } catch (error) {
+    return c.text('Failed to fetch manifest', 500)
+  }
 })
 
 export default app

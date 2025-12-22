@@ -65,4 +65,23 @@ describe('Hello World worker', () => {
 		
 		vi.unstubAllGlobals();
 	});
+
+	it('serves manifest version with caching', async () => {
+		// Mock Bungie manifest response
+		vi.stubGlobal('fetch', vi.fn(async () => {
+			return new Response(JSON.stringify({
+				Response: { version: '123.456' }
+			}), { 
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}));
+
+		const response = await SELF.fetch('https://example.com/api/manifest/version');
+		expect(response.status).toBe(200);
+		const data = await response.json() as any;
+		expect(data.version).toBe('123.456');
+		
+		vi.unstubAllGlobals();
+	});
 });

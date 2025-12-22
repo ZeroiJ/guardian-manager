@@ -16,6 +16,7 @@
 		"wrangler": "^4.56.0"
 	},
 	"dependencies": {
+		"bungie-api-ts": "^5.10.0",
 		"hono": "^4.11.1"
 	}
 }
