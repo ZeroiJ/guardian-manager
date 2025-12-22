@@ -14,7 +14,7 @@
 - [x] Task: Define Environment Secrets 151ccb9
     - Use `wrangler secret put` to store `BUNGIE_CLIENT_ID` and `BUNGIE_CLIENT_SECRET`.
     - Create a utility to load these securely in the worker.
-- [ ] Task: Implement OAuth Redirect Endpoint
+- [x] Task: Implement OAuth Redirect Endpoint d79497b
     - Create `GET /auth/login` that redirects to Bungie's authorization URL.
 - [ ] Task: Implement OAuth Callback Endpoint
     - Create `GET /auth/callback` to handle the auth code.
