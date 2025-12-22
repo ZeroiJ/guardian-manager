@@ -6,6 +6,8 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./src/index");
 	}
 	interface Env {
+		BUNGIE_CLIENT_ID: string;
+		BUNGIE_CLIENT_SECRET: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
