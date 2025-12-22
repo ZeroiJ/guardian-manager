@@ -1,123 +1,71 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import ItemCard from '../components/destiny/ItemCard';
+import { useProfile } from '../hooks/useProfile';
+import { useDefinitions } from '../hooks/useDefinitions';
 
 export function ArsenalPage() {
     const [searchQuery, setSearchQuery] = useState('');
+    
+    // Use the new Zipper hook
+    const { profile, loading: profileLoading, error: profileError } = useProfile();
+    
+    // Extract hashes for manifest lookup
+    // Only fetch for items we actually have
+    const itemHashes = profile?.items.map(i => i.itemHash) || [];
+    const { definitions, loading: defsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
 
-    // Data State
-    const [profile, setProfile] = useState<any>(null);
-    const [definitions, setDefinitions] = useState<Record<string, any>>({});
-    const [loading, setLoading] = useState(true);
+    const loading = profileLoading || (itemHashes.length > 0 && defsLoading);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Fetch Profile
-                const res = await fetch('/api/profile');
-                if (!res.ok) throw new Error('Failed to fetch profile');
-                const data = await res.json();
-                setProfile(data);
+    if (loading) {
+        return (
+            <div className="h-screen bg-[#050505] text-white flex flex-col items-center justify-center font-mono space-y-4">
+                <div className="w-12 h-12 border-4 border-t-transparent border-[#f5dc56] rounded-full animate-spin" />
+                <div className="animate-pulse text-[#f5dc56]">INITIALIZING GUARDIAN NEXUS...</div>
+                <div className="text-xs text-gray-500">Connecting to Neural Net (Cloudflare Worker)</div>
+            </div>
+        );
+    }
 
-                // 2. Extract Item Hashes
-                const allItems: any[] = [];
-                Object.values(data.characterEquipment?.data || {}).forEach((char: any) => allItems.push(...char.items));
-                Object.values(data.characterInventories?.data || {}).forEach((char: any) => allItems.push(...char.items));
-                allItems.push(...(data.profileInventory?.data?.items || []));
+    if (profileError) {
+        return (
+            <div className="h-screen bg-[#050505] text-red-500 flex flex-col items-center justify-center font-mono p-4">
+                <div className="text-xl mb-4">CRITICAL SYSTEM FAILURE</div>
+                <div className="bg-red-900/20 border border-red-500/50 p-4 rounded max-w-md break-words">
+                    {profileError.message}
+                </div>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-8 px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors"
+                >
+                    REBOOT SYSTEM
+                </button>
+            </div>
+        );
+    }
 
-                // 3. Fetch Manifest Definitions (Optimized with Client-Side Chunking)
-                // Filter out non-instanced items (Materials, Shaders, etc.) to prevent API rate limiting
-                const instancedItems = allItems.filter((i: any) => i.itemInstanceId);
-                const uniqueHashes = [...new Set(instancedItems.map((i: any) => i.itemHash))];
+    // Filter Items for Vault
+    // Location 1020252227 is Vault
+    const vaultItems = profile?.items.filter(i => i.location === 1020252227) || [];
 
+    const characters = profile?.characters ? Object.values(profile.characters) : [];
 
-
-                // Helper to fetch in chunks
-                const chunkArray = (arr: any[], size: number) => {
-                    return Array.from({ length: Math.ceil(arr.length / size) }, (_v, i) =>
-                        arr.slice(i * size, i * size + size)
-                    );
-                };
-
-                const chunks = chunkArray(uniqueHashes, 50); // 50 items per request to avoid backend timeout
-                let loadedCount = 0;
-
-                // Process chunks sequentially to avoid overwhelming the backend
-                for (const chunk of chunks) {
-                    try {
-                        const res = await fetch('/api/manifest/definitions', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ hashes: chunk })
-                        });
-
-                        if (res.ok) {
-                            const data = await res.json();
-                            loadedCount += Object.keys(data).length;
-                            setDefinitions(prev => ({ ...prev, ...data })); // Incremental update
-                        } else {
-                            console.warn('Failed to fetch chunk', res.status);
-                        }
-                    } catch (e) {
-                        console.error('Error fetching chunk:', e);
-                    }
-                }
-
-
-
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    // Helper to get items for a specific character
+    // Helper to get items for character
     const getItemsForCharacter = (charId: string) => {
         if (!profile) return { equipment: [], inventory: [] };
-
-        const equipment = profile.characterEquipment?.data?.[charId]?.items || [];
-        const inventory = profile.characterInventories?.data?.[charId]?.items || [];
-        const itemInstances = profile.itemComponents?.instances?.data || {};
-
-        const enhance = (items: any[]) => items.map(item => ({
-            ...item,
-            instanceData: itemInstances[item.itemInstanceId],
-            def: definitions[item.itemHash]
-        })).filter(i => i.def); // Only show if definition exists
-
+        
+        const charItems = profile.items.filter(i => i.owner === charId);
+        
         return {
-            equipment: enhance(equipment),
-            inventory: enhance(inventory)
+            equipment: charItems.filter(i => i.instanceData?.isEquipped),
+            inventory: charItems.filter(i => !i.instanceData?.isEquipped)
         };
     };
-
-    const getVaultItems = () => {
-        if (!profile) return [];
-        const vault = profile.profileInventory?.data?.items || [];
-        const itemInstances = profile.itemComponents?.instances?.data || {};
-
-        const filtered = vault.map((item: any) => ({
-            ...item,
-            instanceData: itemInstances[item.itemInstanceId],
-            def: definitions[item.itemHash]
-        })).filter((i: any) => i.def);
-
-        return filtered;
-    };
-
-    if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center font-mono animate-pulse">Initializing Guardian_Nexus...</div>;
-
-    const characters = profile?.characters?.data ? Object.values(profile.characters.data) : [];
-    const vaultItems = getVaultItems();
 
     return (
         <div className="h-screen bg-[#11111b] text-[#e8e9ed] font-sans flex flex-col overflow-hidden selection:bg-[#f5dc56] selection:text-black">
-            {/* Top Bar (DIM Style) */}
+            {/* Top Bar */}
             <div className="h-12 bg-[#0d0d15] border-b border-white/5 flex items-center px-4 justify-between flex-shrink-0 z-50 shadow-md">
                 <div className="flex items-center gap-4">
                     <span className="font-bold text-xl tracking-tight text-white">Guardian<span className="text-[#f5dc56]">Nexus</span></span>
@@ -177,7 +125,7 @@ export function ArsenalPage() {
                         <div className="flex flex-wrap gap-[2px] content-start">
                             {vaultItems.map((item: any) => (
                                 <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                    <ItemCard item={item} definition={item.def} compact={true} />
+                                    <ItemCard item={item} definition={definitions[item.itemHash]} compact={true} />
                                 </div>
                             ))}
                         </div>
