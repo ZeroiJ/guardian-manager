@@ -3,12 +3,12 @@ import { DAMAGE_TYPES } from '../../data/constants';
 
 // Mapped from InventoryItem.m.scss
 const RARITY_COLORS: Record<number, string> = {
-    6: 'var(--color-exotic)',    // Exotic
-    5: 'var(--color-legendary)', // Legendary
-    4: 'var(--color-rare)',      // Rare
-    3: 'var(--color-uncommon)',  // Uncommon
-    2: 'var(--color-common)',    // Common
-    0: 'var(--color-common)'     // Basic
+    6: '#f5dc56',    // Exotic
+    5: '#522f65',    // Legendary
+    4: '#5076a3',    // Rare
+    3: '#366f42',    // Uncommon
+    2: '#c3bcb4',    // Common
+    0: '#c3bcb4'     // Basic
 };
 
 const ELEMENT_ICONS: Record<number, string> = {
@@ -43,20 +43,20 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, definition, onClick, compact 
     const elementIcon = damageTypeHash ? ELEMENT_ICONS[damageTypeHash] : null;
 
     // Border Logic
-    const borderColor = RARITY_COLORS[rarity] || 'var(--color-common)';
+    const borderColor = RARITY_COLORS[rarity] || RARITY_COLORS[0];
 
     return (
         <div
             className={`
-                relative box-border select-none cursor-pointer transition-all duration-200
+                relative box-border select-none cursor-pointer transition-all duration-75
                 w-[var(--item-size)] h-[var(--item-size)]
-                border-[length:var(--item-border-width)] border-transparent
-                hover:bg-white/10 group
+                border-[length:var(--item-border-width)]
+                hover:brightness-110 group
                 ${className}
             `}
             style={{
-                '--item-border-color': borderColor
-            } as React.CSSProperties}
+                borderColor: borderColor
+            }}
             onClick={onClick}
         >
             {/* The Item Icon (Background) */}
@@ -64,40 +64,43 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, definition, onClick, compact 
                 <img src={icon} alt="" className="w-full h-full object-cover" />
                 {/* Masterwork Overlay (Gold Border) */}
                 {isMasterwork && rarity === 5 && (
-                    <div className="absolute inset-0 border-[2px] border-[#f5dc56] opacity-80 z-10 pointer-events-none" />
+                    <div className="absolute inset-0 border-[2px] border-[#f5dc56] opacity-80 z-10 pointer-events-none mix-blend-screen" />
                 )}
-                {/* Rarity Border (Applied via CSS variable to border-color) */}
-                <div
-                    className="absolute inset-0 z-10 pointer-events-none"
-                    style={{ border: `var(--item-border-width) solid ${borderColor}` }}
-                />
             </div>
 
             {/* Top Right: Season / Watermark (Replicated .topRight) */}
             {definition.iconWatermark && (
                 <div
-                    className="absolute top-[2px] right-[2px] w-[13px] h-[13px] z-20 pointer-events-none bg-contain bg-no-repeat opacity-80"
+                    className="absolute top-[2px] right-[2px] w-[13px] h-[13px] z-20 pointer-events-none bg-contain bg-no-repeat opacity-90 drop-shadow-md"
                     style={{ backgroundImage: `url(https://www.bungie.net${definition.iconWatermark})` }}
                 />
             )}
 
             {/* Icon Tray (Element & Power) - Replicated .icons */}
-            <div className="absolute bottom-[2px] left-[2px] right-[2px] flex items-center justify-between z-20 pointer-events-none">
-                {/* Element */}
-                {elementIcon ? (
-                    <img src={elementIcon} className="w-[12px] h-[12px] drop-shadow-md" alt="element" />
-                ) : <div />}
+            {(elementIcon || power) && (
+                <div className="absolute bottom-0 left-0 right-0 h-[14px] bg-gradient-to-t from-black/90 to-transparent flex items-end px-[2px] pb-[1px] justify-between z-20 pointer-events-none">
+                    {/* Element */}
+                    {elementIcon ? (
+                        <img src={elementIcon} className="w-[11px] h-[11px] drop-shadow-sm filter brightness-125" alt="element" />
+                    ) : <div />}
 
-                {/* Power Level */}
-                {power && (
-                    <span className="text-[11px] leading-none font-bold text-[#f5dc56] drop-shadow-md font-mono tracking-tighter">
-                        {power}
-                    </span>
+                    {/* Power Level */}
+                    {power && (
+                        <span className="text-[10px] leading-none font-bold text-[#f5dc56] drop-shadow-md font-mono tracking-tighter">
+                            {power}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Hover Tooltip (Simple) */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-48 bg-[#0f0f0f] border border-white/20 p-2 z-50 rounded shadow-xl pointer-events-none backdrop-blur-md">
+                <div className="text-sm font-bold text-white mb-1">{definition.displayProperties.name}</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">{definition.itemTypeDisplayName}</div>
+                {item.userNote && (
+                    <div className="mt-2 text-xs text-yellow-400 italic">"{item.userNote}"</div>
                 )}
             </div>
-
-            {/* Tooltip (Simplified for now) */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 pointer-events-none bg-white transition-opacity" />
         </div>
     );
 };
