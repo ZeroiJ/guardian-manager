@@ -70,8 +70,8 @@ app.get('/api/auth/callback', async (c) => {
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
+      client_id: config.clientId.trim(), // Trim whitespace!
+      client_secret: config.clientSecret.trim(), // Trim whitespace!
       redirect_uri: REDIRECT_URI,
     }),
   })
