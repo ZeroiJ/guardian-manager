@@ -6,6 +6,9 @@ import { getManifestMetadata, getManifestTablePath } from '../manifest'
 
 const app = new Hono<{ Bindings: Env }>()
 
+// Define the production redirect URI - MUST match Bungie Portal EXACTLY
+const REDIRECT_URI = 'https://guardian-manager.pages.dev/api/auth/callback'
+
 // DEBUG: Log all requests
 app.use('*', async (c, next) => {
   console.log(`[Hono] Request: ${c.req.method} ${c.req.path}`)
@@ -22,7 +25,8 @@ app.get('/api/debug', (c) => {
     message: 'Debug endpoint',
     path: c.req.path,
     url: c.req.url,
-    method: c.req.method
+    method: c.req.method,
+    redirect_uri: REDIRECT_URI
   })
 })
 
@@ -42,6 +46,7 @@ app.get('/api/auth/login', (c) => {
     client_id: config.clientId,
     response_type: 'code',
     state: state,
+    redirect_uri: REDIRECT_URI, // Explicitly send it
   })
 
   return c.redirect(`${config.authUrl}?${params.toString()}`)
@@ -66,6 +71,7 @@ app.get('/api/auth/callback', async (c) => {
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
+      redirect_uri: REDIRECT_URI, // Explicitly send it
     }),
   })
 
@@ -102,55 +108,30 @@ app.get('/api/profile', async (c) => {
     }
   })
 
-    if (!membershipsRes.ok) return c.text('Failed to fetch memberships', membershipsRes.status as any)
+  if (!membershipsRes.ok) return c.text('Failed to fetch memberships', membershipsRes.status as any)
+  const membershipsData = await membershipsRes.json() as any
+  
+  if (!membershipsData.Response?.destinyMemberships?.length) {
+    return c.text('No Destiny membership found', 404)
+  }
+  
+  const destinyMembership = membershipsData.Response.destinyMemberships[0]
+  const { membershipType, membershipId } = destinyMembership
 
-    const membershipsData = await membershipsRes.json() as any
-
-    
-
-    if (!membershipsData.Response?.destinyMemberships?.length) {
-
-      return c.text('No Destiny membership found', 404)
-
+  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
+  
+  const profileRes = await fetch(profileUrl, {
+    headers: {
+      'X-API-Key': config.apiKey,
+      'Authorization': `Bearer ${tokens.access_token}`
     }
-
-    
-
-    const destinyMembership = membershipsData.Response.destinyMemberships[0]
-
-    const { membershipType, membershipId } = destinyMembership
-
-  
-
-    // 2. Get Profile Data (Components: 100, 102, 200, 201, 205, 300)
-
-    const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
-
-    
-
-    const profileRes = await fetch(profileUrl, {
-
-      headers: {
-
-        'X-API-Key': config.apiKey,
-
-        'Authorization': `Bearer ${tokens.access_token}`
-
-      }
-
-    })
-
-  
-
-    if (!profileRes.ok) return c.text('Failed to fetch profile', profileRes.status as any)
-
-    const profileData = await profileRes.json() as any
-
-  
-
-    return c.json(profileData.Response)
-
   })
+
+  if (!profileRes.ok) return c.text('Failed to fetch profile', profileRes.status as any)
+  const profileData = await profileRes.json() as any
+
+  return c.json(profileData.Response)
+})
 
 app.get('/api/manifest/version', async (c) => {
   const cacheKey = 'manifest_version'
@@ -191,7 +172,7 @@ app.get('/api/manifest/definitions/:table', async (c) => {
   })
 })
 
-// Catch-all 404 handler to debug unhandled paths
+// Catch-all 404 handler
 app.all('*', (c) => {
     return c.json({
         error: 'Not Found (Hono Catch-All)',
