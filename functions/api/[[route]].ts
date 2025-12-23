@@ -6,23 +6,36 @@ import { getManifestMetadata, getManifestTablePath } from '../manifest'
 
 const app = new Hono<{ Bindings: Env }>()
 
-app.basePath('/api')
-
-app.get('/', (c) => {
-  return c.text('Guardian Nexus API is running on Pages!')
+// DEBUG: Log all requests
+app.use('*', async (c, next) => {
+  console.log(`[Hono] Request: ${c.req.method} ${c.req.path}`)
+  await next()
 })
 
-app.get('/auth/login', (c) => {
+// Explicitly use /api prefix instead of basePath to avoid ambiguity
+app.get('/api', (c) => {
+  return c.text('Guardian Nexus API is running on Pages (Root)!')
+})
+
+app.get('/api/debug', (c) => {
+  return c.json({
+    message: 'Debug endpoint',
+    path: c.req.path,
+    url: c.req.url,
+    method: c.req.method
+  })
+})
+
+app.get('/api/auth/login', (c) => {
   const config = getBungieConfig(c.env)
   const state = crypto.randomUUID()
   
-  // Set state in a secure cookie
   setCookie(c, 'oauth_state', state, {
     path: '/',
     secure: true,
     httpOnly: true,
     maxAge: 600, // 10 minutes
-    sameSite: 'Lax', // First-party now!
+    sameSite: 'Lax',
   })
 
   const params = new URLSearchParams({
@@ -34,7 +47,7 @@ app.get('/auth/login', (c) => {
   return c.redirect(`${config.authUrl}?${params.toString()}`)
 })
 
-app.get('/auth/callback', async (c) => {
+app.get('/api/auth/callback', async (c) => {
   const config = getBungieConfig(c.env)
   const code = c.req.query('code')
   const state = c.req.query('state')
@@ -44,7 +57,6 @@ app.get('/auth/callback', async (c) => {
     return c.text('Invalid state or missing code', 400)
   }
 
-  // Exchange code for tokens
   const response = await fetch(config.tokenUrl, {
     method: 'POST',
     headers: {
@@ -64,27 +76,24 @@ app.get('/auth/callback', async (c) => {
 
   const tokens = await response.json() as any
   
-  // Store tokens in a secure session cookie
   setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
     path: '/',
     secure: true,
     httpOnly: true,
     maxAge: 3600 * 24 * 30, // 30 days
-    sameSite: 'Lax', // First-party now!
+    sameSite: 'Lax',
   })
 
-  // Redirect to dashboard
   return c.redirect('/dashboard')
 })
 
-app.get('/profile', async (c) => {
+app.get('/api/profile', async (c) => {
   const config = getBungieConfig(c.env)
   const authCookie = getCookie(c, 'bungie_auth')
   if (!authCookie) return c.text('Unauthorized', 401)
 
   const tokens = JSON.parse(authCookie)
   
-  // 1. Get Membership Data for Current User
   const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
     headers: {
       'X-API-Key': config.apiKey,
@@ -100,7 +109,6 @@ app.get('/profile', async (c) => {
 
   const { membershipType, membershipId } = destinyMembership
 
-  // 2. Get Profile Data (Components: 100, 102, 200, 201, 205, 300)
   const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
   
   const profileRes = await fetch(profileUrl, {
@@ -116,7 +124,7 @@ app.get('/profile', async (c) => {
   return c.json(profileData.Response)
 })
 
-app.get('/manifest/version', async (c) => {
+app.get('/api/manifest/version', async (c) => {
   const cacheKey = 'manifest_version'
   const cached = await c.env.guardian_kv.get(cacheKey)
   
@@ -127,7 +135,7 @@ app.get('/manifest/version', async (c) => {
   try {
     const manifest = await getManifestMetadata()
     await c.env.guardian_kv.put(cacheKey, JSON.stringify(manifest), {
-      expirationTtl: 3600 // 1 hour
+      expirationTtl: 3600
     })
     return c.json(manifest)
   } catch (error) {
@@ -135,7 +143,7 @@ app.get('/manifest/version', async (c) => {
   }
 })
 
-app.get('/manifest/definitions/:table', async (c) => {
+app.get('/api/manifest/definitions/:table', async (c) => {
   const table = c.req.param('table')
   const path = await getManifestTablePath(table)
 
@@ -153,6 +161,15 @@ app.get('/manifest/definitions/:table', async (c) => {
       'Cache-Control': 'public, max-age=86400',
     }
   })
+})
+
+// Catch-all 404 handler to debug unhandled paths
+app.all('*', (c) => {
+    return c.json({
+        error: 'Not Found (Hono Catch-All)',
+        path: c.req.path,
+        method: c.req.method
+    }, 404)
 })
 
 export const onRequest = handle(app)
