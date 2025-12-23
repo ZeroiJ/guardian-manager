@@ -71,7 +71,8 @@ app.get('/api/auth/callback', async (c) => {
 
   if (!response.ok) {
     const error = await response.text()
-    return c.text(`Token exchange failed: ${error}`, 400)
+    console.error(`[Bungie Auth] Token exchange failed: ${response.status} ${error}`)
+    return c.text(`Token exchange failed [${response.status}]: ${error}`, 400)
   }
 
   const tokens = await response.json() as any
