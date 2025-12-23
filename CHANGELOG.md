@@ -2,6 +2,18 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.6.0] - 2025-12-23
+
+### Changed
+- **Infrastructure Migration**: Migrated backend from Cloudflare Workers to Cloudflare Pages Functions to establish a First-Party Cookie context (`/api/...`).
+- **Auth Strategy**: Attempted to implement DIM-style Body Authentication and Standard Basic Auth for Bungie OAuth.
+
+### Fixed
+- **CORS/Cookies**: Resolved cross-site cookie blocking by serving the API from the same domain as the frontend.
+
+### Known Issues
+- **Critical Auth Failure**: Token exchange (`/api/auth/callback`) consistently fails with `invalid_client` (400), despite verifying credentials and trying multiple auth methods (Header vs Body) and Redirect URI configurations. The exact cause remains unidentified after extensive debugging.
+
 ## [0.5.0] - 2025-12-22
 
 ### Added
