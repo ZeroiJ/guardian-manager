@@ -6,8 +6,9 @@ import { getManifestMetadata, getManifestTablePath } from '../manifest'
 
 const app = new Hono<{ Bindings: Env }>()
 
-// Define the production redirect URI - MUST match Bungie Portal EXACTLY
-const REDIRECT_URI = 'https://guardian-manager.pages.dev/api/auth/callback'
+// Hardcoded credentials for debugging
+const CLIENT_ID = '51042'
+const CLIENT_SECRET = 'g4K4fPwbN0H-zewTWvAQPulHdB.yj7lx-UtJO6ZdIfE'
 
 // DEBUG: Log all requests
 app.use('*', async (c, next) => {
@@ -26,7 +27,7 @@ app.get('/api/debug', (c) => {
     path: c.req.path,
     url: c.req.url,
     method: c.req.method,
-    redirect_uri: REDIRECT_URI
+    client_id: CLIENT_ID // Echo back to verify
   })
 })
 
@@ -43,10 +44,10 @@ app.get('/api/auth/login', (c) => {
   })
 
   const params = new URLSearchParams({
-    client_id: config.clientId,
+    client_id: CLIENT_ID,
     response_type: 'code',
     state: state,
-    redirect_uri: REDIRECT_URI, // Explicitly send it
+    // NO redirect_uri - rely on Portal registration
   })
 
   return c.redirect(`${config.authUrl}?${params.toString()}`)
@@ -66,13 +67,13 @@ app.get('/api/auth/callback', async (c) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`, 
     },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
-      client_id: config.clientId.trim(), // Trim whitespace!
-      client_secret: config.clientSecret.trim(), // Trim whitespace!
-      redirect_uri: REDIRECT_URI,
+      // No client_id/secret in body when using Basic Auth
+      // No redirect_uri - rely on Portal default
     }),
   })
 
