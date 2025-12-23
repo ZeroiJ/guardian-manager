@@ -1,9 +1,21 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { setCookie, getCookie } from 'hono/cookie'
 import { getBungieConfig } from './config'
 import { getManifestMetadata, getManifestTablePath } from './manifest'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// Enable CORS for API routes
+app.use('/api/*', cors({
+  origin: (origin) => {
+    // Allow localhost (dev) and production domains
+    return origin; 
+  },
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}))
 
 app.get('/', (c) => {
   return c.text('Guardian Nexus API is running!')
