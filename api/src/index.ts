@@ -31,7 +31,7 @@ app.get('/auth/login', (c) => {
     secure: true,
     httpOnly: true,
     maxAge: 600, // 10 minutes
-    sameSite: 'Lax',
+    sameSite: 'None',
   })
 
   const params = new URLSearchParams({
@@ -79,7 +79,7 @@ app.get('/auth/callback', async (c) => {
     secure: true,
     httpOnly: true,
     maxAge: 3600 * 24 * 30, // 30 days
-    sameSite: 'Lax',
+    sameSite: 'None',
   })
 
   return c.text('Authenticated successfully! You can close this tab.')
