@@ -26,6 +26,57 @@ Let's build something the Tower would be proud of. 🚀
 
 ## Changelog
 
+### [0.5.0] - 2025-12-22
+
+#### Added
+- **Frontend Refactor**: Migrated frontend to a modern, typed architecture under `src/services`, `src/hooks`, and `src/components/{inventory,destiny,auth,ui}`.
+- **Typed API Client**: Implemented a robust `APIClient` (`src/services/api/client.ts`) for centralized backend communication.
+- **Local Manifest Manager**: Created `ManifestManager` (`src/services/manifest/manager.ts`) with IndexedDB (`idb-keyval`) caching for high-performance definition lookups.
+- **Zipper Data Model**: Implemented `useProfile` hook that "zips" live Bungie data with local user metadata (Tags/Notes).
+- **Optimistic Updates**: Added support for immediate UI feedback when updating item metadata, with background synchronization.
+- **DIM-Standard UI**: Refactored `ArsenalPage.tsx` and `ItemCard.tsx` to meet DIM's density and precision standards (48x48px tiles, rarity borders, power/element overlays).
+
+#### Changed
+- **Vite Proxy**: Configured local development proxy to forward `/api` requests to the Cloudflare Worker.
+
+#### Fixed
+- **Dashboard Stability**: Resolved crash issues on Dashboard load by implementing robust error boundaries and loading states in hooks.
+
+#### Known Issues
+- **Last Line Failure**: Encountered 3 errors on the last line which need addressing later.
+
+### [0.4.0] - 2025-12-22
+
+#### Added
+- **Cloudflare Worker Backend**: Initialized a new serverless backend in `api/` using Hono and Cloudflare Workers.
+- **Bungie OAuth Proxy**: Implemented secure OAuth 2.0 flow with state validation and HTTP-only cookies (`/auth/login`, `/auth/callback`).
+- **Manifest Infrastructure**: Created a dedicated Manifest Service (`src/manifest.ts`) with Cloudflare KV caching for version metadata.
+- **Manifest Proxy Endpoint**: Added `/api/manifest/definitions/:table` to proxy and cache Bungie manifest requests.
+- **User Metadata Database**: Configured Cloudflare D1 database (`guardian-db`) and applied initial migration for `UserMetadata` (Tags, Notes).
+- **Environment Security**: Implemented secure secret management using `.dev.vars` (local) and Wrangler secrets (production).
+
+#### Infrastructure
+- **Deployment**: Successfully deployed the API worker to `https://guardian-nexus-api.zeroij.workers.dev`.
+
+### [0.3.0] - 2025-12-13
+
+#### Added
+- **Horizontal Dashboard**: Implemented a scrollable, DIM-like dashboard in `Arsenal.jsx` with dedicated Character Columns and Vault.
+- **Top Navigation Bar**: Added a sticky header with Inventory, Progress, Vendors links, and a unified Search bar.
+- **Character Stats**: Added real-time character stats (Mobility, Resilience, Recovery, etc.) to the column headers (`CharacterColumn.jsx`) [21e5878].
+- **Item Overlays**: Added Power Level, Element Icons, and Masterwork borders to `ItemCard.jsx` [cee3855].
+- **Constants**: Created `src/utils/constants.js` to centralize Bungie API hashes (Buckets, Stats, Damage Types) [21e5878].
+
+#### Changed
+- **Performance**: Implemented **Chunked Manifest Fetching** (Batch Size: 50) in `Arsenal.jsx` to resolve 502 Bad Gateway errors when loading large vaults (400+ items) [3892788].
+- **Item Cards**: Completely redesigned `ItemCard.jsx` to match DIM's 48x48px square tiles with rarity-colored borders and compact overlays [cee3855].
+- **Vault Visibility**: Fixed the "Empty Vault" bug by filtering for "Instanced Items" only and chunking requests.
+- **Column Layout**: Refactored `CharacterColumn.jsx` to support strict slot grouping (Kinetic, Energy, Power) [1bd1cdc].
+
+#### Fixed
+- **API Timeouts**: Resolved backend timeouts by batching manifest definition requests.
+- **Missing Imports**: Fixed `ReferenceError` in `CharacterColumn.jsx` by restoring missing React/ItemCard imports [7e267d1].
+
 ### [0.2.1] - 2025-11-22
 
 #### Changed
