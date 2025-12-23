@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://guardian-nexus-api.zeroij.workers.dev',
+        target: 'https://guardian-manager.pages.dev',
         changeOrigin: true,
         secure: false,
       }

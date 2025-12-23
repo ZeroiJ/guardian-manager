@@ -1,4 +1,4 @@
-name = "guardianmanager"
+name = "guardian-manager"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
@@ -9,3 +9,12 @@ pages_build_output_dir = "dist"
 # BUNGIE_API_KEY = ""
 # SESSION_SECRET = ""
 # FRONTEND_URL = ""
+
+[[kv_namespaces]]
+binding = "guardian_kv"
+id = "a0e4b35ad4694542a88d447836f6891d"
+
+[[d1_databases]]
+binding = "guardian_db"
+database_name = "guardian-db"
+database_id = "9784d2e2-ca80-495c-986d-28ca84e1dc87"

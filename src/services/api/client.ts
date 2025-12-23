@@ -1,9 +1,7 @@
 import { DestinyProfileResponse } from 'bungie-api-ts/destiny2';
 
-// In development, use relative path to use Vite proxy. In production, use full Worker URL.
-export const API_BASE_URL = import.meta.env.PROD 
-    ? 'https://guardian-nexus-api.zeroij.workers.dev'
-    : '';
+// Use relative path for all environments (Cloudflare Pages Functions or Vite Proxy)
+export const API_BASE_URL = '';
 
 export class APIClient {
     private static async request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -18,9 +16,7 @@ export class APIClient {
         if (!response.ok) {
             if (response.status === 401) {
                 // If unauthorized, redirect to login
-                // For login, we ALWAYS want the full backend URL, even in dev (to init OAuth)
-                const authBase = 'https://guardian-nexus-api.zeroij.workers.dev';
-                window.location.href = `${authBase}/auth/login`;
+                window.location.href = `/api/auth/login`;
                 throw new Error('Unauthorized');
             }
             throw new Error(`API Error: ${response.status} ${response.statusText}`);
