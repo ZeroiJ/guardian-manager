@@ -39,6 +39,9 @@ export function useProfile() {
 
             const instanceData = bungieProfile.itemComponents?.instances?.data || {};
 
+            // Extract Artifact Power
+            const artifactPower = bungieProfile.profileProgression?.data?.seasonalArtifact?.powerBonus || 0;
+
             // The Zipper: Merge Bungie Item + Instance Data + User Metadata
             const items: GuardianItem[] = rawItems.map(item => {
                 const inst = item.itemInstanceId ? instanceData[item.itemInstanceId] : undefined;
@@ -61,7 +64,8 @@ export function useProfile() {
             setProfile({
                 characters,
                 items,
-                currencies: [] // TODO
+                currencies: [], // TODO
+                artifactPower
             });
 
         } catch (err) {

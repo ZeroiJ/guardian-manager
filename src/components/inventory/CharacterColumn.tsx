@@ -1,5 +1,6 @@
 import React from 'react';
-import ItemCard from '../destiny/ItemCard';
+import DestinyItemTile from '../destiny/DestinyItemTile';
+import { DraggableInventoryItem } from './DraggableInventoryItem';
 import { STAT_HASHES, BUCKETS } from '../../data/constants';
 
 interface EquipmentRowProps {
@@ -17,35 +18,30 @@ const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipmen
     const inventoryItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
     return (
-        <div className="flex items-start mb-1 min-h-[56px]">
-            {/* Equipped Item (Hero Slot) - Scaled Up + Gutter */}
-            <div className="flex-shrink-0 mr-3">
-                <div className="w-[54px] h-[54px] bg-[#292929] border border-white/10 relative group shadow-lg">
+        <div className="flex items-start mb-1 min-h-[50px]">
+            {/* Equipped Item (Hero Slot) - Scaled slightly larger if desired, but DIM keeps it uniform usually */}
+            <div className="flex-shrink-0 mr-1">
+                {/* Equipped items are typically 48px in DIM too, maybe slightly spaced */}
+                <div className="w-[48px] h-[48px] bg-[#292929] border border-white/10 relative group shadow-lg">
                     {/* Slot Label Overlay (Only visible if empty) */}
                     {!equippedItem && <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[9px] uppercase tracking-widest">{label}</div>}
 
                     {equippedItem && (
-                        <ItemCard item={equippedItem} definition={definitions[equippedItem.itemHash]} className="w-full h-full" />
+                        <DraggableInventoryItem item={equippedItem} definition={definitions[equippedItem.itemHash]} />
                     )}
                 </div>
             </div>
 
-            {/* Inventory Grid (Backpack) - DIM Reference Grid */}
-            <div
-                className="flex-1 grid gap-[2px] content-start mt-[3px]"
-                style={{
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(calc(var(--item-size) - 2px), 1fr))'
-                }}
-            >
+            {/* Inventory Grid (Backpack) - 3x3 Grid */}
+            <div className="flex-1 flex flex-wrap gap-[2px] content-start">
                 {[...Array(9)].map((_, idx) => {
                     const item = inventoryItems[idx];
                     return (
-                        <div key={idx} className="w-[var(--item-size)] h-[var(--item-size)] bg-[#1a1a1a] relative border border-white/5 box-border">
+                        <div key={idx} className="w-[48px] h-[48px] bg-[#1a1a1a] relative border border-white/5 box-border">
                             {item && (
-                                <ItemCard
+                                <DraggableInventoryItem
                                     item={item}
                                     definition={definitions[item.itemHash]}
-                                    className="w-full h-full"
                                 />
                             )}
                         </div>
@@ -61,16 +57,18 @@ interface CharacterColumnProps {
     equipment: any[];
     inventory: any[];
     definitions: Record<string, any>;
+    artifactPower: number;
 }
 
-export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions }) => {
+export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions, artifactPower }) => {
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
-    // ... mapped to numeric enums usually, but keying by number here
     const raceNames: Record<number, string> = { 0: 'Human', 1: 'Awoken', 2: 'Exo' };
     const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
     const classNameText = classNames[classType];
+
+    const basePower = light - artifactPower;
 
     return (
         <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col h-full overflow-hidden select-none">
@@ -88,22 +86,51 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                     <span className="text-[10px] text-gray-300 font-medium uppercase tracking-wider opacity-80">{raceNames[raceType]}</span>
                 </div>
 
-                {/* Right: Light Level */}
-                <div className="relative z-10 text-2xl font-bold text-[#f5dc56] drop-shadow-lg font-mono tracking-tighter shadow-black">
-                    {light}
+                {/* Right: Power Level Breakdown */}
+                <div className="relative z-10 flex flex-col items-end leading-none">
+                    <div className="text-xl font-bold text-[#f5dc56] drop-shadow-lg font-mono tracking-tighter shadow-black">
+                        {light}
+                    </div>
+                    <div className="text-[9px] text-[#f5dc56]/80 font-mono">
+                        {basePower} <span className="text-[#50c8ce]">+{artifactPower}</span>
+                    </div>
                 </div>
             </div>
 
             {/* Stats Row - Compact Horizontal */}
-            <div className="flex justify-between px-2 py-1 bg-[#0a0a10] border-b border-white/5 text-[#cccccc]">
-                {Object.entries(STAT_HASHES).map(([name, hash]) => (
-                    <div key={name} className="flex flex-col items-center w-full group cursor-help">
-                        {/* Value */}
-                        <span className="text-[11px] font-bold text-gray-300 group-hover:text-white transition-colors">{stats[hash] || 0}</span>
-                        {/* Label (Icon placeholder) */}
-                        <span className="text-[8px] text-gray-500 uppercase">{name.substring(0, 3)}</span>
-                    </div>
-                ))}
+            <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5">
+                {Object.entries(STAT_HASHES).map(([name, hash]) => {
+                    const value = stats[hash] || 0;
+                    const tier = Math.min(10, Math.floor(value / 10)); // Max tier 10
+                    // Tiers > 10 are wasted stats visually, but maybe distinct color?
+                    // Tier 10 = 100.
+                    
+                    return (
+                        <div key={name} className="flex items-center gap-2 h-[14px]">
+                            {/* Label */}
+                            <span className="w-8 text-[9px] text-gray-400 uppercase font-bold text-right">{name.substring(0, 3)}</span>
+                            
+                            {/* Bar Container */}
+                            <div className="flex-1 h-2 bg-[#1a1a1a] relative">
+                                {/* Fill */}
+                                <div 
+                                    className="h-full bg-white/20" 
+                                    style={{ width: `${Math.min(100, value)}%` }}
+                                >
+                                    {/* Tier Segments */}
+                                    <div className="absolute inset-0 flex">
+                                        {[...Array(10)].map((_, i) => (
+                                            <div key={i} className={`flex-1 border-r border-black/50 ${i < tier ? 'bg-[#f5dc56]' : 'opacity-0'}`} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Value */}
+                            <span className="w-6 text-[10px] text-right font-mono text-[#f5dc56]">{value}</span>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Content (Scrollable) */}

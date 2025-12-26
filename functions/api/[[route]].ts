@@ -120,7 +120,7 @@ app.get('/api/profile', async (c) => {
   const destinyMembership = membershipsData.Response.destinyMemberships[0]
   const { membershipType, membershipId } = destinyMembership
 
-  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
+  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300`
   
   const profileRes = await fetch(profileUrl, {
     headers: {

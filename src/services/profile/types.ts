@@ -37,4 +37,5 @@ export interface GuardianProfile {
     characters: Record<string, any>; // TODO: Type this properly with Bungie types
     items: GuardianItem[];
     currencies: any[];
+    artifactPower: number;
 }

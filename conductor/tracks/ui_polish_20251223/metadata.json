@@ -1,0 +1,9 @@
+{
+  "id": "ui_polish_20251223",
+  "name": "UI/UX Polish & DIM Parity",
+  "description": "Replicate DIM's high-density inventory UI, item tiles, and drag-and-drop interactions.",
+  "status": "in_progress",
+  "phases": ["Grid Layout", "Item Tiles", "Drag & Drop", "Search"],
+  "owner": "Guardian Architect",
+  "created_at": "2025-12-23T10:00:00Z"
+}
