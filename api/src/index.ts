@@ -10,7 +10,7 @@ const app = new Hono<{ Bindings: Env }>()
 app.use('/api/*', cors({
   origin: (origin) => {
     // Allow localhost (dev) and production domains
-    return origin; 
+    return origin;
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -24,7 +24,7 @@ app.get('/', (c) => {
 app.get('/auth/login', (c) => {
   const config = getBungieConfig(c.env)
   const state = crypto.randomUUID()
-  
+
   // Set state in a secure cookie for validation in callback
   setCookie(c, 'oauth_state', state, {
     path: '/',
@@ -54,16 +54,19 @@ app.get('/auth/callback', async (c) => {
   }
 
   // Exchange code for tokens
+  const bodyParams = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: code,
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
+  });
+
   const response = await fetch(config.tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
     },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: code,
-    }),
+    body: bodyParams,
   })
 
   if (!response.ok) {
@@ -72,7 +75,7 @@ app.get('/auth/callback', async (c) => {
   }
 
   const tokens = await response.json() as any
-  
+
   // Store tokens in a secure session cookie
   setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
     path: '/',
@@ -91,7 +94,7 @@ app.get('/api/profile', async (c) => {
   if (!authCookie) return c.text('Unauthorized', 401)
 
   const tokens = JSON.parse(authCookie)
-  
+
   // 1. Get Membership Data for Current User
   const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
     headers: {
@@ -102,7 +105,7 @@ app.get('/api/profile', async (c) => {
 
   if (!membershipsRes.ok) return c.text('Failed to fetch memberships', membershipsRes.status)
   const membershipsData = await membershipsRes.json() as any
-  
+
   const destinyMembership = membershipsData.Response.destinyMemberships[0]
   if (!destinyMembership) return c.text('No Destiny membership found', 404)
 
@@ -110,7 +113,7 @@ app.get('/api/profile', async (c) => {
 
   // 2. Get Profile Data (Components: 100, 102, 200, 201, 205, 300)
   const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,200,201,205,300`
-  
+
   const profileRes = await fetch(profileUrl, {
     headers: {
       'X-API-Key': config.apiKey,
@@ -127,7 +130,7 @@ app.get('/api/profile', async (c) => {
 app.get('/api/manifest/version', async (c) => {
   const cacheKey = 'manifest_version'
   const cached = await c.env.guardian_kv.get(cacheKey)
-  
+
   if (cached) {
     return c.json(JSON.parse(cached))
   }
@@ -152,7 +155,7 @@ app.get('/api/manifest/definitions/:table', async (c) => {
   }
 
   const fullUrl = `https://www.bungie.net${path}`
-  
+
   const response = await fetch(fullUrl)
 
   return new Response(response.body, {
