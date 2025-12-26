@@ -28,7 +28,7 @@
     - Implement smooth hover tooltips with item stats.
 
 ## Phase 4: Final Polish & Verification
-- [ ] Task: Verify Load Performance
+- [x] Task: Verify Load Performance
     - Audit startup time (Manifest check -> Profile load -> Render).
     - Ensure 60fps scrolling in the Vault.
-- [ ] Task: Conductor - User Manual Verification 'Frontend Modernization' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Frontend Modernization' (Protocol in workflow.md)
