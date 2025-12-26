@@ -11,13 +11,64 @@ import { filterItems } from '../utils/search/itemFilter';
 export function ArsenalPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
-    
-    // ... sensors ...
+
+    // Dnd Kit Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px movement required to start drag
+            },
+        })
+    );
 
     // Use the new Zipper hook
     const { profile, loading: profileLoading, error: profileError } = useProfile();
     
-    // ... definitions ...
+    // Extract hashes for manifest lookup
+    // Only fetch for items we actually have
+    const itemHashes = profile?.items.map(i => i.itemHash) || [];
+    const { definitions, loading: defsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
+
+    const loading = profileLoading || (itemHashes.length > 0 && defsLoading);
+
+    const handleDragStart = (event: DragStartEvent) => {
+        if (event.active.data.current) {
+            setActiveDragItem(event.active.data.current as any);
+        }
+    };
+
+    const handleDragEnd = (_event: DragEndEvent) => {
+        setActiveDragItem(null);
+        // TODO: Implement Move Logic
+        // console.log('Dropped', event.over);
+    };
+
+    if (loading) {
+        return (
+            <div className="h-screen bg-[#050505] text-white flex flex-col items-center justify-center font-mono space-y-4">
+                <div className="w-12 h-12 border-4 border-t-transparent border-[#f5dc56] rounded-full animate-spin" />
+                <div className="animate-pulse text-[#f5dc56]">INITIALIZING GUARDIAN NEXUS...</div>
+                <div className="text-xs text-gray-500">Connecting to Neural Net (Cloudflare Worker)</div>
+            </div>
+        );
+    }
+
+    if (profileError) {
+        return (
+            <div className="h-screen bg-[#050505] text-red-500 flex flex-col items-center justify-center font-mono p-4">
+                <div className="text-xl mb-4">CRITICAL SYSTEM FAILURE</div>
+                <div className="bg-red-900/20 border border-red-500/50 p-4 rounded max-w-md break-words">
+                    {profileError.message}
+                </div>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-8 px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors"
+                >
+                    REBOOT SYSTEM
+                </button>
+            </div>
+        );
+    }
 
     // Filter Items Logic
     const allItems = profile?.items || [];
@@ -39,8 +90,6 @@ export function ArsenalPage() {
             inventory: charItems.filter(i => !i.instanceData?.isEquipped)
         };
     };
-    
-    // ... render ...
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

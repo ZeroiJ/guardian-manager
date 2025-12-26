@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginButton from './components/auth/LoginButton';
 import { ArsenalPage } from './pages/ArsenalPage';
-
 import { Home } from './pages/Home';
 
 function App() {
-  const [currentView, setCurrentView] = useState('home');
-
   return (
     <Router>
       <div className="min-h-screen bg-[#0a0e14] text-[#e8e9ed] relative overflow-x-hidden font-sans">

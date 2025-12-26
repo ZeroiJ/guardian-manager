@@ -1,5 +1,4 @@
 import React from 'react';
-import DestinyItemTile from '../destiny/DestinyItemTile';
 import { DraggableInventoryItem } from './DraggableInventoryItem';
 import { STAT_HASHES, BUCKETS } from '../../data/constants';
 

@@ -32,7 +32,7 @@ interface DestinyItemTileProps {
 export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, className = '' }) => {
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
-    const { itemInstanceId, itemHash, state } = item;
+    const { state } = item;
     const isMasterwork = (state & 4) !== 0; // Bitmask for Masterwork
     const rarity = definition.inventory.tierType;
     const icon = `https://www.bungie.net${definition.displayProperties.icon}`;

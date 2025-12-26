@@ -1,5 +1,3 @@
-import React from 'react';
-
 const LoginButton = () => {
     const handleLogin = () => {
         window.location.href = '/api/auth/login';
