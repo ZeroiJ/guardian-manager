@@ -201,6 +201,64 @@ app.post('/api/actions/transfer', async (c) => {
   return c.json(data)
 })
 
+app.get('/api/metadata', async (c) => {
+  const authCookie = getCookie(c, 'bungie_auth')
+  if (!authCookie) return c.json({ tags: {}, notes: {} })
+
+  const tokens = JSON.parse(authCookie)
+  const membershipId = tokens.membership_id
+
+  const metadata = await c.env.guardian_db.prepare(
+    'SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?'
+  ).bind(membershipId).first()
+
+  if (!metadata) {
+    return c.json({ tags: {}, notes: {} })
+  }
+
+  return c.json({
+    tags: JSON.parse((metadata.tags as string) || '{}'),
+    notes: JSON.parse((metadata.notes as string) || '{}')
+  })
+})
+
+app.post('/api/metadata', async (c) => {
+  const authCookie = getCookie(c, 'bungie_auth')
+  if (!authCookie) return c.text('Unauthorized', 401)
+
+  const tokens = JSON.parse(authCookie)
+  const membershipId = tokens.membership_id
+  const { itemId, type, value } = await c.req.json() as any
+
+  // 1. Get existing metadata
+  const existing = await c.env.guardian_db.prepare(
+    'SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?'
+  ).bind(membershipId).first()
+
+  let tags = JSON.parse((existing?.tags as string) || '{}')
+  let notes = JSON.parse((existing?.notes as string) || '{}')
+
+  // 2. Update specific field
+  if (type === 'tag') {
+    if (value) tags[itemId] = value; else delete tags[itemId];
+  } else if (type === 'note') {
+    if (value) notes[itemId] = value; else delete notes[itemId];
+  }
+
+  // 3. Save back to D1
+  if (!existing) {
+    await c.env.guardian_db.prepare(
+      'INSERT INTO UserMetadata (bungieMembershipId, tags, notes) VALUES (?, ?, ?)'
+    ).bind(membershipId, JSON.stringify(tags), JSON.stringify(notes)).run()
+  } else {
+    await c.env.guardian_db.prepare(
+      'UPDATE UserMetadata SET tags = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP WHERE bungieMembershipId = ?'
+    ).bind(JSON.stringify(tags), JSON.stringify(notes), membershipId).run()
+  }
+
+  return c.json({ success: true })
+})
+
 // Catch-all 404 handler
 app.all('*', (c) => {
     return c.json({

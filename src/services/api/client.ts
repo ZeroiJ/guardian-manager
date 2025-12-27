@@ -51,21 +51,20 @@ export class APIClient {
      * Fetches user metadata (tags, notes) from our D1 database.
      */
     static async getMetadata(): Promise<{ tags: Record<string, string>, notes: Record<string, string> }> {
-        // TODO: Implement the backend endpoint for this
-        // return this.request('/api/metadata');
-        return { tags: {}, notes: {} }; // Stub for now
+        return this.request('/api/metadata');
     }
 
     /**
      * Updates user metadata for an item.
      */
     static async updateMetadata(itemId: string, type: 'tag' | 'note', value: string | null): Promise<void> {
-        // TODO: Implement the backend endpoint for this
-        // return this.request('/api/metadata', {
-        //     method: 'POST',
-        //     body: JSON.stringify({ itemId, type, value })
-        // });
-        console.log(`[Stub] Updating ${type} for ${itemId} to ${value}`);
+        return this.request('/api/metadata', {
+            method: 'POST',
+            body: JSON.stringify({ itemId, type, value }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
     }
 
     /**
