@@ -4,6 +4,7 @@ import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSe
 import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import DestinyItemTile from '../components/destiny/DestinyItemTile';
 import { DraggableInventoryItem } from '../components/inventory/DraggableInventoryItem';
+import { DroppableZone } from '../components/inventory/DroppableZone';
 import { useProfile } from '../hooks/useProfile';
 import { useDefinitions } from '../hooks/useDefinitions';
 import { filterItems } from '../utils/search/itemFilter';
@@ -22,7 +23,7 @@ export function ArsenalPage() {
     );
 
     // Use the new Zipper hook
-    const { profile, loading: profileLoading, error: profileError } = useProfile();
+    const { profile, loading: profileLoading, error: profileError, moveItem } = useProfile();
     
     // Extract hashes for manifest lookup
     // Only fetch for items we actually have
@@ -37,10 +38,25 @@ export function ArsenalPage() {
         }
     };
 
-    const handleDragEnd = (_event: DragEndEvent) => {
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
         setActiveDragItem(null);
-        // TODO: Implement Move Logic
-        // console.log('Dropped', event.over);
+
+        if (!over) return;
+
+        const sourceItem = active.data.current?.item;
+        const targetContainerId = over.id as string; // 'vault' or characterId
+
+        if (!sourceItem) return;
+
+        // If dropped on same owner, do nothing
+        if (sourceItem.owner === targetContainerId) return;
+
+        // Execute Move
+        const isVault = targetContainerId === 'vault';
+        console.log(`Moving item ${sourceItem.itemInstanceId} from ${sourceItem.owner} to ${targetContainerId}`);
+        
+        moveItem(sourceItem.itemInstanceId, sourceItem.itemHash, targetContainerId, isVault);
     };
 
     if (loading) {
@@ -131,19 +147,20 @@ export function ArsenalPage() {
                     {characters.map((char: any) => {
                         const { equipment, inventory } = getItemsForCharacter(char.characterId);
                         return (
-                            <CharacterColumn
-                                key={char.characterId}
-                                character={char}
-                                equipment={equipment}
-                                inventory={inventory}
-                                definitions={definitions}
-                                artifactPower={profile?.artifactPower || 0}
-                            />
+                            <DroppableZone key={char.characterId} id={char.characterId} className="flex-shrink-0 h-full relative">
+                                <CharacterColumn
+                                    character={char}
+                                    equipment={equipment}
+                                    inventory={inventory}
+                                    definitions={definitions}
+                                    artifactPower={profile?.artifactPower || 0}
+                                />
+                            </DroppableZone>
                         );
                     })}
 
                     {/* Vault Column */}
-                    <div className="flex-shrink-0 w-[400px] bg-[#11111b] flex flex-col h-full">
+                    <DroppableZone id="vault" className="flex-shrink-0 w-[400px] bg-[#11111b] flex flex-col h-full relative">
                         <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md">
                             <span className="font-bold text-lg text-[#ccc]">Vault</span>
                             <span className="text-sm font-mono text-[#666]">{vaultItems.length} / 600</span>
@@ -160,7 +177,7 @@ export function ArsenalPage() {
                                 ))}
                             </div>
                         </div>
-                    </div>
+                    </DroppableZone>
                 </div>
                 
                 {/* Drag Overlay */}
