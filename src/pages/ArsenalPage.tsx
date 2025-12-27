@@ -5,7 +5,7 @@ import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import DestinyItemTile from '../components/destiny/DestinyItemTile';
 import { DraggableInventoryItem } from '../components/inventory/DraggableInventoryItem';
 import { DroppableZone } from '../components/inventory/DroppableZone';
-import { VirtualGrid } from '../components/ui/VirtualGrid';
+import { VirtualVaultGrid } from '../components/inventory/VirtualVaultGrid';
 import { useProfile } from '../hooks/useProfile';
 import { useDefinitions } from '../hooks/useDefinitions';
 import { filterItems } from '../utils/search/itemFilter';
@@ -171,17 +171,9 @@ export function ArsenalPage() {
 
                         {/* Virtualized Vault Grid */}
                         <div className="flex-1 overflow-hidden relative p-1">
-                            <VirtualGrid 
-                                items={vaultItems}
-                                itemHeight={48}
-                                itemWidth={48}
-                                gap={2}
-                                className="h-full"
-                                renderItem={(item) => (
-                                    <div className="w-[48px] h-[48px] bg-[#1a1a1a] border border-white/5">
-                                        <DraggableInventoryItem item={item} definition={definitions[item.itemHash]} />
-                                    </div>
-                                )}
+                            <VirtualVaultGrid 
+                                items={vaultItems} 
+                                definitions={definitions} 
                             />
                         </div>
                     </DroppableZone>
