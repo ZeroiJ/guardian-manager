@@ -5,6 +5,7 @@ import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import DestinyItemTile from '../components/destiny/DestinyItemTile';
 import { DroppableZone } from '../components/inventory/DroppableZone';
 import { VirtualVaultGrid } from '../components/inventory/VirtualVaultGrid';
+import { ItemContextMenu } from '../components/inventory/ItemContextMenu';
 import { useProfile } from '../hooks/useProfile';
 import { useDefinitions } from '../hooks/useDefinitions';
 import { filterItems } from '../utils/search/itemFilter';
@@ -12,6 +13,7 @@ import { filterItems } from '../utils/search/itemFilter';
 export function ArsenalPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
 
     // Dnd Kit Sensors
     const sensors = useSensors(
@@ -57,6 +59,16 @@ export function ArsenalPage() {
         console.log(`Moving item ${sourceItem.itemInstanceId} from ${sourceItem.owner} to ${targetContainerId}`);
         
         moveItem(sourceItem.itemInstanceId, sourceItem.itemHash, targetContainerId, isVault);
+    };
+
+    const handleContextMenu = (e: React.MouseEvent, item: any, definition: any) => {
+        e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            item,
+            definition
+        });
     };
 
     if (loading) {
@@ -154,6 +166,7 @@ export function ArsenalPage() {
                                     inventory={inventory}
                                     definitions={definitions}
                                     artifactPower={profile?.artifactPower || 0}
+                                    onItemContextMenu={handleContextMenu}
                                 />
                             </DroppableZone>
                         );
@@ -173,6 +186,7 @@ export function ArsenalPage() {
                             <VirtualVaultGrid 
                                 items={vaultItems} 
                                 definitions={definitions} 
+                                onItemContextMenu={handleContextMenu}
                             />
                         </div>
                     </DroppableZone>
@@ -190,6 +204,17 @@ export function ArsenalPage() {
                         </div>
                     ) : null}
                 </DragOverlay>
+
+                {/* Context Menu */}
+                {contextMenu && (
+                    <ItemContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        item={contextMenu.item}
+                        definition={contextMenu.definition}
+                        onClose={() => setContextMenu(null)}
+                    />
+                )}
             </div>
         </DndContext>
     );

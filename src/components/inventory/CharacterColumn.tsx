@@ -8,10 +8,11 @@ interface EquipmentRowProps {
     equipment: any[]; // TODO: BungieItem[]
     inventory: any[]; // TODO: BungieItem[]
     definitions: Record<string, any>; // TODO: Definitions Manifest
+    onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
 }
 
 // Helper component for a single slot row (e.g. Kinetic Weapons)
-const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipment, inventory, definitions }) => {
+const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipment, inventory, definitions, onItemContextMenu }) => {
     // specific bucket item
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const inventoryItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
@@ -26,7 +27,11 @@ const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipmen
                     {!equippedItem && <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[9px] uppercase tracking-widest">{label}</div>}
 
                     {equippedItem && (
-                        <DraggableInventoryItem item={equippedItem} definition={definitions[equippedItem.itemHash]} />
+                        <DraggableInventoryItem 
+                            item={equippedItem} 
+                            definition={definitions[equippedItem.itemHash]} 
+                            onContextMenu={onItemContextMenu}
+                        />
                     )}
                 </div>
             </div>
@@ -41,6 +46,7 @@ const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipmen
                                 <DraggableInventoryItem
                                     item={item}
                                     definition={definitions[item.itemHash]}
+                                    onContextMenu={onItemContextMenu}
                                 />
                             )}
                         </div>
@@ -57,9 +63,10 @@ interface CharacterColumnProps {
     inventory: any[];
     definitions: Record<string, any>;
     artifactPower: number;
+    onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
 }
 
-export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions, artifactPower }) => {
+export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions, artifactPower, onItemContextMenu }) => {
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
@@ -138,27 +145,27 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                 {/* Weapons Group */}
                 <div className="mb-2">
                     <div className="text-[9px] text-[#666] font-bold uppercase mb-0.5 px-0.5 tracking-wider hidden">Weapons</div>
-                    <EquipmentRow label="Kinetic" bucketHash={BUCKETS.Kinetic} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Energy" bucketHash={BUCKETS.Energy} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Power" bucketHash={BUCKETS.Power} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <EquipmentRow label="Kinetic" bucketHash={BUCKETS.Kinetic} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Energy" bucketHash={BUCKETS.Energy} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Power" bucketHash={BUCKETS.Power} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
                 </div>
 
                 {/* Armor Group */}
                 <div className="mb-2">
                     <div className="text-[9px] text-[#666] font-bold uppercase mb-0.5 px-0.5 tracking-wider hidden">Armor</div>
-                    <EquipmentRow label="Helmet" bucketHash={BUCKETS.Helmet} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Arms" bucketHash={BUCKETS.Gauntlets} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Chest" bucketHash={BUCKETS.Chest} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Legs" bucketHash={BUCKETS.Legs} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Class" bucketHash={BUCKETS.Class} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <EquipmentRow label="Helmet" bucketHash={BUCKETS.Helmet} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Arms" bucketHash={BUCKETS.Gauntlets} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Chest" bucketHash={BUCKETS.Chest} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Legs" bucketHash={BUCKETS.Legs} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Class" bucketHash={BUCKETS.Class} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
                 </div>
 
                 {/* General Group */}
                 <div className="mb-2">
                     <div className="text-[9px] text-[#666] font-bold uppercase mb-0.5 px-0.5 tracking-wider hidden">General</div>
-                    <EquipmentRow label="Ghost" bucketHash={BUCKETS.Ghost} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Vehicle" bucketHash={BUCKETS.Vehicle} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <EquipmentRow label="Ship" bucketHash={BUCKETS.Ship} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <EquipmentRow label="Ghost" bucketHash={BUCKETS.Ghost} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Vehicle" bucketHash={BUCKETS.Vehicle} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
+                    <EquipmentRow label="Ship" bucketHash={BUCKETS.Ship} equipment={equipment} inventory={inventory} definitions={definitions} onItemContextMenu={onItemContextMenu} />
                 </div>
 
             </div>

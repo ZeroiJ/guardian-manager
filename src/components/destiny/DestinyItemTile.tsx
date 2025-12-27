@@ -27,11 +27,12 @@ interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
     definition: any; // TODO: Define specific Bungie Definition Interface
     onClick?: () => void;
+    onContextMenu?: (e: React.MouseEvent) => void;
     className?: string;
     isNew?: boolean; // New prop for "New Item" glow
 }
 
-export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, className = '', isNew = false }) => {
+export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, onContextMenu, className = '', isNew = false }) => {
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
     const { state } = item;
@@ -65,6 +66,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 borderColor: borderColor
             }}
             onClick={onClick}
+            onContextMenu={onContextMenu}
         >
             {/* The Item Icon (Background) */}
             <div className="absolute inset-0 z-0 bg-[#222]">

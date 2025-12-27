@@ -6,9 +6,10 @@ interface VirtualVaultGridProps {
     items: any[];
     definitions: Record<string, any>;
     className?: string;
+    onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
 }
 
-export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, definitions, className }) => {
+export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, definitions, className, onItemContextMenu }) => {
     const parentRef = useRef<HTMLDivElement>(null);
     
     // Constants for 48px tiles + 2px gap
@@ -58,7 +59,11 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, defin
                         >
                             {rowItems.map((item) => (
                                 <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                    <DraggableInventoryItem item={item} definition={definitions[item.itemHash]} />
+                                    <DraggableInventoryItem 
+                                        item={item} 
+                                        definition={definitions[item.itemHash]} 
+                                        onContextMenu={onItemContextMenu}
+                                    />
                                 </div>
                             ))}
                         </div>

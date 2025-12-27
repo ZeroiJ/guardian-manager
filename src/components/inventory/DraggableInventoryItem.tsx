@@ -5,9 +5,10 @@ import DestinyItemTile from '../destiny/DestinyItemTile';
 interface DraggableInventoryItemProps {
     item: any;
     definition: any;
+    onContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
 }
 
-export const DraggableInventoryItem: React.FC<DraggableInventoryItemProps> = ({ item, definition }) => {
+export const DraggableInventoryItem: React.FC<DraggableInventoryItemProps> = ({ item, definition, onContextMenu }) => {
     // Generate a unique ID for Drag & Drop
     const id = item.itemInstanceId || `hash-${item.itemHash}`;
 
@@ -21,7 +22,12 @@ export const DraggableInventoryItem: React.FC<DraggableInventoryItemProps> = ({ 
 
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="touch-none">
-            <DestinyItemTile item={item} definition={definition} className="w-full h-full" />
+            <DestinyItemTile 
+                item={item} 
+                definition={definition} 
+                className="w-full h-full" 
+                onContextMenu={(e) => onContextMenu?.(e, item, definition)}
+            />
         </div>
     );
 };
