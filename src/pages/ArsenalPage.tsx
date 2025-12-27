@@ -5,6 +5,7 @@ import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import DestinyItemTile from '../components/destiny/DestinyItemTile';
 import { DraggableInventoryItem } from '../components/inventory/DraggableInventoryItem';
 import { DroppableZone } from '../components/inventory/DroppableZone';
+import { VirtualGrid } from '../components/ui/VirtualGrid';
 import { useProfile } from '../hooks/useProfile';
 import { useDefinitions } from '../hooks/useDefinitions';
 import { filterItems } from '../utils/search/itemFilter';
@@ -168,14 +169,20 @@ export function ArsenalPage() {
                         {/* Stats Placeholder Row for Vault */}
                         <div className="h-[25px] bg-[#0a0a10] border-b border-white/5" />
 
-                        <div className="flex-1 p-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                            <div className="flex flex-wrap gap-[2px] content-start">
-                                {vaultItems.map((item: any) => (
-                                    <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+                        {/* Virtualized Vault Grid */}
+                        <div className="flex-1 overflow-hidden relative p-1">
+                            <VirtualGrid 
+                                items={vaultItems}
+                                itemHeight={48}
+                                itemWidth={48}
+                                gap={2}
+                                className="h-full"
+                                renderItem={(item) => (
+                                    <div className="w-[48px] h-[48px] bg-[#1a1a1a] border border-white/5">
                                         <DraggableInventoryItem item={item} definition={definitions[item.itemHash]} />
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            />
                         </div>
                     </DroppableZone>
                 </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { DAMAGE_TYPES } from '../../data/constants';
+import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 
 // DIM-matched Colors
 const RARITY_COLORS: Record<number, string> = {
@@ -27,13 +28,15 @@ interface DestinyItemTileProps {
     definition: any; // TODO: Define specific Bungie Definition Interface
     onClick?: () => void;
     className?: string;
+    isNew?: boolean; // New prop for "New Item" glow
 }
 
-export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, className = '' }) => {
+export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, className = '', isNew = false }) => {
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
     const { state } = item;
     const isMasterwork = (state & 4) !== 0; // Bitmask for Masterwork
+    const isLocked = (state & 1) !== 0; // Bitmask for Locked
     const rarity = definition.inventory.tierType;
     const icon = `https://www.bungie.net${definition.displayProperties.icon}`;
 
@@ -44,6 +47,10 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
 
     // Border Logic: Masterwork overrides Rarity
     const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[rarity] || RARITY_COLORS[0]);
+
+    // Tags
+    const tag = item.userTag; // 'favorite' | 'keep' | 'junk' | 'archive'
+    const note = item.userNote;
 
     return (
         <div
@@ -60,12 +67,17 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
             onClick={onClick}
         >
             {/* The Item Icon (Background) */}
-            <div className="absolute inset-0 z-0">
-                <img src={icon} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 z-0 bg-[#222]">
+                <img src={icon} alt="" className="w-full h-full object-cover" loading="lazy" />
                 
-                {/* Masterwork Overlay (Texture) - TODO: Add actual texture if available */}
+                {/* Masterwork Overlay (Texture) */}
                 {isMasterwork && (
-                    <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none" />
+                    <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none mix-blend-overlay" />
+                )}
+
+                {/* New Item Glow (Pulse) */}
+                {isNew && (
+                    <div className="absolute inset-0 border-2 border-[#50c8ce] shadow-[0_0_8px_#50c8ce] opacity-80 animate-pulse z-20 pointer-events-none" />
                 )}
             </div>
 
@@ -76,6 +88,14 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                     style={{ backgroundImage: `url(https://www.bungie.net${definition.iconWatermark})` }}
                 />
             )}
+
+            {/* Top Left: Tags / Lock */}
+            <div className="absolute top-0 left-0 p-[2px] flex flex-col gap-0.5 z-30 pointer-events-none">
+                {isLocked && <Lock size={10} className="text-[#f5f5f5] drop-shadow-md" strokeWidth={3} />}
+                {tag === 'favorite' && <Star size={10} className="text-[#f5dc56] fill-[#f5dc56] drop-shadow-md" />}
+                {tag === 'junk' && <Ban size={10} className="text-red-500 drop-shadow-md" strokeWidth={3} />}
+                {note && <StickyNote size={10} className="text-blue-400 drop-shadow-md" strokeWidth={3} />}
+            </div>
 
             {/* Icon Tray (Element & Power) - DIM Style Bottom Bar */}
             {(elementIcon || power) && (
@@ -98,8 +118,8 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-48 bg-[#0f0f0f] border border-white/20 p-2 z-50 rounded shadow-xl pointer-events-none backdrop-blur-md">
                 <div className="text-sm font-bold text-white mb-1">{definition.displayProperties.name}</div>
                 <div className="text-xs text-gray-400 uppercase tracking-wider">{definition.itemTypeDisplayName}</div>
-                {item.userNote && (
-                    <div className="mt-2 text-xs text-yellow-400 italic">"{item.userNote}"</div>
+                {note && (
+                    <div className="mt-2 text-xs text-yellow-400 italic">"{note}"</div>
                 )}
             </div>
         </div>

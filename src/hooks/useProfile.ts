@@ -45,9 +45,14 @@ export function useProfile() {
             // The Zipper: Merge Bungie Item + Instance Data + User Metadata
             const items: GuardianItem[] = rawItems.map(item => {
                 const inst = item.itemInstanceId ? instanceData[item.itemInstanceId] : undefined;
-                // Stub metadata access until backend supports it
-                const tag = item.itemInstanceId ? (metadata.tags?.[item.itemInstanceId]) : undefined;
-                const note = item.itemInstanceId ? (metadata.notes?.[item.itemInstanceId]) : undefined;
+                
+                // Lookup Metadata (Zipper)
+                const instanceId = item.itemInstanceId;
+                const itemHash = item.itemHash;
+                
+                // Priority: Instance Tag > Global Item Hash Tag (not impl yet)
+                const tag = instanceId ? (metadata.tags?.[instanceId]) : undefined;
+                const note = instanceId ? (metadata.notes?.[instanceId]) : undefined;
 
                 return {
                     ...item,
@@ -56,8 +61,8 @@ export function useProfile() {
                         isEquipped: item.isEquipped // Hoist this flag to instanceData for easy access
                     },
                     owner: item.owner, // Ensure owner is preserved
-                    userTag: tag,
-                    userNote: note
+                    userTag: tag || null,
+                    userNote: note || null
                 };
             });
 
