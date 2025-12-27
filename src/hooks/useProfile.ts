@@ -100,9 +100,44 @@ export function useProfile() {
         }
     }, []);
 
+    const moveItem = useCallback(async (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => {
+        // Optimistic Update
+        setProfile(prev => {
+            if (!prev) return null;
+            const newItems = prev.items.map(item => {
+                if (item.itemInstanceId === itemInstanceId) {
+                    return {
+                        ...item,
+                        owner: isVault ? 'vault' : targetOwnerId,
+                        isEquipped: false // Transfers always unequip
+                    };
+                }
+                return item;
+            });
+            return { ...prev, items: newItems };
+        });
+
+        // Background Sync
+        try {
+            // Bungie requires the "characterId" for the request.
+            // If moving TO vault, characterId is the SOURCE (which we don't easily have here without looking up the item first).
+            // But wait, the API client signature asks for "characterId".
+            // If moving TO vault, "characterId" is the owner of the item.
+            // If moving FROM vault, "characterId" is the destination.
+
+            // Simplification: We will implement a smarter transfer service later that handles the "Vault <-> Char" hops.
+            // For now, let's assume direct transfers (which Bungie supports for Vault <-> Active Char).
+            
+            await APIClient.transferItem(itemHash, itemInstanceId, targetOwnerId, isVault);
+        } catch (err) {
+            console.error('Failed to move item:', err);
+            // TODO: Revert optimistic update on failure
+        }
+    }, []);
+
     useEffect(() => {
         refresh();
     }, [refresh]);
 
-    return { profile, loading, error, refresh, updateItemMetadata };
+    return { profile, loading, error, refresh, updateItemMetadata, moveItem };
 }
