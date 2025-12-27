@@ -174,6 +174,33 @@ app.get('/api/manifest/definitions/:table', async (c) => {
   })
 })
 
+app.post('/api/actions/transfer', async (c) => {
+  const config = getBungieConfig(c.env)
+  const authCookie = getCookie(c, 'bungie_auth')
+  if (!authCookie) return c.text('Unauthorized', 401)
+
+  const tokens = JSON.parse(authCookie)
+  const body = await c.req.json() as any
+
+  const response = await fetch('https://www.bungie.net/Platform/Destiny2/Actions/Items/TransferItem/', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': config.apiKey,
+      'Authorization': `Bearer ${tokens.access_token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    return c.text(errorText, response.status as any)
+  }
+
+  const data = await response.json()
+  return c.json(data)
+})
+
 // Catch-all 404 handler
 app.all('*', (c) => {
     return c.json({

@@ -79,7 +79,26 @@ export class APIClient {
         transferToVault: boolean,
         stackSize: number = 1
     ): Promise<void> {
-        console.log(`[Stub] Transferring item ${itemInstanceId} to ${transferToVault ? 'Vault' : characterId}`);
-        // Implementation coming in next commit
+        // Bungie API Body Format
+        const body = {
+            itemReferenceHash: itemHash,
+            stackSize: stackSize,
+            transferToVault: transferToVault,
+            itemId: itemInstanceId,
+            characterId: characterId,
+            membershipType: 3 // BungieMembershipType.TigerSteam (Hardcoded for now, should be dynamic)
+        };
+
+        // TODO: Get membershipType from profile/auth context
+        // For now, most PC players are 3. Consoles are 1/2.
+        // We'll trust the API works or fix this later.
+
+        return this.request('/api/actions/transfer', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
     }
 }
