@@ -67,4 +67,19 @@ export class APIClient {
         // });
         console.log(`[Stub] Updating ${type} for ${itemId} to ${value}`);
     }
+
+    /**
+     * Transfers an item from source to destination.
+     * Uses the Bungie API /Actions/Items/TransferItem/ endpoint.
+     */
+    static async transferItem(
+        itemHash: number,
+        itemInstanceId: string,
+        characterId: string,
+        transferToVault: boolean,
+        stackSize: number = 1
+    ): Promise<void> {
+        console.log(`[Stub] Transferring item ${itemInstanceId} to ${transferToVault ? 'Vault' : characterId}`);
+        // Implementation coming in next commit
+    }
 }
