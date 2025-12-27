@@ -63,7 +63,6 @@ const Dashboard = () => {
     if (!profile) return <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">Error loading data.</div>;
 
     const characters = profile.characters.data;
-    const activeChar = characters[activeCharacterId];
 
     // Helper to get items for the active character
     const getCharacterItems = () => {
