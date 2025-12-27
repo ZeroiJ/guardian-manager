@@ -48,7 +48,6 @@ export function useProfile() {
                 
                 // Lookup Metadata (Zipper)
                 const instanceId = item.itemInstanceId;
-                const itemHash = item.itemHash;
                 
                 // Priority: Instance Tag > Global Item Hash Tag (not impl yet)
                 const tag = instanceId ? (metadata.tags?.[instanceId]) : undefined;

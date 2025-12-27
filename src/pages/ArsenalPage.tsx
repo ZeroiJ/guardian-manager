@@ -3,7 +3,6 @@ import { Search } from 'lucide-react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { CharacterColumn } from '../components/inventory/CharacterColumn';
 import DestinyItemTile from '../components/destiny/DestinyItemTile';
-import { DraggableInventoryItem } from '../components/inventory/DraggableInventoryItem';
 import { DroppableZone } from '../components/inventory/DroppableZone';
 import { VirtualVaultGrid } from '../components/inventory/VirtualVaultGrid';
 import { useProfile } from '../hooks/useProfile';
