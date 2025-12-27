@@ -48,6 +48,9 @@ Let's build something the Tower would be proud of. 🚀
 - **Type Safety**: Resolved 20+ TypeScript errors and unused variable warnings across the codebase.
 - **Linting**: Cleaned up ESLint errors in legacy files.
 
+### ⚠️ Known Issues
+- **UI NEEDS TO BE FIXED**: The user interface, while functional, requires significant polish. Expect visual glitches, alignment issues, and placeholder elements.
+
 ### [0.6.0] - 2025-12-23
 
 #### Changed

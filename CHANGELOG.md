@@ -21,6 +21,9 @@ All notable changes to the "Guardian Nexus" project will be documented in this f
 - **Type Safety**: Resolved 20+ TypeScript errors and unused variable warnings across the codebase.
 - **Linting**: Cleaned up ESLint errors in legacy files.
 
+### Known Issues
+- **UI NEEDS TO BE FIXED**: While functional, the UI still has alignment issues, placeholder overlapping, and missing animations that need significant polish to match DIM's quality.
+
 ## [0.6.0] - 2025-12-23
 
 ### Changed
