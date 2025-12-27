@@ -20,11 +20,33 @@ I am a Data Science student building this for the love of the game. Every contri
 Let's build something the Tower would be proud of. 🚀
 
 ## Features
-- **Arsenal**: View your weapons and armor with a premium, high-fidelity UI.
+- **Arsenal**: View your weapons and armor with a premium, high-fidelity UI (DIM-like density).
+- **Smart Transfers**: Move items between any character or vault instantly. The system automatically handles multi-step transfers (Source -> Vault -> Destination).
+- **Tag & Organize**: Right-click any item to Tag it (Favorite, Junk, Infuse) or add Notes. Data is synced to the cloud.
+- **Virtualized Vault**: Smooth scrolling for vaults with 600+ items.
 - **Real-time Data**: Fetches your live inventory from Bungie.net.
 - **Secure Auth**: OAuth 2.0 authentication with Bungie.net.
 
 ## Changelog
+
+### [0.7.0] - 2025-12-27
+
+#### Added
+- **Core DIM Replication**: Achieved near-parity with DIM's core inventory UI and item movement logic.
+- **Smart Item Transfers**: Implemented a `TransferService` that handles multi-hop moves (Character A -> Vault -> Character B) automatically.
+- **Virtualized Vault**: Integrated `@tanstack/react-virtual` to support smooth scrolling for 600+ vault items without performance degradation.
+- **Item Context Menu**: Added a Right-Click menu for items with options to Tag (Favorite, Junk, etc.), Lock (stub), and Move.
+- **Metadata Persistence**: Implemented Cloudflare D1 backend (`/api/metadata`) to persistently store user Tags and Notes.
+- **Drag & Drop**: Fully wired up Drag & Drop for transferring items between characters and the vault.
+- **Optimistic UI**: Implemented instant UI updates for item moves and tagging, syncing with the backend in the background.
+
+#### Changed
+- **Item Rendering**: Fixed "White Square" visual bug by implementing robust image error handling and fallbacks in `DestinyItemTile`.
+- **Project Structure**: Organized project with Graphite "Stacked PR" workflow for better code review and feature isolation.
+
+#### Fixed
+- **Type Safety**: Resolved 20+ TypeScript errors and unused variable warnings across the codebase.
+- **Linting**: Cleaned up ESLint errors in legacy files.
 
 ### [0.6.0] - 2025-12-23
 

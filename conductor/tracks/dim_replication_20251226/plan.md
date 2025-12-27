@@ -13,23 +13,23 @@
 - [x] **Implementation**: Create `VirtualVaultGrid` to handle 600+ vault items efficiently.
 - [x] **Integration**: Replace naive Vault rendering in `ArsenalPage` with `VirtualVaultGrid`.
 
-## Phase 3: The "Zipper" Selector [IN PROGRESS]
-- [ ] **Data Model**: Replicate `src/app/inventory/selectors.ts` to merge Bungie Manifest + Live Instances + Local Metadata.
+## Phase 3: The "Zipper" Selector [COMPLETED]
+- [x] **Data Model**: Replicate `src/app/inventory/selectors.ts` to merge Bungie Manifest + Live Instances + Local Metadata.
     - [x] `useProfile` hook basic implementation.
     - [x] Optimistic UI updates for item moves.
-- [ ] **Write-Back UI**: Implement Context Menu (Right-Click) for setting Tags and Notes.
-- [ ] **Persistence**: Implement backend API (`/api/metadata`) to store Tags/Notes in Cloudflare D1.
+- [x] **Write-Back UI**: Implement Context Menu (Right-Click) for setting Tags and Notes.
+- [x] **Persistence**: Implement backend API (`/api/metadata`) to store Tags/Notes in Cloudflare D1.
 - [ ] **Advanced Filtering**: Enable search filters based on tags (e.g., `tag:junk`, `tag:favorite`).
 
-## Phase 4: Item Logic & Actions [TODO]
-- [ ] **Move Logic**: Robust transfer logic.
+## Phase 4: Item Logic & Actions [IN PROGRESS]
+- [x] **Move Logic**: Robust transfer logic.
     - [x] Basic API Client (`transferItem`).
     - [x] Basic Backend Proxy (`/api/actions/transfer`).
-    - [ ] **Smart Transfers**: Handle "Cross-Character" moves (Source -> Vault -> Destination) automatically.
+    - [x] **Smart Transfers**: Handle "Cross-Character" moves (Source -> Vault -> Destination) automatically (`TransferService`).
 - [ ] **Equip Logic**: Handle "Equip" actions (drag to slot, double-click).
 - [ ] **Loadouts**: Implement the "Loadout Optimizer" engine core.
 
 ## Phase 5: Modernization [ONGOING]
-- [ ] **Strict Types**: Ensure no `any` types are used; leverage `bungie-api-ts`.
-- [ ] **Tailwind CSS**: All styling must use utility classes (no CSS-in-JS or SCSS).
-- [ ] **Performance**: Ensure 60fps scrolling and instant interactions.
+- [x] **Strict Types**: Ensure no `any` types are used; leverage `bungie-api-ts`.
+- [x] **Tailwind CSS**: All styling must use utility classes (no CSS-in-JS or SCSS).
+- [x] **Performance**: Ensure 60fps scrolling and instant interactions.
