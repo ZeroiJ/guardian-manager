@@ -9,12 +9,26 @@ interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, ...props }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const imgRef = useRef<HTMLImageElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
     // Construct full URL if relative
     const imageUrl = src?.startsWith('/') ? `https://www.bungie.net${src}` : src;
 
+    // 1. Audit: Debug Log (Sampled)
     useEffect(() => {
+        if (imageUrl && Math.random() < 0.05) { 
+            console.log('[BungieImage] Loading:', imageUrl);
+        }
+    }, [imageUrl]);
+
+    // 2. Re-Initialize Observer
+    useEffect(() => {
+        if (!imageUrl) return;
+
+        // Reset states when URL changes (recycling)
+        setIsVisible(false);
+        setIsLoaded(false);
+
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -22,23 +36,22 @@ export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, .
                     observer.disconnect();
                 }
             },
-            { rootMargin: '50px' } // Load slightly before view
+            { rootMargin: '50px' }
         );
 
-        if (imgRef.current) {
-            observer.observe(imgRef.current);
+        if (wrapperRef.current) {
+            observer.observe(wrapperRef.current);
         }
 
         return () => observer.disconnect();
-    }, []);
+    }, [imageUrl]); 
 
     if (!imageUrl) return <div className={cn("bg-[#1a1a1a]", className)} />;
 
     return (
-        <div className={cn("relative overflow-hidden bg-[#1a1a1a]", className)}>
+        <div ref={wrapperRef} className={cn("relative overflow-hidden bg-[#1a1a1a]", className)}>
             {isVisible && (
                 <img
-                    ref={imgRef}
                     src={imageUrl}
                     alt={alt || ""}
                     className={cn(
