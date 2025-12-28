@@ -39,8 +39,10 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     const { state } = item;
     const isMasterwork = (state & 4) !== 0; // Bitmask for Masterwork
     const isLocked = (state & 1) !== 0; // Bitmask for Locked
-    const rarity = definition.inventory?.tierType;
     const icon = definition.displayProperties?.icon;
+
+    // DEBUG: Trace icon Data
+    // if (!icon) console.warn('[DestinyItemTile] Missing Icon for:', definition.displayProperties?.name);
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
@@ -71,11 +73,11 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
         >
             {/* The Item Icon (Background) */}
             <div className="absolute inset-0 z-0 bg-[#222]">
-                <BungieImage 
-                    src={icon} 
+                <BungieImage
+                    src={icon}
                     className="w-full h-full object-cover"
                 />
-                
+
                 {/* Masterwork Overlay (Texture) */}
                 {isMasterwork && (
                     <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none mix-blend-overlay" />
