@@ -1,6 +1,7 @@
 import React from 'react';
 import { DAMAGE_TYPES } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
+import { BungieImage } from '../ui/BungieImage';
 
 // DIM-matched Colors
 const RARITY_COLORS: Record<number, string> = {
@@ -39,8 +40,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     const isMasterwork = (state & 4) !== 0; // Bitmask for Masterwork
     const isLocked = (state & 1) !== 0; // Bitmask for Locked
     const rarity = definition.inventory?.tierType;
-    const iconPath = definition.displayProperties?.icon;
-    const icon = iconPath ? `https://www.bungie.net${iconPath}` : null;
+    const icon = definition.displayProperties?.icon;
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
@@ -71,19 +71,10 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
         >
             {/* The Item Icon (Background) */}
             <div className="absolute inset-0 z-0 bg-[#222]">
-                {icon ? (
-                    <img 
-                        src={icon} 
-                        alt="" 
-                        className="w-full h-full object-cover" 
-                        loading="lazy" 
-                        onError={(e) => {
-                            e.currentTarget.style.display = 'none'; // Hide broken image
-                        }}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-mono">NO ICON</div>
-                )}
+                <BungieImage 
+                    src={icon} 
+                    className="w-full h-full object-cover"
+                />
                 
                 {/* Masterwork Overlay (Texture) */}
                 {isMasterwork && (
