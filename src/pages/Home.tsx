@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FeaturesViewer } from '../components/docs/FeaturesViewer';
+import { ChangelogViewer } from '../components/docs/ChangelogViewer';
 
 export function Home() {
     const navigate = useNavigate();
@@ -17,13 +19,13 @@ export function Home() {
     }, []);
 
     return (
-        <div className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 overflow-hidden">
+        <div className="relative min-h-[90vh] flex flex-col px-4 overflow-hidden">
 
             {/* Background Noise/Gradient Overlay */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
 
             {/* Main Content Container */}
-            <div className="relative z-10 max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+            <div className="relative z-10 max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center py-24">
 
                 {/* Left: Typography & Hero Text */}
                 <div className="col-span-1 md:col-span-7 space-y-8">
@@ -98,6 +100,22 @@ export function Home() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Features Section */}
+            <div className="relative z-10 max-w-6xl w-full mx-auto py-24 border-t border-white/10">
+                <h2 className="font-serif text-4xl text-white mb-12 flex items-center gap-4">
+                    <span className="text-tavus-pink">01.</span> System Capabilities
+                </h2>
+                <FeaturesViewer />
+            </div>
+
+            {/* Changelog Section */}
+            <div className="relative z-10 max-w-4xl w-full mx-auto py-24 border-t border-white/10">
+                <h2 className="font-serif text-4xl text-white mb-12 flex items-center gap-4">
+                    <span className="text-tavus-pink">02.</span> Patch Notes
+                </h2>
+                <ChangelogViewer />
             </div>
         </div>
     );
