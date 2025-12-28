@@ -103,8 +103,7 @@ export function ArsenalPage() {
     const filteredItems = filterItems(allItems, searchQuery, definitions);
 
     // Filter Items for Vault
-    // Location 1020252227 is Vault
-    const vaultItems = filteredItems.filter(i => i.location === 1020252227);
+    const vaultItems = filteredItems.filter(i => i.owner === 'vault');
 
     const characters = profile?.characters ? Object.values(profile.characters) : [];
 
