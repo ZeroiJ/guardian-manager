@@ -27,9 +27,9 @@ const EquipmentRow: React.FC<EquipmentRowProps> = ({ label, bucketHash, equipmen
                     {!equippedItem && <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[9px] uppercase tracking-widest">{label}</div>}
 
                     {equippedItem && (
-                        <DraggableInventoryItem 
-                            item={equippedItem} 
-                            definition={definitions[equippedItem.itemHash]} 
+                        <DraggableInventoryItem
+                            item={equippedItem}
+                            definition={definitions[equippedItem.itemHash]}
                             onContextMenu={onItemContextMenu}
                         />
                     )}
@@ -70,7 +70,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
-    
+
     // DEBUG: Titan Icon Verification
     if (classType === 0) { // 0 is Titan
         console.log('[Titan Debug] Emblem Background Path:', `https://www.bungie.net${emblemBackgroundPath}`);
@@ -83,10 +83,10 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
     const basePower = light - artifactPower;
 
     return (
-        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col h-full overflow-hidden select-none">
+        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col h-full overflow-hidden select-none relative">
             {/* Header / Emblem - Exact DIM Style */}
             <div
-                className="relative h-[48px] w-full bg-cover bg-center flex items-center justify-between px-2 bg-no-repeat"
+                className="relative h-[48px] w-full bg-cover bg-center flex items-center justify-between px-2 bg-no-repeat z-20 shadow-md"
                 style={{ backgroundImage: `url(https://www.bungie.net${emblemBackgroundPath})` }}
             >
                 {/* Dark gradient overlay for text readability */}
@@ -110,23 +110,21 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
             </div>
 
             {/* Stats Row - Compact Horizontal */}
-            <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5">
+            <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5 z-10 relative shadow-sm">
                 {Object.entries(STAT_HASHES).map(([name, hash]) => {
                     const value = stats[hash] || 0;
                     const tier = Math.min(10, Math.floor(value / 10)); // Max tier 10
-                    // Tiers > 10 are wasted stats visually, but maybe distinct color?
-                    // Tier 10 = 100.
-                    
+
                     return (
                         <div key={name} className="flex items-center gap-2 h-[14px]">
                             {/* Label */}
                             <span className="w-8 text-[9px] text-gray-400 uppercase font-bold text-right">{name.substring(0, 3)}</span>
-                            
+
                             {/* Bar Container */}
                             <div className="flex-1 h-2 bg-[#1a1a1a] relative">
                                 {/* Fill */}
-                                <div 
-                                    className="h-full bg-white/20" 
+                                <div
+                                    className="h-full bg-white/20"
                                     style={{ width: `${Math.min(100, value)}%` }}
                                 >
                                     {/* Tier Segments */}
@@ -146,7 +144,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
             </div>
 
             {/* Content (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent z-0">
 
                 {/* Weapons Group */}
                 <div className="mb-2">

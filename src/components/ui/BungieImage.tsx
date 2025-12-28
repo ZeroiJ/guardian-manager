@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 
 interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -6,62 +6,39 @@ interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     className?: string;
 }
 
-export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, ...props }) => {
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
-    const wrapperRef = useRef<HTMLDivElement>(null);
+const MISSING_ICON_URL = 'https://www.bungie.net/img/misc/missing_icon_d2.png';
 
+export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, ...props }) => {
     // Construct full URL if relative
+    // If src is null/undefined, we might render nothing or a placeholder
     const imageUrl = src?.startsWith('/') ? `https://www.bungie.net${src}` : src;
 
-    // 1. Audit: Debug Log (Sampled)
-    useEffect(() => {
-        if (imageUrl && Math.random() < 0.05) { 
-            console.log('[BungieImage] Loading:', imageUrl);
-        }
-    }, [imageUrl]);
+    // Simple Error state
+    const [hasError, setHasError] = useState(false);
 
-    // 2. Re-Initialize Observer
-    useEffect(() => {
-        if (!imageUrl) return;
+    // Initial Audit (as requested)
+    // console.log('[BungieImage] Render:', imageUrl);
 
-        // Reset states when URL changes (recycling)
-        setIsVisible(false);
-        setIsLoaded(false);
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: '50px' }
+    if (!imageUrl || hasError) {
+        return (
+            <div className={cn("bg-[#1a1a1a] flex items-center justify-center overflow-hidden", className)}>
+                {/* Optional: Show missing icon or just black box */}
+                {hasError && <img src={MISSING_ICON_URL} className="w-full h-full opacity-50" alt="Missing" />}
+            </div>
         );
-
-        if (wrapperRef.current) {
-            observer.observe(wrapperRef.current);
-        }
-
-        return () => observer.disconnect();
-    }, [imageUrl]); 
-
-    if (!imageUrl) return <div className={cn("bg-[#1a1a1a]", className)} />;
+    }
 
     return (
-        <div ref={wrapperRef} className={cn("relative overflow-hidden bg-[#1a1a1a]", className)}>
-            {isVisible && (
-                <img
-                    src={imageUrl}
-                    alt={alt || ""}
-                    className={cn(
-                        "w-full h-full object-cover transition-opacity duration-300 ease-in-out",
-                        isLoaded ? "opacity-100" : "opacity-0"
-                    )}
-                    onLoad={() => setIsLoaded(true)}
-                    {...props}
-                />
-            )}
-        </div>
+        <img
+            src={imageUrl}
+            alt={alt || ""}
+            className={cn("w-full h-full object-cover", className)}
+            onError={() => {
+                console.warn('[BungieImage] Failed to load:', imageUrl);
+                setHasError(true);
+            }}
+            loading="lazy"
+            {...props}
+        />
     );
 };
