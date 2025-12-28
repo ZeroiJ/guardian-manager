@@ -21,6 +21,11 @@ All notable changes to the "Guardian Nexus" project will be documented in this f
 - **Type Safety**: Resolved 20+ TypeScript errors and unused variable warnings across the codebase.
 - **Linting**: Cleaned up ESLint errors in legacy files.
 
+### [Error Handling & Recovery]
+- **Image Failure Mitigation**: Implemented a robust `BungieImage` component that uses `IntersectionObserver` for lazy loading and auto-hides broken images to prevent the "White Square of Death" UI glitch.
+- **Vault Hydration Recovery**: Fixed a critical logic error where filtering by a raw Hash ID instead of the Bungie Enum caused the entire Vault to appear empty. Implemented `owner === 'vault'` check as the definitive source of truth.
+- **Virtualization Stability**: Enforced fixed row heights in the Vault Grid to prevent scroll jumping and ensure consistent intersection detection during rapid scrolling.
+
 ### Known Issues
 - **UI NEEDS TO BE FIXED**: While functional, the UI still has alignment issues, placeholder overlapping, and missing animations that need significant polish to match DIM's quality.
 

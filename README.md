@@ -63,6 +63,25 @@ Let's build something the Tower would be proud of. 🚀
 #### Known Issues
 - **Critical Auth Failure**: Token exchange (`/api/auth/callback`) consistently fails with `invalid_client` (400), despite verifying credentials and trying multiple auth methods (Header vs Body) and Redirect URI configurations. The exact cause remains unidentified after extensive debugging.
 
+## 🔧 Troubleshooting & Failure Scenarios
+
+We are actively hardening the system against Bungie API quirks. Here are known failure modes and their mitigations:
+
+### 1. The "White Square" Icon Glitch
+*   **Symptom**: Items appear as blank white boxes.
+*   **Cause**: Bungie CDN image paths failing to load or returning 404s, combined with a missing fallback background color.
+*   **Mitigation**: The new `BungieImage` component detects load failures and hides the broken `<img>` tag, revealing the dark placeholder background (`#1a1a1a`) to preserve UI continuity.
+
+### 2. Empty Vault / Inventory
+*   **Symptom**: "0 / 600" items in Vault despite having a full profile.
+*   **Cause**: Filtering logic incorrectly comparing a numeric Hash ID (e.g., `1020252227`) against an Enum value.
+*   **Recovery**: We now strictly filter by `owner === 'vault'` which is normalized during the initial profile hydration.
+
+### 3. API Throttling
+*   **Symptom**: "System Offline" or infinite loading spinners.
+*   **Mitigation**: The `ManifestManager` caches definitions in IndexedDB (`idb-keyval`) to minimize repeated fetches. If the API fails, the app attempts to serve from cache before showing an error.
+
+
 ### [0.5.0] - 2025-12-22
 
 #### Added
