@@ -42,9 +42,22 @@ export class ManifestManager {
         let table = await get(key);
 
         if (!table) {
-            console.log(`Downloading manifest table: ${tableName}...`);
-            table = await APIClient.getDefinitions(tableName);
-            await set(key, table);
+            console.log(`[ManifestManager] Downloading manifest table: ${tableName}...`);
+            const startTime = performance.now();
+            
+            try {
+                table = await APIClient.getDefinitions(tableName);
+                const size = JSON.stringify(table).length;
+                console.log(`[ManifestManager] Downloaded ${tableName} in ${(performance.now() - startTime).toFixed(0)}ms. Size: ${(size / 1024 / 1024).toFixed(2)} MB`);
+                
+                await set(key, table);
+                console.log(`[ManifestManager] Saved ${tableName} to IndexedDB.`);
+            } catch (err) {
+                console.error(`[ManifestManager] FAILED to download/save ${tableName}:`, err);
+                throw err;
+            }
+        } else {
+            console.log(`[ManifestManager] Loaded ${tableName} from Cache.`);
         }
 
         return table;
@@ -54,16 +67,20 @@ export class ManifestManager {
      * Gets multiple definitions by their hashes from a specific table.
      */
     static async getDefinitions(tableName: string, hashes: (number | string)[]): Promise<Record<string, any>> {
+        console.log(`[ManifestManager] Looking up ${hashes.length} hashes from ${tableName}...`);
         const table = await this.loadTable(tableName);
         const results: Record<string, any> = {};
         
+        let foundCount = 0;
         for (const hash of hashes) {
             const hashStr = hash.toString();
             if (table[hashStr]) {
                 results[hashStr] = table[hashStr];
+                foundCount++;
             }
         }
         
+        console.log(`[ManifestManager] Found ${foundCount} / ${hashes.length} definitions.`);
         return results;
     }
 }

@@ -70,6 +70,12 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
+    
+    // DEBUG: Titan Icon Verification
+    if (classType === 0) { // 0 is Titan
+        console.log('[Titan Debug] Emblem Background Path:', `https://www.bungie.net${emblemBackgroundPath}`);
+    }
+
     const raceNames: Record<number, string> = { 0: 'Human', 1: 'Awoken', 2: 'Exo' };
     const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
     const classNameText = classNames[classType];

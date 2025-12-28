@@ -120,7 +120,7 @@ app.get('/api/profile', async (c) => {
   const destinyMembership = membershipsData.Response.destinyMemberships[0]
   const { membershipType, membershipId } = destinyMembership
 
-  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300`
+  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,1200`
   
   const profileRes = await fetch(profileUrl, {
     headers: {
@@ -131,6 +131,14 @@ app.get('/api/profile', async (c) => {
 
   if (!profileRes.ok) return c.text('Failed to fetch profile', profileRes.status as any)
   const profileData = await profileRes.json() as any
+
+  // DEBUG: Titan Data Verification
+  const characters = profileData.Response?.characters?.data || {};
+  const titan = Object.values(characters).find((c: any) => c.classType === 0);
+  if (titan) {
+    console.log('[Backend Debug] Titan Found:', (titan as any).characterId);
+    console.log('[Backend Debug] Titan Emblem:', `https://www.bungie.net${(titan as any).emblemPath}`);
+  }
 
   return c.json(profileData.Response)
 })
