@@ -13,17 +13,32 @@ export function useProfile() {
 
     const refresh = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
+            console.log('[useProfile] Starting profile fetch...');
+            
             // Fetch in parallel
             const [bp, md] = await Promise.all([
-                APIClient.getProfile(),
-                APIClient.getMetadata()
+                APIClient.getProfile().catch(err => {
+                    console.error('[useProfile] Profile fetch failed:', err);
+                    throw err;
+                }),
+                APIClient.getMetadata().catch(err => {
+                    console.error('[useProfile] Metadata fetch failed:', err);
+                    throw err;
+                })
             ]);
+            
+            console.log('[useProfile] Profile fetched successfully:', bp);
+            console.log('[useProfile] Metadata fetched successfully:', md);
+            
             setBungieProfile(bp);
             setMetadata(md);
         } catch (err) {
-            console.error(err);
-            setError(err instanceof Error ? err : new Error('Unknown profile error'));
+            console.error('[useProfile] Error in refresh:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Unknown profile error';
+            const detailedError = new Error(`Failed to load profile: ${errorMessage}`);
+            setError(detailedError);
         } finally {
             setLoading(false);
         }

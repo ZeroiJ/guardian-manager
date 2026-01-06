@@ -8,21 +8,43 @@ export class APIClient {
         // Construct URL
         const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
         
-        const response = await fetch(url, {
-            ...options,
-            credentials: 'include',
-        });
+        console.log(`[APIClient] Requesting: ${options?.method || 'GET'} ${url}`);
+        
+        try {
+            const response = await fetch(url, {
+                ...options,
+                credentials: 'include',
+            });
 
-        if (!response.ok) {
-            if (response.status === 401) {
-                // If unauthorized, redirect to login
-                window.location.href = `/api/auth/login`;
-                throw new Error('Unauthorized');
+            console.log(`[APIClient] Response status: ${response.status} for ${url}`);
+
+            if (!response.ok) {
+                // Try to get error details
+                let errorBody = '';
+                try {
+                    errorBody = await response.text();
+                    console.error(`[APIClient] Error response body:`, errorBody);
+                } catch (e) {
+                    console.error(`[APIClient] Could not read error body`);
+                }
+
+                if (response.status === 401) {
+                    console.warn('[APIClient] Unauthorized - redirecting to login');
+                    // If unauthorized, redirect to login
+                    window.location.href = `/api/auth/login`;
+                    throw new Error('Unauthorized - redirecting to login');
+                }
+                
+                throw new Error(`API Error ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`);
             }
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
 
-        return response.json();
+            const data = await response.json();
+            console.log(`[APIClient] Success response for ${url}:`, data);
+            return data;
+        } catch (err) {
+            console.error(`[APIClient] Request failed for ${url}:`, err);
+            throw err;
+        }
     }
 
     /**

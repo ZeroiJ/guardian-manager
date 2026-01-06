@@ -54,20 +54,29 @@ app.get('/api/auth/login', (c) => {
 })
 
 app.get('/api/auth/callback', async (c) => {
+  console.log('[OAuth Callback] Starting callback handler...');
+  
   const config = getBungieConfig(c.env)
   const code = c.req.query('code')
   const state = c.req.query('state')
   const storedState = getCookie(c, 'oauth_state')
 
+  console.log('[OAuth Callback] Code received:', code ? 'YES' : 'NO');
+  console.log('[OAuth Callback] State received:', state);
+  console.log('[OAuth Callback] Stored state:', storedState);
+
   if (!code || !state || state !== storedState) {
+    console.error('[OAuth Callback] Validation failed - Invalid state or missing code');
     return c.text('Invalid state or missing code', 400)
   }
 
+  console.log('[OAuth Callback] Exchanging code for tokens...');
+  
   const response = await fetch(config.tokenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`, 
+      'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
     },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
@@ -79,11 +88,13 @@ app.get('/api/auth/callback', async (c) => {
 
   if (!response.ok) {
     const error = await response.text()
-    console.error(`[Bungie Auth] Token exchange failed: ${response.status} ${error}`)
+    console.error(`[OAuth Callback] Token exchange failed: ${response.status} ${error}`)
     return c.text(`Token exchange failed [${response.status}]: ${error}`, 400)
   }
 
   const tokens = await response.json() as any
+  console.log('[OAuth Callback] Tokens received successfully');
+  console.log('[OAuth Callback] Token keys:', Object.keys(tokens));
   
   setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
     path: '/',
@@ -93,16 +104,31 @@ app.get('/api/auth/callback', async (c) => {
     sameSite: 'Lax',
   })
 
+  console.log('[OAuth Callback] Cookie set, redirecting to /dashboard');
   return c.redirect('/dashboard')
 })
 
 app.get('/api/profile', async (c) => {
+  console.log('[Profile API] Starting profile fetch...');
+  
   const config = getBungieConfig(c.env)
   const authCookie = getCookie(c, 'bungie_auth')
-  if (!authCookie) return c.text('Unauthorized', 401)
-
-  const tokens = JSON.parse(authCookie)
   
+  if (!authCookie) {
+    console.error('[Profile API] No auth cookie found');
+    return c.text('Unauthorized', 401)
+  }
+
+  let tokens;
+  try {
+    tokens = JSON.parse(authCookie)
+    console.log('[Profile API] Auth cookie parsed successfully');
+  } catch (err) {
+    console.error('[Profile API] Failed to parse auth cookie:', err);
+    return c.text('Invalid auth cookie', 401)
+  }
+  
+  console.log('[Profile API] Fetching memberships...');
   const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
     headers: {
       'X-API-Key': config.apiKey,
@@ -110,17 +136,26 @@ app.get('/api/profile', async (c) => {
     }
   })
 
-  if (!membershipsRes.ok) return c.text('Failed to fetch memberships', membershipsRes.status as any)
+  if (!membershipsRes.ok) {
+    const errorText = await membershipsRes.text();
+    console.error(`[Profile API] Failed to fetch memberships: ${membershipsRes.status} - ${errorText}`);
+    return c.text(`Failed to fetch memberships: ${errorText}`, membershipsRes.status as any)
+  }
+  
   const membershipsData = await membershipsRes.json() as any
+  console.log('[Profile API] Memberships fetched:', membershipsData.Response?.destinyMemberships?.length || 0);
   
   if (!membershipsData.Response?.destinyMemberships?.length) {
+    console.error('[Profile API] No Destiny membership found');
     return c.text('No Destiny membership found', 404)
   }
   
   const destinyMembership = membershipsData.Response.destinyMemberships[0]
   const { membershipType, membershipId } = destinyMembership
+  console.log(`[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`);
 
   const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,1200`
+  console.log(`[Profile API] Fetching profile data from: ${profileUrl}`);
   
   const profileRes = await fetch(profileUrl, {
     headers: {
@@ -129,17 +164,24 @@ app.get('/api/profile', async (c) => {
     }
   })
 
-  if (!profileRes.ok) return c.text('Failed to fetch profile', profileRes.status as any)
+  if (!profileRes.ok) {
+    const errorText = await profileRes.text();
+    console.error(`[Profile API] Failed to fetch profile: ${profileRes.status} - ${errorText}`);
+    return c.text(`Failed to fetch profile: ${errorText}`, profileRes.status as any)
+  }
+  
   const profileData = await profileRes.json() as any
+  console.log('[Profile API] Profile data fetched successfully');
 
   // DEBUG: Titan Data Verification
   const characters = profileData.Response?.characters?.data || {};
   const titan = Object.values(characters).find((c: any) => c.classType === 0);
   if (titan) {
-    console.log('[Backend Debug] Titan Found:', (titan as any).characterId);
-    console.log('[Backend Debug] Titan Emblem:', `https://www.bungie.net${(titan as any).emblemPath}`);
+    console.log('[Profile API] Titan Found:', (titan as any).characterId);
+    console.log('[Profile API] Titan Emblem:', `https://www.bungie.net${(titan as any).emblemPath}`);
   }
 
+  console.log('[Profile API] Returning profile response');
   return c.json(profileData.Response)
 })
 

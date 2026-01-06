@@ -2,10 +2,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginButton from './components/auth/LoginButton';
 import { ArsenalPage } from './pages/ArsenalPage';
 import { Home } from './pages/Home';
+import { ErrorBoundary } from './pages/ErrorBoundary';
 
 function App() {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <div className="min-h-screen bg-[#0a0e14] text-[#e8e9ed] relative overflow-x-hidden font-sans">
         {/* Main Content */}
         <div className="relative z-10">
@@ -37,10 +39,25 @@ function App() {
                 <ArsenalPage />
               </>
             } />
+
+            {/* Catch-all 404 route */}
+            <Route path="*" element={
+              <div className="h-screen bg-[#050505] text-yellow-500 flex flex-col items-center justify-center font-mono p-4">
+                <div className="text-2xl mb-4">⚠️ PAGE NOT FOUND</div>
+                <div className="text-gray-400 mb-8">The requested page does not exist.</div>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-black rounded font-bold transition-colors"
+                >
+                  RETURN HOME
+                </button>
+              </div>
+            } />
           </Routes>
         </div>
       </div>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
