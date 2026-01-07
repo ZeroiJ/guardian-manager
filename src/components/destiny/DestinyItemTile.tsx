@@ -50,7 +50,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     const elementIcon = damageTypeHash ? ELEMENT_ICONS[damageTypeHash] : null;
 
     // Border Logic: Masterwork overrides Rarity
-    const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[rarity] || RARITY_COLORS[0]);
+    const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[definition.inventory?.tierType] || RARITY_COLORS[0]);
 
     // Tags
     const tag = item.userTag; // 'favorite' | 'keep' | 'junk' | 'archive'

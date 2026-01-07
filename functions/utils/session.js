@@ -2,7 +2,7 @@ import { parse, serialize } from 'cookie';
 
 const COOKIE_NAME = 'guardian_session';
 
-export async function getSession(request, _env) {
+export async function getSession(request) {
     const cookieHeader = request.headers.get('Cookie');
     if (!cookieHeader) return null;
 
@@ -21,7 +21,7 @@ export async function getSession(request, _env) {
     }
 }
 
-export async function setSession(data, _env) {
+export async function setSession(data) {
     const value = btoa(JSON.stringify(data));
 
     return serialize(COOKIE_NAME, value, {
