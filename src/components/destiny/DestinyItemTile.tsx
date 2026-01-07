@@ -1,19 +1,7 @@
 import React from 'react';
-import { DAMAGE_TYPES } from '../../data/constants';
+import { DAMAGE_TYPES, RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
-
-// DIM-matched Colors
-const RARITY_COLORS: Record<number, string> = {
-    6: '#ceae33',    // Exotic (DIM Gold)
-    5: '#522f65',    // Legendary (DIM Purple)
-    4: '#5076a3',    // Rare
-    3: '#366f42',    // Uncommon
-    2: '#c3bcb4',    // Common
-    0: '#c3bcb4'     // Basic
-};
-
-const MASTERWORK_GOLD = '#eade8b'; // DIM Masterwork Border
 
 const ELEMENT_ICONS: Record<number, string> = {
     [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066688b879c807c3b460afdd61e6.png',
@@ -122,12 +110,28 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 </div>
             )}
 
-            {/* Hover Tooltip (Simple) */}
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-48 bg-[#0f0f0f] border border-white/20 p-2 z-50 rounded shadow-xl pointer-events-none backdrop-blur-md">
-                <div className="text-sm font-bold text-white mb-1">{definition.displayProperties.name}</div>
-                <div className="text-xs text-gray-400 uppercase tracking-wider">{definition.itemTypeDisplayName}</div>
-                {note && (
-                    <div className="mt-2 text-xs text-yellow-400 italic">"{note}"</div>
+            {/* Hover Tooltip (Rich) */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 hidden group-hover:block min-w-[200px] w-max max-w-[260px] bg-[#0f0f0f]/95 border border-white/20 p-3 z-50 rounded-lg shadow-2xl pointer-events-none backdrop-blur-md transition-all duration-200 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                {/* Header: Name & Rarity Color */}
+                <div className="text-base font-bold text-white mb-0.5" style={{ color: definition.inventory?.tierType === 6 ? '#ceae33' : definition.inventory?.tierType === 5 ? '#a38cbe' : 'white' }}>
+                    {definition.displayProperties.name}
+                </div>
+
+                {/* Subheader: Type & Power */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                    <div className="text-xs text-stone-300 font-medium tracking-wide uppercase">{definition.itemTypeDisplayName}</div>
+                    {power && <div className="text-xs text-[#f5dc56] font-bold">⚡ {power}</div>}
+                </div>
+
+                {/* Description (Italic flavor text basically) */}
+                {/* Only show flavor text if no note, to save space? Or always? Let's show note if exists */}
+                {note ? (
+                    <div className="bg-[#1a1a1a] p-2 rounded border border-white/5 relative">
+                        <StickyNote size={12} className="absolute top-2 left-2 text-blue-400" />
+                        <div className="text-xs text-blue-200 italic pl-5 break-words">"{note}"</div>
+                    </div>
+                ) : (
+                    definition.flavorText && <div className="text-[10px] text-gray-500 italic leading-snug">{definition.flavorText}</div>
                 )}
             </div>
         </div>

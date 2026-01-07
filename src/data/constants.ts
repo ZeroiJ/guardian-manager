@@ -37,6 +37,16 @@ export const DAMAGE_TYPES: Record<string, number> = {
     Arc: 2303181850,
     Solar: 1847026933,
     Void: 3454344768,
-    Stasis: 151347233,
     Strand: 3949783978,
 };
+
+export const RARITY_COLORS: Record<number, string> = {
+    6: '#ceae33',    // Exotic (DIM Gold)
+    5: '#522f65',    // Legendary (DIM Purple)
+    4: '#5076a3',    // Rare
+    3: '#366f42',    // Uncommon
+    2: '#c3bcb4',    // Common
+    0: '#c3bcb4'     // Basic
+};
+
+export const MASTERWORK_GOLD = '#eade8b';
