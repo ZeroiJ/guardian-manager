@@ -186,6 +186,7 @@ app.get('/api/profile', async (c) => {
 })
 
 app.get('/api/manifest/version', async (c) => {
+  const config = getBungieConfig(c.env)
   const cacheKey = 'manifest_version'
   const cached = await c.env.guardian_kv.get(cacheKey)
   
@@ -194,7 +195,7 @@ app.get('/api/manifest/version', async (c) => {
   }
 
   try {
-    const manifest = await getManifestMetadata()
+    const manifest = await getManifestMetadata(config.apiKey)
     await c.env.guardian_kv.put(cacheKey, JSON.stringify(manifest), {
       expirationTtl: 3600
     })
@@ -205,8 +206,9 @@ app.get('/api/manifest/version', async (c) => {
 })
 
 app.get('/api/manifest/definitions/:table', async (c) => {
+  const config = getBungieConfig(c.env)
   const table = c.req.param('table')
-  const path = await getManifestTablePath(table)
+  const path = await getManifestTablePath(table, config.apiKey)
 
   if (!path) {
     return c.text('Table not found', 404)
