@@ -1,0 +1,24 @@
+# Project: Guardian Nexus (Destiny Item Manager Clone)
+
+## Tech Stack
+-   **Frontend**: React + Vite + TailwindCSS
+-   **Backend**: Cloudflare Pages Functions (Serverless API at `/functions/api`)
+-   **Auth**: Bungie.net OAuth 2.0 (Cookie-based session)
+
+## Key Design Principles
+-   **UI Style**: Replicating "Destiny Item Manager (DIM)" exactly. High info density, dark mode, horizontal dashboard layout.
+-   **Components**: 
+    - `Arsenal.jsx`: Main dashboard controller.
+    - `ItemCard.jsx`: 48x48px square tiles with rarity borders and overlays.
+    - `CharacterColumn.jsx`: Represents a character's inventory/equipment.
+-   **Manifest**: We use a **"Chunking Strategy"** (batches of 50) for fetching item definitions to avoid Vercel/Cloudflare 10-second serverless timeout limits. **Do not remove this batching logic.**
+-   **Style**: Use `index.css` and Tailwind classes. Avoid CSS-in-JS libraries.
+
+## Constraints
+-   **Serverless**: The backend is stateless. Do not use the server file system (`fs`) for persistence.
+-   **Performance**: Always prioritize bulk fetching over individual requests.
+-   **API**: All backend logic resides in `functions/`. Frontend calls it via `/api/...`.
+
+## Context Links
+-   **Implementation Plans**: See `./PLANS/` directory for project history and future roadmap.
+-   **Constants**: See `src/utils/constants.js` for Bungie API Enum hashes (Buckets, Stats, DamageTypes).
