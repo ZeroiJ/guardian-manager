@@ -1,0 +1,143 @@
+@use '../variables.scss' as *;
+@use 'sass:math';
+
+$legendaryBg: #522f65;
+$exoticBg: #ceae33;
+$basicBg: #c3bcb4;
+$rareBg: #5076a3;
+$commonBg: #366f42;
+
+// The image within the overall item. Global because it's referenced by other styles.
+:global(.item-img) {
+  display: block;
+  position: relative;
+  width: var(--item-size);
+  height: var(--item-size);
+  box-sizing: border-box;
+  border: $item-border-width solid var(--theme-item-polaroid);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  &:focus {
+    outline: none;
+  }
+
+  // Used by vendors
+  &:global(.transparent) {
+    border-color: transparent;
+  }
+
+  > * {
+    position: absolute;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+.legendary {
+  background-color: $legendaryBg;
+}
+.exotic {
+  background-color: $exoticBg;
+}
+.basic {
+  background-color: $basicBg;
+}
+.rare {
+  background-color: $rareBg;
+}
+.common {
+  background-color: $commonBg;
+}
+
+// Alternate border styles
+.masterwork {
+  border-color: var(--theme-item-polaroid-masterwork);
+}
+.deepsight {
+  border-color: $deepsight-border-color;
+  &::after {
+    content: '';
+    position: absolute;
+    box-sizing: border-box;
+    inset: 0;
+    border: 2px solid $deepsight-border-color;
+  }
+}
+
+.animatedBackground {
+  display: none;
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.item):hover & {
+      display: block;
+    }
+  }
+}
+
+// This is the same size as the item image but shifted up and left by 1px to overlap the border
+.shiftedLayer {
+  top: -1 * $item-border-width;
+  left: -1 * $item-border-width;
+}
+
+.adjustOpacity {
+  // Bungie said they darkened the overlay "by 40%" so let's un-darken it that much
+  opacity: math.div(1, 1.4);
+}
+
+.craftedLayer {
+  top: 1 * $item-border-width;
+  left: -1 * $item-border-width;
+}
+
+// Completed items or capped stackables image
+.complete {
+  border-color: var(--theme-item-polaroid-capped);
+}
+
+// Engrams and packages
+.borderless {
+  border-color: transparent;
+}
+
+.seasonIcon {
+  top: calc(#{dim-item-px(0.5)});
+  left: calc(#{dim-item-px(0.5)});
+  height: calc(#{dim-item-px(11)});
+  width: calc(#{dim-item-px(11)});
+}
+
+.energyCost {
+  position: absolute;
+  inset: $item-border-width;
+  pointer-events: none;
+
+  > text {
+    fill: white;
+  }
+}
+
+.highlightedObjective {
+  position: absolute;
+  display: block;
+  width: calc((var(--item-size) + 1px) / 2) !important;
+  height: calc((var(--item-size) + 1px) / 2) !important;
+  right: 0;
+  top: calc(var(--item-size) - ((var(--item-size) + 1px) / 2) - 1px);
+  // Seems to fix https://github.com/DestinyItemManager/DIM/issues/7974
+  pointer-events: none;
+}
+
+.inverted {
+  border-color: #222;
+}
+
+.strandColorFix {
+  filter: hue-rotate(265deg) brightness(1.3);
+}

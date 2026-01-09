@@ -1,0 +1,114 @@
+@use '../variables.scss' as *;
+
+/* Button */
+
+@mixin drop-shadow {
+  filter: drop-shadow(0 0 1px rgb(0, 0, 0, 0.25));
+  filter: drop-shadow(
+    0 0 1px color-mix(in srgb, var(--theme-accent-primary), rgb(0, 0, 0, 0.5) 70%)
+  );
+}
+
+@layer base {
+  .dim-button {
+    cursor: pointer;
+    padding: 4px 10px;
+    min-height: 26px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background-color: var(--theme-button-bg);
+    color: var(--theme-button-txt);
+    font-size: 12px;
+    line-height: calc(16 / 12);
+    font-family: 'Open Sans', sans-serif, 'Destiny Symbols';
+    text-shadow: 1px 1px 3px rgb(0, 0, 0, 0.25);
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    text-align: center;
+
+    // Slightly bigger hit targets on mobile
+    @include phone-portrait {
+      font-size: 14px;
+      line-height: calc(18 / 14);
+      padding: 8px 16px;
+    }
+
+    @include interactive($hover: true, $active: true, $selectedClass: '.selected') {
+      background-color: var(--theme-accent-primary) !important;
+      color: var(--theme-text-invert) !important;
+      text-shadow: none;
+      // Invert images on buttons to match text color, unless they have the dontInvert class
+      // (e.g. colored icons in organizer/compare)
+      img:not(.dontInvert) {
+        filter: invert(1);
+      }
+      img,
+      svg {
+        &.dontInvert {
+          @include drop-shadow;
+        }
+      }
+    }
+
+    img,
+    svg {
+      display: block;
+      height: 1.3em;
+      width: auto;
+      vertical-align: bottom;
+
+      &:only-child {
+        margin: 0;
+      }
+      // Don't invert images/icons on buttons when they're not monochrome
+      // e.g. kinetic slot filters in compare/organizer, or material cost for mod preview
+      &.dontInvert {
+        @include drop-shadow;
+      }
+    }
+
+    // Organizer embeds radio buttons in here
+    input {
+      display: none;
+    }
+
+    &[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      @include interactive($hover: true, $active: true, $selectedClass: '.selected') {
+        background-color: var(--theme-button-bg);
+        color: var(--theme-text);
+        img,
+        svg {
+          @include drop-shadow;
+        }
+      }
+    }
+    &.danger {
+      @include interactive($hover: true) {
+        background-color: $red !important;
+      }
+    }
+    &.left {
+      justify-content: flex-start;
+    }
+    // Set focus styles
+    &:focus-visible {
+      border-color: var(--theme-accent-primary);
+      outline: none;
+    }
+  }
+
+  a.dim-button {
+    text-decoration: none;
+  }
+
+  .dim-button-primary {
+    background-color: var(--theme-button-bg-primary);
+    font-weight: bold;
+  }
+}
