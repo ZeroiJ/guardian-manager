@@ -45,11 +45,11 @@ export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, .
             src={imageUrl}
             alt={alt || ""}
             className={cn("w-full h-full object-cover", className)}
+            crossOrigin="anonymous"
             onError={(e) => {
                 console.warn('[BungieImage] Failed to load:', imageUrl);
                 setHasError(true);
             }}
-            loading="lazy"
             {...props}
         />
     );
