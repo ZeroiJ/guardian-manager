@@ -1,16 +1,8 @@
 import React from 'react';
-import { DAMAGE_TYPES, RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
+import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
-
-const ELEMENT_ICONS: Record<number, string> = {
-    [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/092d066688b879c807c3b460afdd61e6.png',
-    [DAMAGE_TYPES.Solar]: 'https://www.bungie.net/common/destiny2_content/icons/2a1773e10968f2d088b97c22b22bba9e.png',
-    [DAMAGE_TYPES.Void]: 'https://www.bungie.net/common/destiny2_content/icons/ceb2f6197dccf3958bb31cc783eb97a0.png',
-    [DAMAGE_TYPES.Stasis]: 'https://www.bungie.net/common/destiny2_content/icons/530c4c474d22329dc3df9f99e324022a.png',
-    [DAMAGE_TYPES.Strand]: 'https://www.bungie.net/common/destiny2_content/icons/b2fe51a94f3533f97079dfa0d27a4096.png',
-    [DAMAGE_TYPES.Kinetic]: 'https://www.bungie.net/common/destiny2_content/icons/3385a924fd3ccb936fe904098a655da0.png'
-};
+import { useDamageTypes } from '../../hooks/useDamageTypes';
 
 interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
@@ -22,6 +14,9 @@ interface DestinyItemTileProps {
 }
 
 export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, onContextMenu, className = '', isNew = false }) => {
+    // Get damage type icons from manifest
+    const { getIconForHash } = useDamageTypes();
+
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
     const { state } = item;
@@ -35,7 +30,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     // Stats
     const power = item.instanceData?.primaryStat?.value;
     const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
-    const elementIcon = damageTypeHash ? ELEMENT_ICONS[damageTypeHash] : null;
+    const elementIcon = getIconForHash(damageTypeHash);
 
     // Border Logic: Masterwork overrides Rarity
     const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[definition.inventory?.tierType] || RARITY_COLORS[0]);
