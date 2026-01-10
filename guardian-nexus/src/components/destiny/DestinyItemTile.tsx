@@ -4,12 +4,12 @@ import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
 
 const ELEMENT_ICONS: Record<number, string> = {
-    [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066688b879c807c3b460afdd61e6.png',
-    [DAMAGE_TYPES.Solar]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_2a1773e10968f2d088b97c22b22bba9e.png',
-    [DAMAGE_TYPES.Void]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3958bb31cc783eb97a0.png',
-    [DAMAGE_TYPES.Stasis]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_530c4c474d22329dc3df9f99e324022a.png',
-    [DAMAGE_TYPES.Strand]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_b2fe51a94f3533f97079dfa0d27a4096.png',
-    [DAMAGE_TYPES.Kinetic]: 'https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_3385a924fd3ccb936fe904098a655da0.png'
+    [DAMAGE_TYPES.Arc]: 'https://www.bungie.net/common/destiny2_content/icons/092d066688b879c807c3b460afdd61e6.png',
+    [DAMAGE_TYPES.Solar]: 'https://www.bungie.net/common/destiny2_content/icons/2a1773e10968f2d088b97c22b22bba9e.png',
+    [DAMAGE_TYPES.Void]: 'https://www.bungie.net/common/destiny2_content/icons/ceb2f6197dccf3958bb31cc783eb97a0.png',
+    [DAMAGE_TYPES.Stasis]: 'https://www.bungie.net/common/destiny2_content/icons/530c4c474d22329dc3df9f99e324022a.png',
+    [DAMAGE_TYPES.Strand]: 'https://www.bungie.net/common/destiny2_content/icons/b2fe51a94f3533f97079dfa0d27a4096.png',
+    [DAMAGE_TYPES.Kinetic]: 'https://www.bungie.net/common/destiny2_content/icons/3385a924fd3ccb936fe904098a655da0.png'
 };
 
 interface DestinyItemTileProps {
