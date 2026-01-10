@@ -2,7 +2,7 @@ import React from 'react';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
-import { useDamageTypes } from '../../hooks/useDamageTypes';
+import { getElementIcon } from './ElementIcons';
 
 interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
@@ -14,9 +14,6 @@ interface DestinyItemTileProps {
 }
 
 export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, onContextMenu, className = '', isNew = false }) => {
-    // Get damage type icons from manifest
-    const { getIconForHash } = useDamageTypes();
-
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
     const { state } = item;
@@ -30,7 +27,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     // Stats
     const power = item.instanceData?.primaryStat?.value;
     const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
-    const elementIcon = getIconForHash(damageTypeHash);
+    const ElementIconComponent = getElementIcon(damageTypeHash);
 
     // Border Logic: Masterwork overrides Rarity
     const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[definition.inventory?.tierType] || RARITY_COLORS[0]);
@@ -89,11 +86,11 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
             </div>
 
             {/* Icon Tray (Element & Power) - DIM Style Bottom Bar */}
-            {(elementIcon || power) && (
+            {(ElementIconComponent || power) && (
                 <div className="absolute bottom-0 left-0 right-0 h-[14px] bg-gradient-to-t from-black/90 to-black/40 flex items-center px-[2px] justify-between z-20 pointer-events-none">
                     {/* Element */}
-                    {elementIcon ? (
-                        <img src={elementIcon} className="w-[11px] h-[11px] drop-shadow-sm filter brightness-125" alt="element" />
+                    {ElementIconComponent ? (
+                        <ElementIconComponent size={11} className="drop-shadow-sm" />
                     ) : <div />}
 
                     {/* Power Level */}
