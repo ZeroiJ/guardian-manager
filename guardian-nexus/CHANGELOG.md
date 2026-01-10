@@ -2,6 +2,13 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.8.0] - 2026-01-10
+
+### Fixed
+- **Critical Icon Failure**: Fixed major issue where item icons failed to load despite correct URLs due to browser-side blocking and Bungie CDN restrictions.
+- **Manifest Corruption**: Resolved an issue where the frontend cached corrupted manifest data (undefined icons) by implementing a forced cache invalidation system (`ManifestManager.initialize()`).
+- **Nuclear Proxy Solution**: Implemented a dedicated backend proxy endpoint (`/api/image`) to serve Bungie assets directly from our origin, bypassing all CORS, Referrer, and mixed-content blocking issues.
+
 ## [0.7.0] - 2025-12-27
 
 ### Added
