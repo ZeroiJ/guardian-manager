@@ -1,6 +1,6 @@
 name = "guardian-manager"
 compatibility_date = "2024-01-01"
-pages_build_output_dir = "dist"
+pages_build_output_dir = ".vercel/output/static"
 
 [vars]
 # These will be overridden by the actual environment variables in Cloudflare Dashboard
