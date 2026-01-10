@@ -34,7 +34,7 @@ app.get('/api/debug', (c) => {
 app.get('/api/auth/login', (c) => {
   const config = getBungieConfig(c.env)
   const state = crypto.randomUUID()
-  
+
   setCookie(c, 'oauth_state', state, {
     path: '/',
     secure: true,
@@ -55,7 +55,7 @@ app.get('/api/auth/login', (c) => {
 
 app.get('/api/auth/callback', async (c) => {
   console.log('[OAuth Callback] Starting callback handler...');
-  
+
   const config = getBungieConfig(c.env)
   const code = c.req.query('code')
   const state = c.req.query('state')
@@ -71,7 +71,7 @@ app.get('/api/auth/callback', async (c) => {
   }
 
   console.log('[OAuth Callback] Exchanging code for tokens...');
-  
+
   const response = await fetch(config.tokenUrl, {
     method: 'POST',
     headers: {
@@ -95,7 +95,7 @@ app.get('/api/auth/callback', async (c) => {
   const tokens = await response.json() as any
   console.log('[OAuth Callback] Tokens received successfully');
   console.log('[OAuth Callback] Token keys:', Object.keys(tokens));
-  
+
   setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
     path: '/',
     secure: true,
@@ -110,10 +110,10 @@ app.get('/api/auth/callback', async (c) => {
 
 app.get('/api/profile', async (c) => {
   console.log('[Profile API] Starting profile fetch...');
-  
+
   const config = getBungieConfig(c.env)
   const authCookie = getCookie(c, 'bungie_auth')
-  
+
   if (!authCookie) {
     console.error('[Profile API] No auth cookie found');
     return c.text('Unauthorized', 401)
@@ -127,7 +127,7 @@ app.get('/api/profile', async (c) => {
     console.error('[Profile API] Failed to parse auth cookie:', err);
     return c.text('Invalid auth cookie', 401)
   }
-  
+
   console.log('[Profile API] Fetching memberships...');
   const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
     headers: {
@@ -141,22 +141,22 @@ app.get('/api/profile', async (c) => {
     console.error(`[Profile API] Failed to fetch memberships: ${membershipsRes.status} - ${errorText}`);
     return c.text(`Failed to fetch memberships: ${errorText}`, membershipsRes.status as any)
   }
-  
+
   const membershipsData = await membershipsRes.json() as any
   console.log('[Profile API] Memberships fetched:', membershipsData.Response?.destinyMemberships?.length || 0);
-  
+
   if (!membershipsData.Response?.destinyMemberships?.length) {
     console.error('[Profile API] No Destiny membership found');
     return c.text('No Destiny membership found', 404)
   }
-  
+
   const destinyMembership = membershipsData.Response.destinyMemberships[0]
   const { membershipType, membershipId } = destinyMembership
   console.log(`[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`);
 
   const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,1200`
   console.log(`[Profile API] Fetching profile data from: ${profileUrl}`);
-  
+
   const profileRes = await fetch(profileUrl, {
     headers: {
       'X-API-Key': config.apiKey,
@@ -169,7 +169,7 @@ app.get('/api/profile', async (c) => {
     console.error(`[Profile API] Failed to fetch profile: ${profileRes.status} - ${errorText}`);
     return c.text(`Failed to fetch profile: ${errorText}`, profileRes.status as any)
   }
-  
+
   const profileData = await profileRes.json() as any
   console.log('[Profile API] Profile data fetched successfully');
 
@@ -189,7 +189,7 @@ app.get('/api/manifest/version', async (c) => {
   const config = getBungieConfig(c.env)
   const cacheKey = 'manifest_version'
   const cached = await c.env.guardian_kv.get(cacheKey)
-  
+
   if (cached) {
     return c.json(JSON.parse(cached))
   }
@@ -215,13 +215,33 @@ app.get('/api/manifest/definitions/:table', async (c) => {
   }
 
   const fullUrl = `https://www.bungie.net${path}`
-  
+
   const response = await fetch(fullUrl)
 
   return new Response(response.body, {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=86400',
+    }
+  })
+})
+
+// Image Proxy to bypass Bungie CDN issues
+app.get('/api/image', async (c) => {
+  const path = c.req.query('path')
+  if (!path) return c.text('Missing path', 400)
+
+  // Validate path is partial
+  const cleanPath = path.startsWith('http') ? new URL(path).pathname : path
+  const targetUrl = `https://www.bungie.net${cleanPath}`
+
+  const response = await fetch(targetUrl)
+
+  return new Response(response.body, {
+    headers: {
+      'Content-Type': response.headers.get('Content-Type') || 'image/jpeg',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Access-Control-Allow-Origin': '*'
     }
   })
 })
@@ -313,11 +333,11 @@ app.post('/api/metadata', async (c) => {
 
 // Catch-all 404 handler
 app.all('*', (c) => {
-    return c.json({
-        error: 'Not Found (Hono Catch-All)',
-        path: c.req.path,
-        method: c.req.method
-    }, 404)
+  return c.json({
+    error: 'Not Found (Hono Catch-All)',
+    path: c.req.path,
+    method: c.req.method
+  }, 404)
 })
 
 export const onRequest = handle(app)
