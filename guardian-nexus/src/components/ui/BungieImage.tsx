@@ -48,8 +48,7 @@ export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, .
         <img
             src={proxyUrl}
             alt={alt || ""}
-            className={cn("w-full h-full object-cover", className)}
-            loading="lazy"
+            className={cn("w-full h-full object-cover border-2 border-red-500 z-50 relative", className)}
             {...props}
         />
     );
