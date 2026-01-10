@@ -3,6 +3,8 @@ import { APIClient } from '../api/client';
 
 const MANIFEST_VERSION_KEY = 'manifest_version';
 const TABLE_PREFIX = 'def:';
+// CACHE_BUSTER: Increment this to force all users to re-download manifest data
+const CACHE_BUSTER_VERSION = 'v2';
 
 export class ManifestManager {
     /**
@@ -12,7 +14,7 @@ export class ManifestManager {
         try {
             const localVersion = await get(MANIFEST_VERSION_KEY);
             const remoteManifest = await APIClient.getManifestVersion();
-            const remoteVersion = remoteManifest.version;
+            const remoteVersion = `${remoteManifest.version}_${CACHE_BUSTER_VERSION}`;
 
             if (localVersion !== remoteVersion) {
                 console.log(`Manifest update detected: ${localVersion} -> ${remoteVersion}. Clearing cache...`);
@@ -22,10 +24,12 @@ export class ManifestManager {
                 for (const key of allKeys) {
                     if (typeof key === 'string' && key.startsWith(TABLE_PREFIX)) {
                         await del(key);
+                        console.log(`[ManifestManager] Cleared cached table: ${key}`);
                     }
                 }
 
                 await set(MANIFEST_VERSION_KEY, remoteVersion);
+                console.log(`[ManifestManager] Cache cleared. New version: ${remoteVersion}`);
             }
         } catch (error) {
             console.error('Failed to initialize manifest manager:', error);
