@@ -5,16 +5,16 @@ import { cn } from '../../utils/cn';
  * Expand a relative bungie.net asset path to a full path.
  */
 export function bungieNetPath(src: string | undefined): string {
-  if (!src) {
-    return '';
-  }
-  if (src.startsWith('~')) {
-    return src.substr(1);
-  }
-  if (src.startsWith('http')) {
-      return src;
-  }
-  return `https://www.bungie.net${src}`;
+    if (!src) {
+        return '';
+    }
+    if (src.startsWith('~')) {
+        return src.substr(1);
+    }
+    if (src.startsWith('http')) {
+        return src;
+    }
+    return `https://www.bungie.net${src}`;
 }
 
 interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -28,8 +28,8 @@ export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, .
     const imageUrl = bungieNetPath(src);
     const [hasError, setHasError] = useState(false);
 
-    // DEBUG: Trace icon paths
-    // if (Math.random() < 0.01) console.log('[BungieImage] Render:', imageUrl);
+    // DEBUG: Trace icon paths - always log to identify the issue
+    console.log('[BungieImage] Render:', { src, imageUrl });
 
     if (!imageUrl || hasError) {
         return (
