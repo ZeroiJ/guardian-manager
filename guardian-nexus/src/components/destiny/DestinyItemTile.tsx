@@ -52,22 +52,20 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
             onContextMenu={onContextMenu}
         >
             {/* The Item Icon (Background) */}
-            <div className="absolute inset-0 z-0 bg-[#222]">
-                <BungieImage
-                    src={icon}
-                    className="w-full h-full object-cover"
-                />
+            <BungieImage
+                src={icon}
+                className="absolute inset-0 z-0 bg-[#222]"
+            />
 
-                {/* Masterwork Overlay (Texture) */}
-                {isMasterwork && (
-                    <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none mix-blend-overlay" />
-                )}
+            {/* Masterwork Overlay (Texture) */}
+            {isMasterwork && (
+                <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none mix-blend-overlay" />
+            )}
 
-                {/* New Item Glow (Pulse) */}
-                {isNew && (
-                    <div className="absolute inset-0 border-2 border-[#50c8ce] shadow-[0_0_8px_#50c8ce] opacity-80 animate-pulse z-20 pointer-events-none" />
-                )}
-            </div>
+            {/* New Item Glow (Pulse) */}
+            {isNew && (
+                <div className="absolute inset-0 border-2 border-[#50c8ce] shadow-[0_0_8px_#50c8ce] opacity-80 animate-pulse z-20 pointer-events-none" />
+            )}
 
             {/* Top Right: Season / Watermark */}
             {definition.iconWatermark && (
