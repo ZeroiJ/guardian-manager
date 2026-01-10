@@ -16,7 +16,7 @@ export class ManifestManager {
 
             if (localVersion !== remoteVersion) {
                 console.log(`Manifest update detected: ${localVersion} -> ${remoteVersion}. Clearing cache...`);
-                
+
                 // Clear all keys with our prefix
                 const allKeys = await keys();
                 for (const key of allKeys) {
@@ -24,7 +24,7 @@ export class ManifestManager {
                         await del(key);
                     }
                 }
-                
+
                 await set(MANIFEST_VERSION_KEY, remoteVersion);
             }
         } catch (error) {
@@ -44,12 +44,12 @@ export class ManifestManager {
         if (!table) {
             console.log(`[ManifestManager] Downloading manifest table: ${tableName}...`);
             const startTime = performance.now();
-            
+
             try {
                 table = await APIClient.getDefinitions(tableName);
                 const size = JSON.stringify(table).length;
                 console.log(`[ManifestManager] Downloaded ${tableName} in ${(performance.now() - startTime).toFixed(0)}ms. Size: ${(size / 1024 / 1024).toFixed(2)} MB`);
-                
+
                 await set(key, table);
                 console.log(`[ManifestManager] Saved ${tableName} to IndexedDB.`);
             } catch (err) {
@@ -70,7 +70,19 @@ export class ManifestManager {
         console.log(`[ManifestManager] Looking up ${hashes.length} hashes from ${tableName}...`);
         const table = await this.loadTable(tableName);
         const results: Record<string, any> = {};
-        
+
+        // DEBUG: Log a sample of the table structure
+        const tableKeys = Object.keys(table);
+        console.log(`[ManifestManager] Table has ${tableKeys.length} entries. Sample keys:`, tableKeys.slice(0, 3));
+        if (tableKeys.length > 0) {
+            const sampleDef = table[tableKeys[0]];
+            console.log(`[ManifestManager] Sample definition structure:`, {
+                hash: sampleDef?.hash,
+                name: sampleDef?.displayProperties?.name,
+                icon: sampleDef?.displayProperties?.icon?.substring(0, 50)
+            });
+        }
+
         let foundCount = 0;
         for (const hash of hashes) {
             const hashStr = hash.toString();
@@ -79,7 +91,7 @@ export class ManifestManager {
                 foundCount++;
             }
         }
-        
+
         console.log(`[ManifestManager] Found ${foundCount} / ${hashes.length} definitions.`);
         return results;
     }

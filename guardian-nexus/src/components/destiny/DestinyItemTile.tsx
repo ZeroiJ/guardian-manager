@@ -22,7 +22,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     const icon = definition.displayProperties?.icon;
 
     // DEBUG: Trace icon Data
-    // if (!icon) console.warn('[DestinyItemTile] Missing Icon for:', definition.displayProperties?.name);
+    if (!icon) console.warn('[DestinyItemTile] Missing Icon for:', definition.displayProperties?.name, definition);
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
