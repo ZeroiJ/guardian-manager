@@ -7,6 +7,15 @@ export interface Env {
 }
 
 export const getBungieConfig = (env: Env) => {
+	const missing = [];
+	if (!env.BUNGIE_API_KEY) missing.push('BUNGIE_API_KEY');
+	if (!env.BUNGIE_CLIENT_ID) missing.push('BUNGIE_CLIENT_ID');
+	if (!env.BUNGIE_CLIENT_SECRET) missing.push('BUNGIE_CLIENT_SECRET');
+
+	if (missing.length > 0) {
+		throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+	}
+
 	return {
 		apiKey: env.BUNGIE_API_KEY,
 		clientId: env.BUNGIE_CLIENT_ID,

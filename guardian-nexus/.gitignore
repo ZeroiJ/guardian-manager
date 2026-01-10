@@ -134,3 +134,9 @@ dist-ssr/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Secrets
+.dev.vars
+
+# Cloudflare / Vercel Build Output
+.vercel

@@ -23,8 +23,8 @@ app.use('*', async (c, next) => {
 })
 
 // Hardcoded credentials for debugging
-const CLIENT_ID = '51042'
-const CLIENT_SECRET = 'g4K4fPwbN0H-zewTWvAQPulHdB.yj7lx-UtJO6ZdIfE'
+// Credentials are now loaded from Env via getBungieConfig
+
 
 // DEBUG: Log all requests
 app.use('*', async (c, next) => {
@@ -43,7 +43,8 @@ app.get('/api/debug', (c) => {
         path: c.req.path,
         url: c.req.url,
         method: c.req.method,
-        client_id: CLIENT_ID // Echo back to verify
+        client_id: c.env.BUNGIE_CLIENT_ID // Echo back to verify
+
     })
 })
 
@@ -60,7 +61,8 @@ app.get('/api/auth/login', (c) => {
     })
 
     const params = new URLSearchParams({
-        client_id: CLIENT_ID,
+        client_id: config.clientId,
+
         response_type: 'code',
         state: state,
         // NO redirect_uri - rely on Portal registration
@@ -92,7 +94,8 @@ app.get('/api/auth/callback', async (c) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+            'Authorization': `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
+
         },
         body: new URLSearchParams({
             grant_type: 'authorization_code',
