@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { cn } from '../../utils/cn';
 
 /**
@@ -17,39 +17,27 @@ export function bungieNetPath(src: string | undefined): string {
     return `https://www.bungie.net${src}`;
 }
 
-interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface BungieImageProps extends React.HTMLAttributes<HTMLDivElement> {
     src?: string;
     className?: string;
 }
 
-const MISSING_ICON_URL = 'https://www.bungie.net/img/misc/missing_icon_d2.png';
-
-export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, ...props }) => {
+/**
+ * BungieImage - Uses CSS background-image like DIM does for reliable cross-origin loading
+ */
+export const BungieImage: React.FC<BungieImageProps> = ({ src, className, ...props }) => {
     const imageUrl = bungieNetPath(src);
-    const [hasError, setHasError] = useState(false);
 
-    // DEBUG: Trace icon paths - always log to identify the issue
-    console.log('[BungieImage] Render:', { src, imageUrl });
-
-    if (!imageUrl || hasError) {
+    if (!imageUrl) {
         return (
-            <div className={cn("bg-[#1a1a1a] flex items-center justify-center overflow-hidden", className)}>
-                {/* Fallback to grey box if URL is empty, or Missing Icon if Error */}
-                {hasError && <img src={MISSING_ICON_URL} className="w-full h-full opacity-50" alt="Missing" />}
-            </div>
+            <div className={cn("bg-[#1a1a1a]", className)} {...props} />
         );
     }
 
     return (
-        <img
-            src={imageUrl}
-            alt={alt || ""}
-            className={cn("w-full h-full object-cover", className)}
-            crossOrigin="anonymous"
-            onError={(e) => {
-                console.warn('[BungieImage] Failed to load:', imageUrl);
-                setHasError(true);
-            }}
+        <div
+            className={cn("bg-cover bg-center bg-no-repeat", className)}
+            style={{ backgroundImage: `url("${imageUrl}")` }}
             {...props}
         />
     );
