@@ -17,8 +17,9 @@ export function bungieNetPath(src: string | undefined): string {
     return `https://www.bungie.net${src}`;
 }
 
-interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface BungieImageProps extends React.HTMLAttributes<HTMLDivElement> {
     src?: string;
+    alt?: string; // Kept for compatibility but unused in div
     className?: string;
 }
 
@@ -43,12 +44,11 @@ export const BungieImage: React.FC<BungieImageProps> = ({ src, className, alt, .
     const rawPath = src.startsWith('http') ? new URL(src).pathname : src;
     const proxyUrl = `/api/image?path=${encodeURIComponent(rawPath)}`;
 
-    // 3. Render Image
+    // 3. Render Image (Background approach to prevent 0-height collapse)
     return (
-        <img
-            src={proxyUrl}
-            alt={alt || ""}
-            className={cn("w-full h-full object-cover border-2 border-red-500 z-50 relative", className)}
+        <div
+            className={cn("w-full h-full bg-cover bg-center bg-no-repeat relative", className)}
+            style={{ backgroundImage: `url("${proxyUrl}")` }}
             {...props}
         />
     );
