@@ -85,6 +85,49 @@ export default function Home() {
     }
 
     if (profileError) {
+        // Check if it's an Auth Error
+        const isAuthError = profileError.message.includes('Unauthorized') || profileError.message.includes('401');
+
+        if (isAuthError) {
+            return (
+                <div className="h-screen bg-[#050505] flex flex-col items-center justify-center font-sans space-y-8 relative overflow-hidden">
+                    {/* Background Ambience */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1a1a2e] via-[#050505] to-[#050505] opacity-50" />
+
+                    <div className="z-10 text-center space-y-6 max-w-lg px-6">
+                        <div className="mb-8">
+                            <div className="inline-block p-4 rounded-full bg-[#f5dc56]/10 border border-[#f5dc56]/20 mb-4 shadow-[0_0_30px_rgba(245,220,86,0.1)]">
+                                <Search className="w-12 h-12 text-[#f5dc56]" />
+                            </div>
+                            <h1 className="text-5xl font-bold tracking-tighter text-white mb-2">
+                                Guardian <span className="text-[#f5dc56]">Nexus</span>
+                            </h1>
+                            <p className="text-gray-400 text-lg">
+                                The Advanced/AI Item Manager for Destiny 2
+                            </p>
+                        </div>
+
+                        <div className="bg-[#11111b] border border-white/5 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
+                            <p className="text-gray-300 mb-8 leading-relaxed">
+                                Connect your Bungie account to manage inventory, optimize loadouts, and organize your vault with advanced tools.
+                            </p>
+
+                            <a
+                                href="/api/auth/login"
+                                className="block w-full py-4 px-6 bg-[#f5dc56] hover:bg-[#e6ce4b] text-black font-bold text-lg rounded-lg transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(245,220,86,0.3)] hover:shadow-[0_0_30px_rgba(245,220,86,0.5)]"
+                            >
+                                Login with Bungie
+                            </a>
+                        </div>
+
+                        <div className="text-xs text-gray-600 font-mono">
+                            Secure OAuth 2.0 Connection • No Credentials Stored
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="h-screen bg-[#050505] text-red-500 flex flex-col items-center justify-center font-mono p-4">
                 <div className="text-xl mb-4">CRITICAL SYSTEM FAILURE</div>

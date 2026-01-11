@@ -31,9 +31,9 @@ export class APIClient {
                 if (response.status === 401) {
                     console.warn('[APIClient] Unauthorized - redirecting to login');
                     // If unauthorized, redirect to login
-                    if (typeof window !== 'undefined') {
-                        window.location.href = `/api/auth/login`;
-                    }
+                    // if (typeof window !== 'undefined') {
+                    //     window.location.href = `/api/auth/login`;
+                    // }
                     throw new Error('Unauthorized - redirecting to login');
                 }
 
