@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npx @cloudflare/next-on-pages",
+    "build": "next build",
     "cf:build": "npx @cloudflare/next-on-pages",
     "lint": "next lint",
     "start": "next start",
