@@ -18,7 +18,7 @@ Since this is vibe-coded, the logic can occasionally be as chaotic as a Mayhem m
 
 ### 🌌 Why I'm doing this
 
-I am a Data Science student building this for the love of the game. Every contribution, bug report, or bit of feedback doesn't just help me—it helps the entire community. If you think you can make this tool better for our fellow Guardians, I would be incredibly happy to have your help.
+I am building this for the love of the game. Every contribution, bug report, or bit of feedback doesn't just help me—it helps the entire community. If you think you can make this tool better for our fellow Guardians, I would be incredibly happy to have your help.
 
 Let's build something the Tower would be proud of. 🚀
 
