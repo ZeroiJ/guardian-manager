@@ -215,7 +215,7 @@ export default function App() {
                     })}
 
                     {/* Vault Column */}
-                    <DroppableZone id="vault" className="flex-shrink-0 w-[400px] bg-[#11111b] flex flex-col h-full relative">
+                    <DroppableZone id="vault" className="flex-1 min-w-[400px] bg-[#11111b] flex flex-col h-full relative">
                         <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md">
                             <span className="font-bold text-lg text-[#ccc]">Vault</span>
                             <span className="text-sm font-mono text-[#666]">{vaultItems.length} / 600</span>
@@ -223,12 +223,11 @@ export default function App() {
                         {/* Stats Placeholder Row for Vault */}
                         <div className="h-[25px] bg-[#0a0a10] border-b border-white/5" />
 
-                        {/* Virtualized Vault Grid */}
+                        {/* Responsive Vault Grid */}
                         <div className="flex-1 overflow-hidden relative p-1">
                             <VirtualVaultGrid
                                 items={vaultItems}
                                 definitions={definitions}
-                                onItemContextMenu={handleContextMenu}
                             />
                         </div>
                     </DroppableZone>
