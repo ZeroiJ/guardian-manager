@@ -86,8 +86,6 @@ app.get('/api/auth/callback', async (c) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
-
         },
         body: new URLSearchParams({
             grant_type: 'authorization_code',
