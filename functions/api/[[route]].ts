@@ -80,6 +80,7 @@ app.get('/api/auth/callback', async (c) => {
     }
 
     console.log('[OAuth Callback] Exchanging code for tokens...');
+    console.log(`[OAuth Callback] Config Check - ClientID: ${config.clientId ? 'OK' : 'MISSING'}, Secret: ${config.clientSecret ? 'OK (len=' + config.clientSecret.length + ')' : 'MISSING'}`);
 
     const response = await fetch(config.tokenUrl, {
         method: 'POST',
