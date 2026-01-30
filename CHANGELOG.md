@@ -2,7 +2,28 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
-## [0.8.0] - 2026-01-10
+## [0.10.0] - 2026-01-31
+
+### Feature Parity (DIM Match)
+
+- **Max Power Calculation**: Implemented a sophisticated power calculation engine (`powerUtils.ts`) that determines the user's "Base Power". It strictly respects Destiny 2's "One Exotic Weapon + One Exotic Armor" equip rule to show the true potential level. This appears in **Gold** next to the current light level.
+- **Postmaster Integration**: Added a dedicated "Postmaster" row in the Character Column to display lost items (Bucket Hash `215593132`) directly within the inventory view.
+- **Granular Vault Categorization**: The Vault now groups items by their specific sub-category (e.g., "Auto Rifle", "Helmet", "Fusion Rifle") instead of broad generic buckets. These sub-groups are sorted alphabetically for easier browsing.
+
+### UI Polish (The "Bungie Standard")
+
+- **Pixel-Perfect Alignment**:
+  - Rebuilt the **Vault Header** to exactly match the Character Column headers (48px top bar + 103px stats block), ensuring the first row of items aligns perfectly across the screen.
+  - Implemented **"Ghost Slots"** in character inventory rows to maintain a rigid grid structure even when slots are empty.
+- **Armor 3.0 Stats**:
+  - Updated stat labels to use functional names: **Health** (Resilience), **Melee** (Strength), **Grenade** (Discipline), **Super** (Intellect), **Class** (Recovery), **Weapons** (Mobility).
+  - Visualization changed to prioritize the **Raw Value** (large, bold text) over progress bars, with gold highlighting for T10 (100+) stats.
+- **Unified Scrolling**: The entire dashboard (Characters + Vault) now scrolls together in a single viewport, replacing independent column scrolling for a more cohesive desktop experience.
+
+### Fixed
+
+- **Image Rendering**: Solved broken image links by implementing a robust `BungieImage` component that correctly handles relative Bungie paths and provides fallbacks.
+- **Type Safety**: Improved type definitions for Profile and Item interfaces.
 
 ## [0.9.0] - 2026-01-31
 

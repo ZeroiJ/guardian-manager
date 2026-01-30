@@ -25,9 +25,12 @@ Let's build something the Tower would be proud of. 🚀
 ## Features
 
 - **Arsenal**: View your weapons and armor with a premium, high-fidelity UI (DIM-like density).
+- **Max Power Engine**: Automatically calculates your "Base Power" level, respecting the complex "One Exotic" rule to show your true potential.
+- **Armor 3.0 Stats**: View your stats with functional names (Health, Melee, etc.) and raw values for instant build assessment.
 - **Smart Transfers**: Move items between any character or vault instantly. The system automatically handles multi-step transfers (Source -> Vault -> Destination).
+- **Postmaster & Lost Items**: View and manage lost items directly from your inventory screen.
+- **Granular Vault**: Browsable vault organized by item type (Auto Rifle, Helmet, etc.) and sorted alphabetically.
 - **Tag & Organize**: Right-click any item to Tag it (Favorite, Junk, Infuse) or add Notes. Data is synced to the cloud.
-- **Virtualized Vault**: Smooth scrolling for vaults with 600+ items.
 - **Real-time Data**: Fetches your live inventory from Bungie.net.
 - **Secure Auth**: OAuth 2.0 authentication with Bungie.net.
 
