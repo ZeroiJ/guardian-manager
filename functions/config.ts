@@ -2,6 +2,7 @@ export interface Env {
 	BUNGIE_API_KEY: string;
 	BUNGIE_CLIENT_ID: string;
 	BUNGIE_CLIENT_SECRET: string;
+	BUNGIE_AUTH_URL?: string;
 	guardian_kv: KVNamespace;
 	guardian_db: D1Database;
 }
@@ -20,7 +21,7 @@ export const getBungieConfig = (env: Env) => {
 		apiKey: env.BUNGIE_API_KEY?.trim(),
 		clientId: env.BUNGIE_CLIENT_ID?.trim(),
 		clientSecret: env.BUNGIE_CLIENT_SECRET?.trim(),
-		authUrl: 'https://www.bungie.net/en/OAuth/Authorize',
+		authUrl: env.BUNGIE_AUTH_URL?.trim() || 'https://www.bungie.net/en/OAuth/Authorize',
 		tokenUrl: 'https://www.bungie.net/Platform/App/OAuth/Token/',
 	};
 };

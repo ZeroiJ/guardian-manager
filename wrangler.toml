@@ -10,6 +10,7 @@ pages_build_output_dir = "dist"
 # BUNGIE_API_KEY = ""
 # SESSION_SECRET = ""
 # FRONTEND_URL = ""
+BUNGIE_AUTH_URL = "https://www.bungie.net/en/OAuth/Authorize"
 
 [[kv_namespaces]]
 binding = "guardian_kv"
