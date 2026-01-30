@@ -216,15 +216,37 @@ export default function App() {
 
                     {/* Vault Column */}
                     <DroppableZone id="vault" className="flex-1 min-w-[400px] bg-[#11111b] flex flex-col h-full relative">
-                        <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md">
-                            <span className="font-bold text-lg text-[#ccc]">Vault</span>
-                            <span className="text-sm font-mono text-[#666]">{vaultItems.length} / 600</span>
+                        {/* 1. Header (Matches Character Emblem: h-[48px]) */}
+                        <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md relative z-20">
+                            <div className="flex flex-col leading-none">
+                                <span className="font-bold text-lg text-[#ccc] tracking-wide">Vault</span>
+                                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Storage</span>
+                            </div>
+                            <div className="text-xl font-bold text-[#ccc] font-mono tracking-tighter">
+                                {vaultItems.length} <span className="text-[#666] text-sm">/ 600</span>
+                            </div>
                         </div>
-                        {/* Stats Placeholder Row for Vault */}
-                        <div className="h-[25px] bg-[#0a0a10] border-b border-white/5" />
 
-                        {/* Responsive Vault Grid */}
-                        <div className="flex-1 overflow-hidden relative p-1">
+                        {/* 2. Stats Block Placeholder (Matches Character Stats: ~102px) */}
+                        {/* Height Calc: p-1(8px) + 6 rows(84px) + 5 gaps(10px) = 102px */}
+                        <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5 z-10 relative shadow-sm h-[103px] justify-center">
+                            {/* Mock Currency / Info Display to fill space */}
+                            <div className="flex items-center justify-between px-2 py-1 opacity-40">
+                                <span className="text-[10px] uppercase font-bold text-gray-500">Glimmer</span>
+                                <span className="text-xs font-mono text-[#f5dc56]">250,000</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 opacity-40">
+                                <span className="text-[10px] uppercase font-bold text-gray-500">Shards</span>
+                                <span className="text-xs font-mono text-purple-400">42,000</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 opacity-40">
+                                <span className="text-[10px] uppercase font-bold text-gray-500">Dust</span>
+                                <span className="text-xs font-mono text-blue-400">15,400</span>
+                            </div>
+                        </div>
+
+                        {/* 3. Responsive Vault Grid (Added mt-2 to match Character Column) */}
+                        <div className="flex-1 overflow-hidden relative p-1 mt-2">
                             <VirtualVaultGrid
                                 items={vaultItems}
                                 definitions={definitions}
