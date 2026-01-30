@@ -81,7 +81,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
     const basePower = light - artifactPower;
 
     return (
-        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col h-full overflow-hidden select-none relative">
+        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col select-none relative">
             {/* Header / Emblem - Exact DIM Style */}
             <div
                 className="relative h-[48px] w-full bg-cover bg-center flex items-center justify-between px-2 bg-no-repeat z-20 shadow-md"
@@ -142,7 +142,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
             </div>
 
             {/* Content (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent z-0">
+            <div className="flex-1 p-1 z-0">
 
                 {/* Weapons Group */}
                 <div className="mb-2">
