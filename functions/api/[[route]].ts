@@ -92,8 +92,8 @@ app.get('/api/auth/callback', async (c) => {
         body: new URLSearchParams({
             grant_type: 'authorization_code',
             code: code,
-            // No client_id/secret in body when using Basic Auth
-            // No redirect_uri - rely on Portal default
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
         }),
     })
 
