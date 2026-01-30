@@ -9,6 +9,7 @@ import { ItemContextMenu } from '@/components/inventory/ItemContextMenu';
 import { useProfile } from '@/hooks/useProfile';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
+import { calculateMaxPower } from '@/lib/destiny/powerUtils';
 
 export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -155,9 +156,30 @@ export default function App() {
         // We filter from the SEARCH results
         const charItems = filteredItems.filter(i => i.owner === charId);
 
+        // Find Postmaster items (Standard bucket check)
+        // Need to check definition for bucket hash
+        const postmasterItems = charItems.filter(i => {
+            const def = definitions[i.itemHash];
+            return def?.inventory?.bucketTypeHash === 215593132; // BUCKETS.Postmaster
+        });
+
+        const inventoryItems = charItems.filter(i => {
+            const def = definitions[i.itemHash];
+            // Exclude postmaster
+            return def?.inventory?.bucketTypeHash !== 215593132;
+        });
+
+        // Calculate Max Power
+        // We need ALL items owned by this class (Inventory + Vault + Equipped)
+        const charClassType = profile?.characters[charId]?.classType;
+        const allUserItems = profile?.items || [];
+        const maxPower = calculateMaxPower(allUserItems, definitions, charClassType);
+
         return {
-            equipment: charItems.filter(i => i.instanceData?.isEquipped),
-            inventory: charItems.filter(i => !i.instanceData?.isEquipped)
+            equipment: inventoryItems.filter(i => i.instanceData?.isEquipped),
+            inventory: inventoryItems.filter(i => !i.instanceData?.isEquipped),
+            postmaster: postmasterItems,
+            maxPower
         };
     };
 
@@ -199,13 +221,15 @@ export default function App() {
                 {/* Horizontal Content */}
                 <div className="flex-1 flex divide-x divide-[#333]">
                     {characters.map((char: any) => {
-                        const { equipment, inventory } = getItemsForCharacter(char.characterId);
+                        const { equipment, inventory, postmaster, maxPower } = getItemsForCharacter(char.characterId);
                         return (
                             <DroppableZone key={char.characterId} id={char.characterId} className="flex-shrink-0 h-full relative">
                                 <CharacterColumn
                                     character={char}
                                     equipment={equipment}
                                     inventory={inventory}
+                                    postmaster={postmaster}
+                                    maxPower={maxPower}
                                     definitions={definitions}
                                     artifactPower={profile?.artifactPower || 0}
                                     onItemContextMenu={handleContextMenu}

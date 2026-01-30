@@ -5,6 +5,9 @@ export const BUCKETS: Record<string, number> = {
     Energy: 2465295065,
     Power: 953998645,
 
+    // Postmaster
+    Postmaster: 215593132,
+
     // Armor
     Helmet: 3448274439,
     Gauntlets: 3551918588,

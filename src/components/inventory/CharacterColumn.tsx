@@ -65,12 +65,14 @@ interface CharacterColumnProps {
     character: any;
     equipment: any[];
     inventory: any[];
+    postmaster: any[];
+    maxPower: number;
     definitions: Record<string, any>;
     artifactPower: number;
     onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
 }
 
-export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, definitions, artifactPower }) => {
+export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, postmaster, maxPower, definitions, artifactPower }) => {
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
@@ -78,6 +80,10 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
     const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
     const classNameText = classNames[classType];
     const basePower = light - artifactPower;
+
+    // Max Power Display Logic
+    // E.g. 1800.125 -> 1800.1
+    const potentialPower = maxPower ? maxPower.toFixed(1) : '---';
 
     return (
         <div className="flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] flex flex-col select-none relative">
@@ -95,8 +101,12 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                     <div className="text-xl font-bold text-[#f5dc56] drop-shadow-lg font-mono tracking-tighter shadow-black">
                         {light}
                     </div>
-                    <div className="text-[9px] text-[#f5dc56]/80 font-mono">
-                        {basePower} <span className="text-[#50c8ce]">+{artifactPower}</span>
+                    {/* Max Power Display */}
+                    <div className="text-[9px] text-[#f5dc56]/80 font-mono flex items-center gap-1">
+                        <span>{basePower}</span>
+                        <span className="text-[#50c8ce]">+{artifactPower}</span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-[#ceae33] font-bold" title="Max Power (Base)">{potentialPower}</span>
                     </div>
                 </div>
             </div>
@@ -139,6 +149,24 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
 
             {/* Content Zones */}
             <div className="flex-1 p-1 z-0 flex flex-col gap-4 mt-2">
+
+                {/* Postmaster Row */}
+                {postmaster && postmaster.length > 0 && (
+                    <div className="flex flex-col gap-[2px]">
+                        <div className="text-[9px] text-[#666] font-bold uppercase mb-0.5 px-0.5 tracking-wider">Postmaster</div>
+                        <div className="flex flex-wrap gap-[2px]">
+                            {postmaster.map((item) => (
+                                <div key={item.itemInstanceId || item.itemHash} className="w-[32px] h-[32px] border border-white/10 bg-[#1a1a1a]">
+                                    <InventoryItem
+                                        item={item}
+                                        definition={definitions[item.itemHash]}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="h-[1px] bg-white/5 mx-2 my-1" />
+                    </div>
+                )}
 
                 {/* Zone A: Weapons */}
                 <div className="flex flex-col gap-[2px]">
