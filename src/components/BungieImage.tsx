@@ -45,7 +45,7 @@ export const BungieImage = ({ src, className, alt = 'Destiny Item', fallback, ..
                 src={fullSrc}
                 alt={alt}
                 className={cn("object-cover w-full h-full", className)}
-                onError={(e) => {
+                onError={() => {
                     console.warn('[BungieImage] Load Error:', fullSrc);
                     setError(true);
                 }}

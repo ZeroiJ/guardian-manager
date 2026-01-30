@@ -1,7 +1,7 @@
 import React from 'react';
 import { DraggableInventoryItem } from './DraggableInventoryItem';
 import { STAT_HASHES, BUCKETS } from '../../data/constants';
-import { BungieImage, bungieNetPath } from '../BungieImage';
+import { bungieNetPath } from '../BungieImage';
 
 interface EquipmentRowProps {
     label: string;
