@@ -1,6 +1,6 @@
 import React from 'react';
 import { InventoryItem } from '../InventoryItem';
-import { STAT_HASHES, BUCKETS } from '../../data/constants';
+import { BUCKETS } from '../../data/constants';
 import { bungieNetPath } from '../BungieImage';
 
 interface BucketRowProps {
@@ -101,25 +101,37 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                 </div>
             </div>
 
-            {/* Stats Row */}
+            {/* Stats Row - Armor 3.0 Style */}
             <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5 z-10 relative shadow-sm">
-                {Object.entries(STAT_HASHES).map(([name, hash]) => {
-                    const value = stats[hash] || 0;
-                    const tier = Math.min(10, Math.floor(value / 10));
+                {[
+                    { label: 'Health', hash: 392767087, color: 'text-white' }, // Resilience
+                    { label: 'Melee', hash: 4244567218, color: 'text-white' }, // Strength
+                    { label: 'Grenade', hash: 1735777505, color: 'text-white' }, // Discipline
+                    { label: 'Super', hash: 144602215, color: 'text-white' }, // Intellect
+                    { label: 'Class', hash: 1943323491, color: 'text-white' }, // Recovery
+                    { label: 'Weapons', hash: 2996146975, color: 'text-white' }, // Mobility
+                ].map((statConfig) => {
+                    const value = stats[statConfig.hash] || 0;
+                    // Tiers are 0-10 based on value / 10
+                    const isTierMax = value >= 100;
 
                     return (
-                        <div key={name} className="flex items-center gap-2 h-[14px]">
-                            <span className="w-8 text-[9px] text-gray-400 uppercase font-bold text-right">{name.substring(0, 3)}</span>
-                            <div className="flex-1 h-2 bg-[#1a1a1a] relative">
-                                <div className="h-full bg-white/20" style={{ width: `${Math.min(100, value)}%` }}>
-                                    <div className="absolute inset-0 flex">
-                                        {[...Array(10)].map((_, i) => (
-                                            <div key={i} className={`flex-1 border-r border-black/50 ${i < tier ? 'bg-[#f5dc56]' : 'opacity-0'}`} />
-                                        ))}
-                                    </div>
-                                </div>
+                        <div key={statConfig.label} className="flex items-center h-[14px]">
+                            {/* Label */}
+                            <span className="w-12 text-[9px] text-gray-400 font-bold uppercase tracking-wider text-right mr-2">{statConfig.label}</span>
+
+                            {/* Value (Hero) */}
+                            <span className={`w-6 text-[11px] font-bold font-mono text-right mr-2 ${isTierMax ? 'text-[#f5dc56]' : 'text-white'}`}>
+                                {value}
+                            </span>
+
+                            {/* Visual Bar (Secondary) */}
+                            <div className="flex-1 h-1.5 bg-[#1a1a1a] relative rounded-sm overflow-hidden opacity-80">
+                                <div
+                                    className={`h-full ${isTierMax ? 'bg-[#f5dc56]' : 'bg-white/40'}`}
+                                    style={{ width: `${Math.min(100, value)}%` }}
+                                />
                             </div>
-                            <span className="w-6 text-[10px] text-right font-mono text-[#f5dc56]">{value}</span>
                         </div>
                     );
                 })}
