@@ -71,6 +71,8 @@ app.get('/api/auth/callback', async (c) => {
     const storedState = getCookie(c, 'oauth_state')
 
     console.log('[OAuth Callback] Code received:', code ? 'YES' : 'NO');
+    console.log('[OAuth Callback] Config ID:', config.clientId);
+    console.log('[OAuth Callback] Config Secret Start:', config.clientSecret ? config.clientSecret.substring(0, 4) + '...' : 'MISSING');
     console.log('[OAuth Callback] State received:', state);
     console.log('[OAuth Callback] Stored state:', storedState);
 
