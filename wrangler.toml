@@ -5,9 +5,9 @@ pages_build_output_dir = "dist"
 
 [vars]
 # These will be overridden by the actual environment variables in Cloudflare Dashboard
-# BUNGIE_CLIENT_ID = ""
-# BUNGIE_CLIENT_SECRET = ""
-# BUNGIE_API_KEY = ""
+BUNGIE_CLIENT_ID = "51042"
+# BUNGIE_CLIENT_SECRET = "SECRET_MUST_BE_IN_DASHBOARD"
+BUNGIE_API_KEY = "18745be24a1c4b7bb0a5741eb4f2f6c2"
 # SESSION_SECRET = ""
 # FRONTEND_URL = ""
 BUNGIE_AUTH_URL = "https://www.bungie.net/en/OAuth/Authorize"
