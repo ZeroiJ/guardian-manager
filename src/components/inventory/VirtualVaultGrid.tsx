@@ -6,10 +6,11 @@ interface VirtualVaultGridProps {
     definitions: Record<string, any>;
     className?: string;
     onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
+    onItemClick?: (item: any, definition: any) => void;
 }
 
 // Helper to group items by sub-category (e.g. "Auto Rifle")
-const SubCategorySection: React.FC<{ title: string, items: any[], definitions: Record<string, any> }> = ({ title, items, definitions }) => {
+const SubCategorySection: React.FC<{ title: string, items: any[], definitions: Record<string, any>, onItemClick?: (item: any, def: any) => void }> = ({ title, items, definitions, onItemClick }) => {
     if (items.length === 0) return null;
 
     // 1. Group by specific item type (e.g. "Hand Cannon")
@@ -38,6 +39,7 @@ const SubCategorySection: React.FC<{ title: string, items: any[], definitions: R
                                     <InventoryItem
                                         item={item}
                                         definition={definitions[item.itemHash]}
+                                        onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
                                     />
                                 </div>
                             ))}
@@ -49,7 +51,7 @@ const SubCategorySection: React.FC<{ title: string, items: any[], definitions: R
     );
 };
 
-export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, definitions, className }) => {
+export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, definitions, className, onItemClick }) => {
 
     // Group Items
     const groups = useMemo(() => {
@@ -77,9 +79,10 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, defin
 
     return (
         <div className={`p-2 ${className}`}>
-            <SubCategorySection title="Weapons" items={groups.weapons} definitions={definitions} />
-            <SubCategorySection title="Armor" items={groups.armor} definitions={definitions} />
-            <SubCategorySection title="General" items={groups.general} definitions={definitions} />
+            <SubCategorySection title="Weapons" items={groups.weapons} definitions={definitions} onItemClick={onItemClick} />
+            <SubCategorySection title="Armor" items={groups.armor} definitions={definitions} onItemClick={onItemClick} />
+            <SubCategorySection title="General" items={groups.general} definitions={definitions} onItemClick={onItemClick} />
         </div>
     );
 };
+

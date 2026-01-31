@@ -4,9 +4,10 @@ import { RARITY_COLORS } from '../data/constants';
 interface InventoryItemProps {
     item: any;
     definition: any;
+    onClick?: () => void;
 }
 
-export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition }) => {
+export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
     // URL Fix: Prepend Bungie base URL
     // We check both item.icon and definition.displayProperties.icon just in case
     const iconFragment = item?.icon || definition?.displayProperties?.icon;
@@ -22,8 +23,9 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition }
 
     return (
         <div
-            className="relative h-12 w-12 box-border border-2 bg-[#292929]"
+            className="relative h-12 w-12 box-border border-2 bg-[#292929] cursor-pointer hover:brightness-110 active:scale-95 transition-all"
             style={{ borderColor: borderColor }}
+            onClick={onClick}
         >
             {/* Image */}
             <img

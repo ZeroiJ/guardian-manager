@@ -5,6 +5,7 @@ import { CharacterColumn } from '@/components/inventory/CharacterColumn';
 import DestinyItemTile from '@/components/destiny/DestinyItemTile';
 import { DroppableZone } from '@/components/inventory/DroppableZone';
 import { VirtualVaultGrid } from '@/components/inventory/VirtualVaultGrid';
+import { ItemDetailModal } from '@/components/inventory/ItemDetailModal';
 import { ItemContextMenu } from '@/components/inventory/ItemContextMenu';
 import { useProfile } from '@/hooks/useProfile';
 import { useDefinitions } from '@/hooks/useDefinitions';
@@ -15,6 +16,7 @@ export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any } | null>(null);
 
     // Dnd Kit Sensors
     const sensors = useSensors(
@@ -70,6 +72,10 @@ export default function App() {
             item,
             definition
         });
+    };
+
+    const handleItemClick = (item: any, definition: any) => {
+        setSelectedItem({ item, definition });
     };
 
     if (loading) {
@@ -233,6 +239,7 @@ export default function App() {
                                     definitions={definitions}
                                     artifactPower={profile?.artifactPower || 0}
                                     onItemContextMenu={handleContextMenu}
+                                    onItemClick={handleItemClick}
                                 />
                             </DroppableZone>
                         );
@@ -274,6 +281,8 @@ export default function App() {
                             <VirtualVaultGrid
                                 items={vaultItems}
                                 definitions={definitions}
+                                onItemContextMenu={handleContextMenu}
+                                onItemClick={handleItemClick}
                             />
                         </div>
                     </DroppableZone>
@@ -300,6 +309,18 @@ export default function App() {
                         item={contextMenu.item}
                         definition={contextMenu.definition}
                         onClose={() => setContextMenu(null)}
+                    />
+                )}
+
+                {/* Item Details Modal */}
+                {selectedItem && (
+                    <ItemDetailModal
+                        item={selectedItem.item}
+                        definition={selectedItem.definition}
+                        definitions={definitions}
+                        characters={characters}
+                        allItems={profile?.items || []}
+                        onClose={() => setSelectedItem(null)}
                     />
                 )}
             </div>

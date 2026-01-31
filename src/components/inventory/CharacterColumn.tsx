@@ -9,9 +9,11 @@ interface BucketRowProps {
     equipment: any[];
     inventory: any[];
     definitions: Record<string, any>;
+    onItemClick?: (item: any, definition: any) => void;
 }
 
-const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inventory, definitions }) => {
+
+const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inventory, definitions, onItemClick }) => {
     // 1. Strict Filter Logic
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const bucketItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
@@ -36,6 +38,7 @@ const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inv
                         <InventoryItem
                             item={equippedItem}
                             definition={definitions[equippedItem.itemHash]}
+                            onClick={() => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash])}
                         />
                     )}
                 </div>
@@ -52,6 +55,7 @@ const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inv
                             <InventoryItem
                                 item={item}
                                 definition={definitions[item.itemHash]}
+                                onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
                             />
                         )}
                     </div>
@@ -70,9 +74,10 @@ interface CharacterColumnProps {
     definitions: Record<string, any>;
     artifactPower: number;
     onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
+    onItemClick?: (item: any, definition: any) => void;
 }
 
-export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, postmaster, maxPower, definitions, artifactPower }) => {
+export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, postmaster, maxPower, definitions, artifactPower, onItemClick }) => {
     if (!character) return null;
 
     const { light, raceType, classType, emblemBackgroundPath, stats } = character;
@@ -160,6 +165,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                                     <InventoryItem
                                         item={item}
                                         definition={definitions[item.itemHash]}
+                                        onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
                                     />
                                 </div>
                             ))}
@@ -170,9 +176,9 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
 
                 {/* Zone A: Weapons */}
                 <div className="flex flex-col gap-[2px]">
-                    <BucketRow label="Kinetic" bucketHash={BUCKETS.Kinetic} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Energy" bucketHash={BUCKETS.Energy} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Power" bucketHash={BUCKETS.Power} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <BucketRow label="Kinetic" bucketHash={BUCKETS.Kinetic} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Energy" bucketHash={BUCKETS.Energy} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Power" bucketHash={BUCKETS.Power} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
                 </div>
 
                 {/* Divider / Spacer */}
@@ -180,16 +186,16 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
 
                 {/* Zone B: Armor */}
                 <div className="flex flex-col gap-[2px]">
-                    <BucketRow label="Helmet" bucketHash={BUCKETS.Helmet} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Arms" bucketHash={BUCKETS.Gauntlets} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Chest" bucketHash={BUCKETS.Chest} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Legs" bucketHash={BUCKETS.Legs} equipment={equipment} inventory={inventory} definitions={definitions} />
-                    <BucketRow label="Class" bucketHash={BUCKETS.Class} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <BucketRow label="Helmet" bucketHash={BUCKETS.Helmet} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Arms" bucketHash={BUCKETS.Gauntlets} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Chest" bucketHash={BUCKETS.Chest} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Legs" bucketHash={BUCKETS.Legs} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
+                    <BucketRow label="Class" bucketHash={BUCKETS.Class} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
                 </div>
 
                 {/* Zone C: General (Optional/Hidden for now or bottom) */}
                 <div className="flex flex-col gap-[2px] opacity-70">
-                    <BucketRow label="Ghost" bucketHash={BUCKETS.Ghost} equipment={equipment} inventory={inventory} definitions={definitions} />
+                    <BucketRow label="Ghost" bucketHash={BUCKETS.Ghost} equipment={equipment} inventory={inventory} definitions={definitions} onItemClick={onItemClick} />
                 </div>
 
             </div>
