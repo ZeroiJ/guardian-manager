@@ -1,17 +1,22 @@
 import React from 'react';
-import { X, Lock, Unlock, MoveDown, User } from 'lucide-react';
+import { X, Lock, Unlock, Tag, Plus, ChevronRight } from 'lucide-react';
 import { BungieImage } from '../BungieImage';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
+import { getElementIcon } from '../destiny/ElementIcons';
 
 interface ItemDetailModalProps {
     item: any;
     definition: any;
-    definitions: Record<string, any>; // For looking up other definitions (stats, perks)
+    definitions: Record<string, any>;
     characters: any[];
-    allItems: any[]; // Needed for space checking
+    allItems: any[];
     onClose: () => void;
 }
 
+/**
+ * DIM-Standard Item Detail Modal
+ * Displays comprehensive item information in a dense, data-heavy dark theme.
+ */
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     item,
     definition,
@@ -30,22 +35,27 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
     const tierType = definition.inventory?.tierType || 0;
 
-    // Colors
+    // --- Rarity Header Color ---
+    const headerBgColor = tierType === 6 ? '#ceae33'
+        : tierType === 5 ? '#522f65'
+            : tierType === 4 ? '#5076a3'
+                : '#333';
+
     const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[tierType] || RARITY_COLORS[0]);
-    const headerColor = definition.inventory?.tierType === 6 ? '#ceae33' : definition.inventory?.tierType === 5 ? '#522f65' : '#333';
+
+    // Element Icon
+    const ElementIconComponent = getElementIcon(damageTypeHash);
+
+    // --- Ammo Type ---
+    const ammoTypes: Record<number, string> = { 1: 'Primary', 2: 'Special', 3: 'Heavy' };
+    const ammoType = ammoTypes[definition.equippingBlock?.ammoType] || null;
 
     // --- Space Check Logic ---
     const checkSpace = (characterId: string, bucketHash: number): boolean => {
-        // Find all items on this character in this bucket
         const itemsInBucket = allItems.filter(i =>
             i.owner === characterId &&
             definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash
         );
-        // Capacity is usually 9 for equipment buckets + 1 equipped = 10? 
-        // Actually typically 9 inventory slots + 1 equipped. 
-        // Let's assume 10 total slots for safety, or just check if inventory count (unequipped) is >= 9.
-
-        // Count unequipped only?
         const unequipped = itemsInBucket.filter(i => !i.instanceData?.isEquipped);
         return unequipped.length < 9;
     };
@@ -53,186 +63,264 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const targetBucketHash = definition.inventory?.bucketTypeHash;
 
     // --- Stats Logic ---
-    // Use instance stats (actual values) if available, else definition stats (base)
-    // Map stats to array { label, value, max }
     const stats = Object.entries(item.stats || {}).map(([hash, stat]: [string, any]) => {
         const statDef = definitions[hash];
         return {
             hash,
             label: statDef?.displayProperties?.name || 'Stat',
             value: stat.value,
-            max: 100 // Most stats max at 100
+            max: 100
         };
-    }).filter(s => s.label && s.label !== 'Power' && s.label !== 'Attack' && s.label !== 'Defense');
-
-    // Fallback to definition stats if instance stats missing (e.g. uninstantiated items)
-    // Note: implementation omitted for brevity, assuming instance stats for now
+    }).filter(s => s.label && s.value > 0 && s.label !== 'Power' && s.label !== 'Attack' && s.label !== 'Defense');
 
     // --- Sockets (Perks) ---
-    // Extract perk icons from sockets (simplified)
-    // We look for sockets that have reusable plugs (perks)
-    // This is a rough approximation without full socket categories
-    const perks = (item.itemComponents?.sockets?.data?.sockets || []).map((socket: any) => {
-        if (!socket.plugHash) return null;
-        const plugDef = definitions[socket.plugHash];
-        if (!plugDef?.displayProperties?.hasIcon) return null;
-        return plugDef;
-    }).filter(Boolean).slice(0, 8); // Limit to first few
+    const sockets = (item.itemComponents?.sockets?.data?.sockets || [])
+        .map((socket: any, idx: number) => {
+            if (!socket.plugHash) return null;
+            const plugDef = definitions[socket.plugHash];
+            if (!plugDef?.displayProperties?.icon) return null;
+            return { ...plugDef, socketIndex: idx };
+        })
+        .filter(Boolean)
+        .slice(0, 12);
+
+    // Class names for characters
+    const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+    const classIcons: Record<number, string> = {
+        0: 'T', // Titan placeholder
+        1: 'H', // Hunter placeholder  
+        2: 'W'  // Warlock placeholder
+    };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={onClose}
+        >
             <div
-                className="bg-[#11111b] w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-xl border border-white/10 shadow-2xl flex flex-col relative"
-                onClick={e => e.stopPropagation()} // Prevent close on modal click
+                className="bg-[#15171e] w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg border border-white/10 shadow-2xl flex flex-col"
+                onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
+                {/* ===== RARITY HEADER ===== */}
                 <div
-                    className="h-24 relative overflow-hidden flex items-center px-6 gap-6 shrink-0"
-                    style={{ background: `linear-gradient(90deg, ${headerColor}dd 0%, #11111b 100%)` }}
+                    className="h-20 flex items-center px-4 gap-4 shrink-0 relative overflow-hidden"
+                    style={{ backgroundColor: headerBgColor }}
                 >
-                    {/* Icon */}
-                    <div className="w-16 h-16 border-2 shadow-lg relative shrink-0" style={{ borderColor }}>
+                    {/* Gradient overlay for depth */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+
+                    {/* Item Icon */}
+                    <div
+                        className="w-14 h-14 border-2 shadow-lg relative shrink-0 z-10"
+                        style={{ borderColor }}
+                    >
                         <BungieImage src={definition.displayProperties?.icon} className="w-full h-full object-cover" />
-                        {power && <div className="absolute bottom-0 right-0 bg-black/80 text-[#f5dc56] text-xs font-bold px-1">{power}</div>}
+                        {isMasterwork && (
+                            <div className="absolute inset-0 border border-[#f5dc56]/40 pointer-events-none" />
+                        )}
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 text-white shadow-black drop-shadow-md">
-                        <h1 className="text-3xl font-bold tracking-tight">{definition.displayProperties.name}</h1>
-                        <div className="text-sm opacity-90 font-medium uppercase tracking-widest flex items-center gap-2">
-                            {definition.itemTypeDisplayName}
-                            {/* Simple Element Icon Placeholder */}
-                            {damageTypeHash && <div className="w-4 h-4 rounded-full bg-white/20" />}
+                    {/* Item Name & Type */}
+                    <div className="flex-1 z-10 min-w-0">
+                        <h1 className="text-2xl font-bold text-white truncate drop-shadow-md">
+                            {definition.displayProperties.name}
+                        </h1>
+                        <div className="text-sm text-white/80 font-medium flex items-center gap-2">
+                            <span>{definition.itemTypeDisplayName}</span>
+                            {ammoType && (
+                                <>
+                                    <span className="text-white/40">•</span>
+                                    <span className="text-white/60">{ammoType}</span>
+                                </>
+                            )}
                         </div>
+                    </div>
+
+                    {/* Element & Power */}
+                    <div className="flex items-center gap-3 z-10">
+                        {ElementIconComponent && (
+                            <ElementIconComponent size={24} className="drop-shadow-md" />
+                        )}
+                        {power && (
+                            <div className="text-2xl font-bold text-yellow-400 drop-shadow-lg font-mono">
+                                {power}
+                            </div>
+                        )}
                     </div>
 
                     {/* Close Button */}
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                        <X className="w-6 h-6 text-white" />
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-black/20 rounded transition-colors z-10"
+                    >
+                        <X className="w-5 h-5 text-white" />
                     </button>
                 </div>
 
-                {/* Body - Split View */}
+                {/* ===== BODY: SIDEBAR + MAIN ===== */}
                 <div className="flex-1 flex overflow-hidden">
 
-                    {/* Left Column: Actions */}
-                    <div className="w-64 bg-[#0a0a10] border-r border-white/5 p-4 flex flex-col gap-6 overflow-y-auto">
+                    {/* ===== ACTION SIDEBAR ===== */}
+                    <div className="w-[60px] bg-[#090a0c] border-r border-white/5 flex flex-col items-center py-3 gap-4 shrink-0">
 
-                        {/* Tags / Lock */}
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Management</label>
+                        {/* Tag Button */}
+                        <button
+                            className="w-10 h-10 rounded bg-[#1a1a1a] hover:bg-[#252525] border border-white/10 flex items-center justify-center transition-colors"
+                            title="Tag Item"
+                        >
+                            <Tag size={16} className="text-gray-400" />
+                        </button>
 
-                            <div className="flex gap-2">
-                                <button className="flex-1 bg-[#222] hover:bg-[#333] py-2 rounded border border-white/5 flex items-center justify-center gap-2 text-sm text-gray-300 transition-colors">
-                                    {isLocked ? <Lock size={14} className="text-[#f5dc56]" /> : <Unlock size={14} />}
-                                    {isLocked ? 'Locked' : 'Unlock'}
-                                </button>
-                                <button className="flex-1 bg-[#222] hover:bg-[#333] py-2 rounded border border-white/5 flex items-center justify-center gap-2 text-sm text-gray-300 transition-colors">
-                                    Tag
-                                </button>
-                            </div>
-                        </div>
+                        {/* Lock Button */}
+                        <button
+                            className={`w-10 h-10 rounded border flex items-center justify-center transition-colors ${isLocked
+                                    ? 'bg-[#2a2518] border-[#f5dc56]/30'
+                                    : 'bg-[#1a1a1a] hover:bg-[#252525] border-white/10'
+                                }`}
+                            title={isLocked ? 'Locked' : 'Unlocked'}
+                        >
+                            {isLocked
+                                ? <Lock size={16} className="text-[#f5dc56]" />
+                                : <Unlock size={16} className="text-gray-400" />
+                            }
+                        </button>
 
-                        {/* Pull To */}
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                <MoveDown size={12} /> Pull to Character
-                            </label>
+                        {/* Loadout Button */}
+                        <button
+                            className="w-10 h-10 rounded bg-[#1a1a1a] hover:bg-[#252525] border border-white/10 flex items-center justify-center transition-colors"
+                            title="Add to Loadout"
+                        >
+                            <Plus size={16} className="text-gray-400" />
+                        </button>
 
-                            <div className="flex flex-col gap-2">
-                                {characters.map((char) => {
+                        <div className="h-px w-8 bg-white/10 my-1" />
+
+                        {/* Equip Row */}
+                        <div className="flex flex-col items-center gap-1">
+                            <span className="text-[8px] uppercase text-gray-500 font-bold tracking-wide">Equip</span>
+                            <div className="flex flex-col gap-1">
+                                {characters.slice(0, 3).map((char) => {
                                     const hasSpace = checkSpace(char.characterId, targetBucketHash);
-                                    const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
-                                    const charClass = classNames[char.classType] || 'Guardian';
-
                                     return (
                                         <button
-                                            key={char.characterId}
+                                            key={`equip-${char.characterId}`}
                                             disabled={!hasSpace}
-                                            className={`
-                                                flex items-center gap-3 p-2 rounded border transition-all text-left
-                                                ${hasSpace
-                                                    ? 'bg-[#1a1a1a] hover:bg-[#252525] border-white/5 cursor-pointer'
-                                                    : 'bg-[#111] border-red-900/30 opacity-50 cursor-not-allowed'
-                                                }
-                                            `}
+                                            className={`w-8 h-8 rounded text-[10px] font-bold border flex items-center justify-center transition-all ${hasSpace
+                                                    ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
+                                                    : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
+                                                }`}
+                                            title={`${classNames[char.classType]}${hasSpace ? '' : ' (No Space)'}`}
                                         >
-                                            <div className="w-8 h-8 rounded bg-gray-800 overflow-hidden relative">
-                                                <BungieImage src={char.emblemBackgroundPath} className="w-full h-full object-cover" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-bold text-gray-200">{charClass}</div>
-                                                <div className="text-[10px] text-gray-500">{hasSpace ? 'Ready' : 'No Space'}</div>
-                                            </div>
+                                            {classIcons[char.classType]}
                                         </button>
                                     );
                                 })}
-
-                                <button className="flex items-center gap-3 p-2 rounded border border-white/5 bg-[#1a1a1a] hover:bg-[#252525] text-left transition-colors">
-                                    <div className="w-8 h-8 rounded bg-[#111] flex items-center justify-center text-gray-500 font-bold border border-white/5">V</div>
-                                    <div className="text-sm font-bold text-gray-200">Vault</div>
-                                </button>
                             </div>
                         </div>
 
-                        {/* Equip On (Visual Only) */}
-                        <div className="flex flex-col gap-2 opacity-50 pointer-events-none">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                <User size={12} /> Equip (Coming Soon)
-                            </label>
-                            <div className="flex flex-col gap-2">
-                                {/* Placeholders for equip buttons */}
+                        <div className="h-px w-8 bg-white/10 my-1" />
+
+                        {/* Pull Row */}
+                        <div className="flex flex-col items-center gap-1">
+                            <span className="text-[8px] uppercase text-gray-500 font-bold tracking-wide">Pull</span>
+                            <div className="flex flex-col gap-1">
+                                {characters.slice(0, 3).map((char) => {
+                                    const hasSpace = checkSpace(char.characterId, targetBucketHash);
+                                    return (
+                                        <button
+                                            key={`pull-${char.characterId}`}
+                                            disabled={!hasSpace}
+                                            className={`w-8 h-8 rounded text-[10px] font-bold border flex items-center justify-center transition-all ${hasSpace
+                                                    ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
+                                                    : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
+                                                }`}
+                                            title={`${classNames[char.classType]}${hasSpace ? '' : ' (No Space)'}`}
+                                        >
+                                            {classIcons[char.classType]}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
+                        {/* Vault Button */}
+                        <button
+                            className="w-8 h-8 rounded bg-[#1a1a1a] hover:bg-[#333] border border-white/10 flex items-center justify-center transition-colors text-[10px] font-bold text-gray-400"
+                            title="Send to Vault"
+                        >
+                            V
+                        </button>
                     </div>
 
-                    {/* Right Column: Details */}
-                    <div className="flex-1 p-6 overflow-y-auto">
+                    {/* ===== MAIN CONTENT ===== */}
+                    <div className="flex-1 p-4 overflow-y-auto bg-[#15171e]">
 
-                        {/* Quote */}
+                        {/* Flavor Text */}
                         {definition.flavorText && (
-                            <div className="mb-6 text-sm text-gray-500 italic border-l-2 border-white/10 pl-4 py-1">
+                            <div className="mb-4 text-sm text-gray-500 italic border-l-2 border-white/10 pl-3 py-1">
                                 "{definition.flavorText}"
                             </div>
                         )}
 
-                        {/* Stats Grid */}
-                        <div className="mb-8">
-                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4 border-b border-white/10 pb-2">Stats</h3>
-                            <div className="grid grid-cols-1 gap-y-3 gap-x-8">
+                        {/* ===== STATS SECTION ===== */}
+                        <div className="mb-6">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <ChevronRight size={12} />
+                                Stats
+                            </h3>
+                            <div className="space-y-2">
                                 {stats.length > 0 ? stats.map((stat) => (
-                                    <div key={stat.hash} className="flex items-center text-xs">
-                                        <div className="w-24 text-gray-400 font-medium text-right mr-3">{stat.label}</div>
-                                        <div className="flex-1 h-3 bg-white/10 rounded-sm overflow-hidden relative">
+                                    <div key={stat.hash} className="flex items-center gap-3 text-xs">
+                                        <div className="w-20 text-gray-400 text-right truncate">
+                                            {stat.label}
+                                        </div>
+                                        <div className="flex-1 h-3 bg-gray-700/50 rounded-sm overflow-hidden">
                                             <div
-                                                className="h-full bg-white transition-all duration-500"
-                                                style={{ width: `${Math.min(100, (stat.value / stat.max) * 100)}%` }}
+                                                className={`h-full transition-all duration-300 ${isMasterwork ? 'bg-gradient-to-r from-white to-[#f5dc56]' : 'bg-white'
+                                                    }`}
+                                                style={{ width: `${Math.min(100, stat.value)}%` }}
                                             />
                                         </div>
-                                        <div className="w-8 text-right font-mono font-bold text-[#f5dc56] ml-3">{stat.value}</div>
+                                        <div className={`w-8 text-right font-mono font-bold ${isMasterwork ? 'text-[#f5dc56]' : 'text-white'
+                                            }`}>
+                                            {stat.value}
+                                        </div>
                                     </div>
                                 )) : (
-                                    <div className="text-gray-600 italic">No stats available</div>
+                                    <div className="text-gray-600 text-sm italic">No stats available</div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Perks / Sockets */}
+                        {/* ===== PERKS/SOCKETS SECTION ===== */}
                         <div>
-                            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4 border-b border-white/10 pb-2">Perks</h3>
-                            <div className="flex flex-wrap gap-4">
-                                {perks.length > 0 ? perks.map((perk: any, idx: number) => (
-                                    <div key={idx} className="flex flex-col items-center gap-2 group">
-                                        <div className="w-12 h-12 rounded-full bg-[#222] border border-white/20 p-2 overflow-hidden hover:border-[#f5dc56] transition-colors relative">
-                                            <BungieImage src={perk.displayProperties.icon} className="w-full h-full object-cover" />
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <ChevronRight size={12} />
+                                Perks
+                            </h3>
+                            <div className="flex flex-wrap gap-3">
+                                {sockets.length > 0 ? sockets.map((perk: any, idx: number) => (
+                                    <div key={idx} className="group relative">
+                                        <div className="w-10 h-10 rounded-full bg-[#222] border-2 border-white/20 overflow-hidden hover:border-[#f5dc56] transition-colors cursor-pointer">
+                                            <BungieImage
+                                                src={perk.displayProperties.icon}
+                                                className="w-full h-full object-cover"
+                                            />
                                         </div>
-                                        <div className="text-[10px] text-gray-400 max-w-[80px] text-center opacity-0 group-hover:opacity-100 transition-opacity absolute mt-14 bg-black/90 p-1 rounded z-10 pointer-events-none">
-                                            {perk.displayProperties.name}
+                                        {/* Tooltip */}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block min-w-[120px] max-w-[180px] bg-black/95 border border-white/20 px-2 py-1.5 rounded text-center z-50 pointer-events-none">
+                                            <div className="text-[11px] text-white font-medium">
+                                                {perk.displayProperties.name}
+                                            </div>
+                                            {perk.displayProperties.description && (
+                                                <div className="text-[9px] text-gray-400 mt-0.5 line-clamp-3">
+                                                    {perk.displayProperties.description}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="text-gray-600 italic">No perks visible</div>
+                                    <div className="text-gray-600 text-sm italic">No perks available</div>
                                 )}
                             </div>
                         </div>
