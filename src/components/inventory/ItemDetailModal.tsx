@@ -3,6 +3,7 @@ import { X, Lock, Unlock, Tag, Plus, ChevronRight } from 'lucide-react';
 import { BungieImage } from '../BungieImage';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { getElementIcon } from '../destiny/ElementIcons';
+import { useHydratedItem } from '../../hooks/useHydratedItem';
 
 interface ItemDetailModalProps {
     item: any;
@@ -62,27 +63,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     const targetBucketHash = definition.inventory?.bucketTypeHash;
 
-    // --- Stats Logic ---
-    const stats = Object.entries(item.stats || {}).map(([hash, stat]: [string, any]) => {
-        const statDef = definitions[hash];
-        return {
-            hash,
-            label: statDef?.displayProperties?.name || 'Stat',
-            value: stat.value,
-            max: 100
-        };
-    }).filter(s => s.label && s.value > 0 && s.label !== 'Power' && s.label !== 'Attack' && s.label !== 'Defense');
-
-    // --- Sockets (Perks) ---
-    const sockets = (item.itemComponents?.sockets?.data?.sockets || [])
-        .map((socket: any, idx: number) => {
-            if (!socket.plugHash) return null;
-            const plugDef = definitions[socket.plugHash];
-            if (!plugDef?.displayProperties?.icon) return null;
-            return { ...plugDef, socketIndex: idx };
-        })
-        .filter(Boolean)
-        .slice(0, 12);
+    // --- Hydrated Stats & Perks from Manifest ---
+    const { stats, perks } = useHydratedItem(item, definition, definitions);
 
     // Class names for characters
     const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
@@ -174,8 +156,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         {/* Lock Button */}
                         <button
                             className={`w-10 h-10 rounded border flex items-center justify-center transition-colors ${isLocked
-                                    ? 'bg-[#2a2518] border-[#f5dc56]/30'
-                                    : 'bg-[#1a1a1a] hover:bg-[#252525] border-white/10'
+                                ? 'bg-[#2a2518] border-[#f5dc56]/30'
+                                : 'bg-[#1a1a1a] hover:bg-[#252525] border-white/10'
                                 }`}
                             title={isLocked ? 'Locked' : 'Unlocked'}
                         >
@@ -206,8 +188,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             key={`equip-${char.characterId}`}
                                             disabled={!hasSpace}
                                             className={`w-8 h-8 rounded text-[10px] font-bold border flex items-center justify-center transition-all ${hasSpace
-                                                    ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
-                                                    : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
+                                                ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
+                                                : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
                                                 }`}
                                             title={`${classNames[char.classType]}${hasSpace ? '' : ' (No Space)'}`}
                                         >
@@ -231,8 +213,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             key={`pull-${char.characterId}`}
                                             disabled={!hasSpace}
                                             className={`w-8 h-8 rounded text-[10px] font-bold border flex items-center justify-center transition-all ${hasSpace
-                                                    ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
-                                                    : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
+                                                ? 'bg-[#1a1a1a] hover:bg-[#333] border-white/10 text-gray-300'
+                                                : 'bg-[#111] border-red-900/30 text-gray-600 opacity-50 cursor-not-allowed'
                                                 }`}
                                             title={`${classNames[char.classType]}${hasSpace ? '' : ' (No Space)'}`}
                                         >
@@ -299,22 +281,22 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 Perks
                             </h3>
                             <div className="flex flex-wrap gap-3">
-                                {sockets.length > 0 ? sockets.map((perk: any, idx: number) => (
+                                {perks.length > 0 ? perks.map((perk, idx) => (
                                     <div key={idx} className="group relative">
                                         <div className="w-10 h-10 rounded-full bg-[#222] border-2 border-white/20 overflow-hidden hover:border-[#f5dc56] transition-colors cursor-pointer">
                                             <BungieImage
-                                                src={perk.displayProperties.icon}
+                                                src={perk.icon}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
                                         {/* Tooltip */}
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block min-w-[120px] max-w-[180px] bg-black/95 border border-white/20 px-2 py-1.5 rounded text-center z-50 pointer-events-none">
                                             <div className="text-[11px] text-white font-medium">
-                                                {perk.displayProperties.name}
+                                                {perk.name}
                                             </div>
-                                            {perk.displayProperties.description && (
+                                            {perk.description && (
                                                 <div className="text-[9px] text-gray-400 mt-0.5 line-clamp-3">
-                                                    {perk.displayProperties.description}
+                                                    {perk.description}
                                                 </div>
                                             )}
                                         </div>
