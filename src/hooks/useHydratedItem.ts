@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useDefinitions } from './useDefinitions';
+import { STAT_HASH_MAP, isBarStat } from '../utils/stat-definitions';
 
 /**
  * Hydrated stat structure for display
@@ -9,6 +9,7 @@ export interface HydratedStat {
     label: string;
     value: number;
     max: number;
+    isBar: boolean;
 }
 
 /**
@@ -31,59 +32,37 @@ export interface HydratedPerk {
  */
 export function useHydratedItem(
     item: any,
-    _definition: any,
+    definition: any,
     definitions: Record<string, any>
 ) {
-    // --- Extract stat hashes from item ---
-    const statHashes = useMemo(() => {
-        if (!item?.stats) return [];
-        return Object.keys(item.stats).map(h => parseInt(h, 10)).filter(h => !isNaN(h));
-    }, [item?.stats]);
-
-    // --- Fetch stat definitions ---
-    const { definitions: statDefs, loading: statsLoading } = useDefinitions(
-        'DestinyStatDefinition',
-        statHashes
-    );
-
-    // --- Hydrate stats ---
+    // --- Synchronous Stat Hydration ---
     const hydratedStats: HydratedStat[] = useMemo(() => {
-        if (!item?.stats || statsLoading) return [];
+        // Fallback: Check item.stats.values (Instance) OR item.stats (Profile-level) OR definition.stats.stats (Generic)
+        // Note: useProfile generally flattens item.stats -> { [hash]: { value } }
+        const rawStats = item?.stats?.values || item?.stats || definition?.stats?.stats || {};
 
-        const result: HydratedStat[] = [];
+        return Object.entries(rawStats).map(([hashStr, statData]) => {
+            const hash = parseInt(hashStr, 10);
+            const name = STAT_HASH_MAP[hash];
 
-        for (const [hashStr, statData] of Object.entries(item.stats as Record<string, any>)) {
-            const def = statDefs[hashStr];
+            if (!name) return null; // Filter hidden stats
 
-            // Skip if no definition found
-            if (!def?.displayProperties?.name) {
-                console.warn(`[useHydratedItem] Missing stat definition for hash: ${hashStr}`);
-                continue;
-            }
+            // Handle API quirk where value might be wrapped { value: 10 } or raw number
+            const value = (typeof statData === 'object' && statData !== null)
+                ? (statData as any).value
+                : statData;
 
-            const name = def.displayProperties.name;
-            const value = statData?.value ?? 0;
+            if (typeof value !== 'number') return null;
 
-            // Filter out hidden stats and non-display stats
-            // statCategory: 1 = Weapon, 2 = Armor
-            // Also filter by name to exclude Power/Attack/Defense
-            const skipNames = ['Power', 'Attack', 'Defense', 'Charge Time'];
-            if (skipNames.includes(name)) continue;
-            if (value === 0) continue;
-
-            // Calculate max (use displayMaximum if available, otherwise 100)
-            const max = def.displayMaximum || 100;
-
-            result.push({
+            return {
                 hash: hashStr,
                 label: name,
                 value,
-                max
-            });
-        }
-
-        return result;
-    }, [item?.stats, statDefs, statsLoading]);
+                max: 100, // Hardcoded max for now
+                isBar: isBarStat(hash)
+            };
+        }).filter((s): s is HydratedStat => s !== null);
+    }, [item?.stats, definition?.stats]);
 
     // --- Hydrate perks ---
     const hydratedPerks: HydratedPerk[] = useMemo(() => {
@@ -118,7 +97,6 @@ export function useHydratedItem(
 
     return {
         stats: hydratedStats,
-        perks: hydratedPerks,
-        loading: statsLoading
+        perks: hydratedPerks
     };
 }
