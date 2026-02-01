@@ -4,6 +4,7 @@ import { BungieImage } from '../BungieImage';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { getElementIcon } from '../destiny/ElementIcons';
 import { useHydratedItem } from '../../hooks/useHydratedItem';
+import RecoilStat from '../destiny/RecoilStat';
 
 interface ItemDetailModalProps {
     item: any;
@@ -250,23 +251,32 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 <ChevronRight size={12} />
                                 Stats
                             </h3>
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 {stats.length > 0 ? stats.map((stat) => (
                                     <div key={stat.hash} className="flex items-center gap-3 text-xs">
-                                        <div className="w-20 text-gray-400 text-right truncate">
+                                        <div className="w-24 text-gray-400 text-right truncate">
                                             {stat.label}
                                         </div>
-                                        <div className="flex-1 h-3 bg-gray-700/50 rounded-sm overflow-hidden">
-                                            <div
-                                                className={`h-full transition-all duration-300 ${isMasterwork ? 'bg-gradient-to-r from-white to-[#f5dc56]' : 'bg-white'
-                                                    }`}
-                                                style={{ width: `${Math.min(100, stat.value)}%` }}
-                                            />
-                                        </div>
-                                        <div className={`w-8 text-right font-mono font-bold ${isMasterwork ? 'text-[#f5dc56]' : 'text-white'
-                                            }`}>
+                                        <div className="w-8 text-right font-mono font-bold text-white">
                                             {stat.value}
                                         </div>
+                                        {stat.isRecoil ? (
+                                            /* Recoil Direction: SVG Arc */
+                                            <div className="flex-1 flex items-center">
+                                                <RecoilStat value={stat.value} />
+                                            </div>
+                                        ) : stat.isBar ? (
+                                            /* Bar Stats */
+                                            <div className="flex-1 h-2.5 bg-gray-700/50 rounded-sm overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-300 ${isMasterwork ? 'bg-gradient-to-r from-white to-[#f5dc56]' : 'bg-white'}`}
+                                                    style={{ width: `${Math.min(100, stat.value)}%` }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            /* Text-only Stats (RPM, Magazine) */
+                                            <div className="flex-1" />
+                                        )}
                                     </div>
                                 )) : (
                                     <div className="text-gray-600 text-sm italic">No stats available</div>

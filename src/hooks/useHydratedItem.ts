@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { STAT_HASH_MAP, isBarStat } from '../utils/stat-definitions';
+import { STAT_HASH_MAP, isBarStat, getStatSortOrder, isRecoilStat } from '../utils/stat-definitions';
 
 /**
  * Hydrated stat structure for display
@@ -10,6 +10,8 @@ export interface HydratedStat {
     value: number;
     max: number;
     isBar: boolean;
+    isRecoil: boolean;
+    sortOrder: number;
 }
 
 /**
@@ -58,10 +60,14 @@ export function useHydratedItem(
                 hash: hashStr,
                 label: name,
                 value,
-                max: 100, // Hardcoded max for now
-                isBar: isBarStat(hash)
+                max: 100,
+                isBar: isBarStat(hash),
+                isRecoil: isRecoilStat(hash),
+                sortOrder: getStatSortOrder(hash)
             };
-        }).filter((s): s is HydratedStat => s !== null);
+        })
+            .filter((s): s is HydratedStat => s !== null)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
     }, [item?.stats, definition?.stats]);
 
     // --- Hydrate perks ---
