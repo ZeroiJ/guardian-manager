@@ -7,7 +7,9 @@ import { DroppableZone } from '@/components/inventory/DroppableZone';
 import { VirtualVaultGrid } from '@/components/inventory/VirtualVaultGrid';
 import { ItemDetailModal } from '@/components/inventory/ItemDetailModal';
 import { ItemContextMenu } from '@/components/inventory/ItemContextMenu';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useProfile } from '@/hooks/useProfile';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
 import { calculateMaxPower } from '@/lib/destiny/powerUtils';
@@ -28,7 +30,13 @@ export default function App() {
     );
 
     // Use the new Zipper hook
-    const { profile, loading: profileLoading, error: profileError, moveItem } = useProfile();
+    const { profile, loading: profileLoading, error: profileError, moveItem, refresh } = useProfile();
+
+    // Auto-refresh system (30s polling with visibility check)
+    const { lastUpdated, isRefreshing, triggerRefresh } = useAutoRefresh({
+        onRefresh: refresh,
+        enabled: !profileLoading && !profileError,
+    });
 
     // Extract hashes for manifest lookup
     // Only fetch for items we actually have
@@ -219,6 +227,11 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-gray-400">
+                        <RefreshButton
+                            lastUpdated={lastUpdated}
+                            isRefreshing={isRefreshing}
+                            onRefresh={triggerRefresh}
+                        />
                         <button className="hover:text-white">Settings</button>
                         <div className="size-6 bg-gradient-to-tr from-[#f5dc56] to-[#f5dc56]/50 rounded-full border border-white/10" />
                     </div>
