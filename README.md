@@ -37,3 +37,53 @@ Let's build something the Tower would be proud of. 🚀
 ## Changelog
 
 See [CHANGELOG.md](/CHANGELOG.md).
+
+## 🛠️ Development Setup
+
+So you want to contribute? Excellent. Here is how you get the ghost running locally.
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/GuardianManager/guardian-nexus.git
+cd guardian-nexus
+npm install
+```
+
+### 2. Configure Bungie API Keys
+
+This app needs a connection to the [Bungie API](https://bungie.net/en/Application).
+
+1. Go to [Bungie.net Developer Portal](https://www.bungie.net/en/Application).
+2. **Create a new App** (select "Confidential" client type).
+3. Set **Redirect URL** to: `http://localhost:5173/api/auth/callback` (or your local port).
+4. Select strict scope for **Read/Write Destiny Inventory** (Move/Transfer items).
+
+### 3. Set Secrets
+
+Create a `.dev.vars` file in the root `guardian-nexus/` directory (used by Cloudflare Wrangler):
+
+```ini
+# .dev.vars
+BUNGIE_API_KEY=your_api_key_here
+BUNGIE_CLIENT_ID=your_client_id_here
+BUNGIE_CLIENT_SECRET=your_client_secret_here
+BUNGIE_AUTH_URL=https://www.bungie.net/en/OAuth/Authorize
+```
+
+### 4. Run Locally
+
+We use **Vite** for the frontend and **Cloudflare Functions** for the backend proxy.
+
+```bash
+# Terminal 1: Run the frontend
+npm run dev
+```
+
+> **Note:** For full API functionality locally, you may need to run via Wrangler proxy:
+> `npx wrangler pages dev --proxy=5173`
