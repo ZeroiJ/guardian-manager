@@ -2,6 +2,21 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.11.0] - 2026-02-01
+
+### Added
+
+- **Auto-Refresh "Heartbeat" System**: Implemented smart polling that automatically fetches the latest inventory data from Bungie every 30 seconds.
+  - **Visibility Check**: Skips fetches when the browser tab is hidden to save API quota.
+  - **In-Flight Guard**: Prevents duplicate requests when one is already in progress.
+  - **Refresh Button**: Added a spinning refresh icon to the top navigation bar with a "Last updated: X ago" tooltip.
+  - **Optimistic Updates**: Old data stays visible during refresh to prevent UI flashing.
+
+### Files Added
+
+- `src/hooks/useAutoRefresh.ts` - Smart polling hook with configurable interval
+- `src/components/ui/RefreshButton.tsx` - Animated refresh button with relative time tooltip
+
 ## [0.10.0] - 2026-01-31
 
 ### Feature Parity (DIM Match)
