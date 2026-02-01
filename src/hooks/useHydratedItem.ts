@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { getStatInfo } from '../utils/manifest-helper';
+import { StatHashes, SocketCategoryHashes } from '../lib/destiny-constants';
 
 /**
  * Hydrated stat structure for display
@@ -24,14 +25,21 @@ export interface HydratedPerk {
     description: string;
 }
 
-// Approved Socket Categories
-const SOCKET_WHITELIST = [
-    4241087561, // Weapon Perks
-    590099826,  // Armor Mods
-    3956125808  // Intrinsic Traits (Exotics)
+// Stats that should NOT display a bar (text only or special visual)
+const NO_BAR_STATS: number[] = [
+    StatHashes.RoundsPerMinute,
+    StatHashes.Magazine,
+    StatHashes.RecoilDirection,
+    StatHashes.ChargeTime,
+    StatHashes.DrawTime,
 ];
 
-const NO_BAR_STATS = [1931675084, 3871231066, 2715839340]; // RPM, Mag, Recoil
+// Approved Socket Categories for Perk Display
+const SOCKET_WHITELIST: number[] = [
+    SocketCategoryHashes.WeaponPerks,
+    SocketCategoryHashes.ArmorMods,
+    SocketCategoryHashes.IntrinsicTraits,
+];
 
 /**
  * Hook to hydrate raw item data with manifest definitions using STRICT MANUAL OVERRIDES.
@@ -43,16 +51,14 @@ export function useHydratedItem(
 ) {
     // --- Synchronous Stat Hydration ---
     const hydratedStats: HydratedStat[] = useMemo(() => {
-        // Source: item.stats (Live) > definition.stats (Static)
         const rawStats = item?.stats?.values || item?.stats || definition?.stats?.stats || {};
 
         return Object.entries(rawStats).map(([hashStr, statData]) => {
             const hash = parseInt(hashStr, 10);
-            const info = getStatInfo(hash); // Check STRICT WHITELIST
+            const info = getStatInfo(hash);
 
-            if (!info) return null; // Filter everything else
+            if (!info) return null;
 
-            // Handle API quirk { value: 10 } vs 10
             const value = (typeof statData === 'object' && statData !== null)
                 ? (statData as any).value
                 : statData;
@@ -65,7 +71,7 @@ export function useHydratedItem(
                 value,
                 max: 100,
                 isBar: !NO_BAR_STATS.includes(hash),
-                isRecoil: hash === 2715839340,
+                isRecoil: hash === StatHashes.RecoilDirection,
                 sortOrder: info.sort
             };
         })
@@ -92,14 +98,11 @@ export function useHydratedItem(
         liveSockets.forEach((socket: any, index: number) => {
             const categoryHash = socketIndexToCategory[index];
 
-            // 1. Check strict category whitelist
             if (!SOCKET_WHITELIST.includes(categoryHash)) return;
 
-            // 2. Resolve Plug info
             if (!socket.plugHash) return;
             const plugDef = definitions[socket.plugHash];
 
-            // 3. Render if valid Icon exists
             if (plugDef?.displayProperties?.hasIcon) {
                 result.push({
                     hash: socket.plugHash,
@@ -110,7 +113,7 @@ export function useHydratedItem(
             }
         });
 
-        return result; // Return ALL valid perks, don't slice randomly
+        return result;
     }, [item, definition, definitions]);
 
     return {

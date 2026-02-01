@@ -1,36 +1,53 @@
 /**
- * STRICT MANUAL STAT DEFINITIONS
- * DO NOT MODIFY WITHOUT EXPLICIT OVERRIDE
+ * MANIFEST HELPER - STAT DEFINITIONS
+ * Uses destiny-constants for official hash values.
  */
+import { StatHashes } from '../lib/destiny-constants';
 
 export interface StatDefinition {
     label: string;
     sort: number;
 }
 
+/**
+ * Whitelist of stats to display with labels and sort order.
+ * Uses StatHashes constants for type safety.
+ */
 export const STAT_WHITELIST: Record<number, StatDefinition> = {
     // WEAPON STATS
-    4284895488: { label: "Airborne", sort: 8 },
-    1345609583: { label: "Aim Assist", sort: 7 },
-    4043523819: { label: "Impact", sort: 2 },
-    1240592695: { label: "Range", sort: 3 },
-    155624089: { label: "Stability", sort: 4 },
-    943549884: { label: "Handling", sort: 5 },
-    4188031367: { label: "Reload", sort: 6 },
-    1931675084: { label: "RPM", sort: 1 },
-    3555269338: { label: "Zoom", sort: 9 },
-    3871231066: { label: "Magazine", sort: 10 },
-    2715839340: { label: "Recoil Dir", sort: 11 }, // Added Recoil Dir to ensure it appears
+    [StatHashes.RoundsPerMinute]: { label: "RPM", sort: 1 },
+    [StatHashes.Impact]: { label: "Impact", sort: 2 },
+    [StatHashes.Range]: { label: "Range", sort: 3 },
+    [StatHashes.Stability]: { label: "Stability", sort: 4 },
+    [StatHashes.Handling]: { label: "Handling", sort: 5 },
+    [StatHashes.ReloadSpeed]: { label: "Reload", sort: 6 },
+    [StatHashes.AimAssistance]: { label: "Aim Assist", sort: 7 },
+    [StatHashes.AirborneEffectiveness]: { label: "Airborne", sort: 8 },
+    [StatHashes.Zoom]: { label: "Zoom", sort: 9 },
+    [StatHashes.Magazine]: { label: "Magazine", sort: 10 },
+    [StatHashes.RecoilDirection]: { label: "Recoil Dir", sort: 11 },
+    [StatHashes.ChargeTime]: { label: "Charge Time", sort: 12 },
+    [StatHashes.DrawTime]: { label: "Draw Time", sort: 13 },
+    [StatHashes.BlastRadius]: { label: "Blast Radius", sort: 14 },
+    [StatHashes.Velocity]: { label: "Velocity", sort: 15 },
+    [StatHashes.SwingSpeed]: { label: "Swing Speed", sort: 16 },
+    [StatHashes.ShieldDuration]: { label: "Shield Duration", sort: 17 },
+    [StatHashes.GuardEfficiency]: { label: "Guard Efficiency", sort: 18 },
+    [StatHashes.GuardEndurance]: { label: "Guard Endurance", sort: 19 },
+    [StatHashes.GuardResistance]: { label: "Guard Resist", sort: 20 },
 
     // ARMOR STATS
-    2996146975: { label: "Mobility", sort: 1 },
-    392767087: { label: "Resilience", sort: 2 },
-    1943323491: { label: "Recovery", sort: 3 },
-    1735777505: { label: "Discipline", sort: 4 },
-    144602215: { label: "Intellect", sort: 5 },
-    4244567218: { label: "Strength", sort: 6 }
+    [StatHashes.Mobility]: { label: "Mobility", sort: 1 },
+    [StatHashes.Resilience]: { label: "Resilience", sort: 2 },
+    [StatHashes.Recovery]: { label: "Recovery", sort: 3 },
+    [StatHashes.Discipline]: { label: "Discipline", sort: 4 },
+    [StatHashes.Intellect]: { label: "Intellect", sort: 5 },
+    [StatHashes.Strength]: { label: "Strength", sort: 6 },
 };
 
+/**
+ * Get stat definition by hash.
+ */
 export const getStatInfo = (hash: number): StatDefinition | undefined => {
     return STAT_WHITELIST[hash];
 };
