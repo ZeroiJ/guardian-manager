@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { X, Lock, Unlock, Tag } from 'lucide-react';
 import { BungieImage } from '../BungieImage';
 import { getElementIcon } from '../destiny/ElementIcons';
 import { useHydratedItem } from '../../hooks/useHydratedItem';
 import RecoilStat from '../destiny/RecoilStat';
+import { getVisibleSockets, groupSocketsByType } from '../../utils/socket-utils';
+import { ItemSocket } from '../item/ItemSocket';
 
 interface ItemDetailModalProps {
     item: any;
@@ -38,8 +40,18 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 : '#333';
 
     // Hydrate Data
-    const { stats, perks } = useHydratedItem(item, definition, definitions);
+    const { stats } = useHydratedItem(item, definition, definitions);
     const ElementIconComponent = getElementIcon(damageTypeHash);
+
+    // Get visible sockets using the new socket utilities
+    const visibleSockets = useMemo(() => {
+        return getVisibleSockets(item, definition, definitions);
+    }, [item, definition, definitions]);
+
+    // Group sockets by category (intrinsic, perks, mods)
+    const socketGroups = useMemo(() => {
+        return groupSocketsByType(visibleSockets);
+    }, [visibleSockets]);
 
     // Class Icons Placeholder
     const classIcons: Record<number, string> = { 0: 'T', 1: 'H', 2: 'W' };
@@ -138,19 +150,54 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         {/* PERKS SECTION */}
                         <div>
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3>
-                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                                {perks.length > 0 ? perks.map((perk, i) => (
-                                    <div key={i} className="group relative w-12 h-12 rounded-full overflow-hidden bg-[#222] border border-white/20 hover:border-yellow-400 transition-colors">
-                                        <BungieImage src={perk.icon} className="w-full h-full object-cover" />
 
-                                        {/* Tooltip */}
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 bg-black/90 border border-white/20 p-2 rounded z-50 pointer-events-none">
-                                            <div className="font-bold text-yellow-400 text-xs mb-1">{perk.name}</div>
-                                            <div className="text-[10px] text-gray-300 leading-tight">{perk.description}</div>
+                            {visibleSockets.length > 0 ? (
+                                <div className="space-y-4">
+                                    {/* Intrinsic Perks (Exotic/Frame) */}
+                                    {socketGroups.intrinsic.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {socketGroups.intrinsic.map(socket => (
+                                                <ItemSocket
+                                                    key={socket.socketIndex}
+                                                    plugDef={definitions[socket.plugHash]}
+                                                    categoryHash={socket.categoryHash}
+                                                    isActive={socket.isEnabled}
+                                                />
+                                            ))}
                                         </div>
-                                    </div>
-                                )) : <div className="col-span-4 text-gray-500 italic text-sm">No displayable perks</div>}
-                            </div>
+                                    )}
+
+                                    {/* Weapon Perks (Barrels, Mags, Traits) */}
+                                    {socketGroups.perks.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {socketGroups.perks.map(socket => (
+                                                <ItemSocket
+                                                    key={socket.socketIndex}
+                                                    plugDef={definitions[socket.plugHash]}
+                                                    categoryHash={socket.categoryHash}
+                                                    isActive={socket.isEnabled}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Armor Mods */}
+                                    {socketGroups.mods.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {socketGroups.mods.map(socket => (
+                                                <ItemSocket
+                                                    key={socket.socketIndex}
+                                                    plugDef={definitions[socket.plugHash]}
+                                                    categoryHash={socket.categoryHash}
+                                                    isActive={socket.isEnabled}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-gray-500 italic text-sm">No displayable perks</div>
+                            )}
                         </div>
 
                     </div>

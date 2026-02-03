@@ -144,6 +144,75 @@ export const SocketCategoryHashes = {
 } as const;
 
 // ============================================================================
+// PLUG CATEGORY HASHES (Perk Types)
+// Ported from DIM: src/data/d2/generated-enums.ts
+// ============================================================================
+export const PlugCategoryHashes = {
+    Frames: 7906839,           // Weapon Frames/Intrinsics (Traits like Rampage, Subsistence)
+    Intrinsics: 1744546145,    // Exotic perks, armor intrinsics
+    Barrels: 2833605196,
+    Magazines: 1806783418,
+    Scopes: 2619833294,
+    Stocks: 577918720,
+    Grips: 3962145884,
+    Arrows: 1257608559,
+    Bowstrings: 3809303875,
+    Origins: 164955586,        // Origin Traits (Witch Queen+)
+    Shader: 2973005342,
+    Mementos: 4181669225,
+    ArmorStats: 748854354,     // Hidden armor stat plugs
+} as const;
+
+// ============================================================================
+// EMPTY PLUG HASHES (Garbage Sockets to Skip)
+// Ported from DIM: src/data/d2/empty-plug-hashes.ts
+// ============================================================================
+export const EMPTY_PLUG_HASHES = new Set<number>([
+    // Common empty mod sockets
+    2323986101, // Empty Mod Socket (Weapon Mod)
+    144338558,  // Empty Mod Socket (Weapon Mod)
+    1182150429, // Empty Mod Socket (Armor Mod)
+    2600899007, // Empty Mod Socket (Armor Mod)
+    3851138800, // Empty Mod Socket (Armor Mod)
+    1980618587, // Empty Mod Socket (General Armor Mod)
+    4173924323, // Empty Mod Socket (Artifice Armor Mod)
+
+    // Catalyst sockets
+    1498917124, // Empty Catalyst Socket
+    1649663920, // Empty Catalyst Socket
+
+    // Cosmetic defaults
+    702981643,  // Default Ornament (Restore Defaults)
+    2325217837, // Default Shader (Restore Defaults)
+    4248210736, // Default Shader (Restore Defaults)
+    2426387438, // No Projection (Ghost hologram)
+
+    // Crafting empty sockets
+    3074755706, // Empty Arrows Socket
+    1007199041, // Empty Barrels Socket
+    1527687869, // Empty Batteries Socket
+    3057124503, // Empty Magazines Socket
+    469511105,  // Empty Traits Socket
+    2503665585, // Empty Traits Socket
+    51925409,   // Empty Scopes Socket
+    1134447515, // Empty Stocks Socket
+    366474809,  // Empty Grips Socket
+
+    // Deepsight/Crafting
+    1961918267, // Empty Deepsight Socket
+    253922071,  // Empty Enhancement Socket
+    2909846572, // Empty Memento Socket
+]);
+
+// ============================================================================
+// COSMETIC PLUG CATEGORIES (Skip these in perk display)
+// ============================================================================
+export const COSMETIC_PLUG_CATEGORIES = new Set<number>([
+    2973005342, // Shader
+    4181669225, // Mementos
+]);
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 export type StatHash = typeof StatHashes[keyof typeof StatHashes];
