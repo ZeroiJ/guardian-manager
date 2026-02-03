@@ -135,7 +135,7 @@ export const SocketCategoryHashes = {
     ArmorPerks_Reusable: 2518356196,
     ArmorTier: 760375309,
     ArmorCosmetics: 1926152773,
-    WeaponPerks: 4241085061, // Note: This wasn't in the enum, using known value
+    WeaponPerks: 4241087561, // Corrected hash
     IntrinsicTraits: 3956125808,
     GhostMods: 3886482628,
     GhostShellPerks: 3301318876,

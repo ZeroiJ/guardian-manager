@@ -71,6 +71,7 @@ export function useProfile() {
 
         const instanceData = bungieProfile.itemComponents?.instances?.data || {};
         const statsData = bungieProfile.itemComponents?.stats?.data || {};
+        const socketsData = bungieProfile.itemComponents?.sockets?.data || {};
 
         // Extract Artifact Power
         const artifactPower = bungieProfile.profileProgression?.data?.seasonalArtifact?.powerBonus || 0;
@@ -79,6 +80,7 @@ export function useProfile() {
         const items: GuardianItem[] = rawItems.map(item => {
             const inst = item.itemInstanceId ? instanceData[item.itemInstanceId] : undefined;
             const stats = item.itemInstanceId ? statsData[item.itemInstanceId] : undefined;
+            const sockets = item.itemInstanceId ? socketsData[item.itemInstanceId] : undefined;
             const instanceId = item.itemInstanceId;
 
             const tag = instanceId ? (metadata.tags?.[instanceId]) : undefined;
@@ -91,6 +93,7 @@ export function useProfile() {
                     isEquipped: item.isEquipped
                 },
                 stats: stats?.stats || item.stats, // Merge live stats, fallback to static if missing
+                sockets: sockets || undefined, // Attach live sockets
                 owner: item.owner,
                 userTag: tag || null,
                 userNote: note || null

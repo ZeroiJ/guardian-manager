@@ -42,26 +42,76 @@ const SOCKET_WHITELIST: number[] = [
 ];
 
 /**
- * Hook to hydrate raw item data with manifest definitions using STRICT MANUAL OVERRIDES.
+ * Interpolates a stat value using the Destiny Stat Group Definition
+ */
+function interpolateStatValue(value: number, statGroupDef: any, statHash: number): number {
+    if (!statGroupDef?.scaledStats) return value;
+
+    // Find the scaling definition for this specific stat
+    const scaledStat = statGroupDef.scaledStats.find((s: any) => s.statHash === statHash);
+    if (!scaledStat || !scaledStat.displayInterpolation) return value;
+
+    const interpolation = scaledStat.displayInterpolation;
+    if (!interpolation.length) return value;
+
+    // Sort points by input value
+    const sortedPoints = [...interpolation].sort((a: any, b: any) => a.value - b.value);
+
+    // Clamp
+    const minPoint = sortedPoints[0];
+    const maxPoint = sortedPoints[sortedPoints.length - 1];
+
+    if (value <= minPoint.value) return minPoint.weight;
+    if (value >= maxPoint.value) return maxPoint.weight;
+
+    // Linear Interpolation
+    for (let i = 0; i < sortedPoints.length - 1; i++) {
+        const p1 = sortedPoints[i];
+        const p2 = sortedPoints[i + 1];
+
+        if (value >= p1.value && value <= p2.value) {
+            const range = p2.value - p1.value;
+            if (range === 0) return p1.weight;
+
+            const t = (value - p1.value) / range;
+            const weight = p1.weight + t * (p2.weight - p1.weight);
+            return Math.round(weight);
+        }
+    }
+
+    return value;
+}
+
+/**
+ * Hook to hydrate raw item data with manifest definitions.
+ * PRIORITIZES: Live Instance Stats > Interpolated Definition Stats
  */
 export function useHydratedItem(
     item: any,
     definition: any,
     definitions: Record<string, any>
 ) {
-    // --- Synchronous Stat Hydration ---
+    // --- Stat Hydration (Live + Interpolated) ---
     const hydratedStats: HydratedStat[] = useMemo(() => {
-        const rawStats = item?.stats?.values || item?.stats || definition?.stats?.stats || {};
+        if (!definition?.stats?.stats) return [];
 
-        return Object.entries(rawStats).map(([hashStr, statData]) => {
+        const statGroupDef = definitions[definition.stats.statGroupHash];
+        const liveStats = item?.stats?.values || item?.stats || {}; // Live stats from API
+
+        return Object.entries(definition.stats.stats).map(([hashStr, defStat]: [string, any]) => {
             const hash = parseInt(hashStr, 10);
             const info = getStatInfo(hash);
 
             if (!info) return null;
 
-            const value = (typeof statData === 'object' && statData !== null)
-                ? (statData as any).value
-                : statData;
+            // 1. Try Live Stat (already interpolated/calculated by Bungie)
+            let value = liveStats[hashStr]?.value || liveStats[hash]?.value;
+
+            // 2. Fallback: Interpolate Investment Stat
+            if (value === undefined) {
+                const investmentValue = defStat.value;
+                value = interpolateStatValue(investmentValue, statGroupDef, hash);
+            }
 
             if (typeof value !== 'number') return null;
 
@@ -77,13 +127,15 @@ export function useHydratedItem(
         })
             .filter((s): s is HydratedStat => s !== null)
             .sort((a, b) => a.sortOrder - b.sortOrder);
-    }, [item?.stats, definition?.stats]);
+    }, [item, definition, definitions]);
 
-    // --- Hydrate Perks (Strict Socket Logic) ---
+    // --- Hydrate Perks (Live Sockets) ---
     const hydratedPerks: HydratedPerk[] = useMemo(() => {
-        if (!item?.itemComponents?.sockets?.data?.sockets || !definition?.sockets?.socketCategories) return [];
+        // Support both merged path (item.sockets) and raw path (item.itemComponents...)
+        const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
+        
+        if (!liveSockets || !definition?.sockets?.socketCategories) return [];
 
-        const liveSockets = item.itemComponents.sockets.data.sockets;
         const socketCategories = definition.sockets.socketCategories;
         const result: HydratedPerk[] = [];
 
@@ -98,11 +150,15 @@ export function useHydratedItem(
         liveSockets.forEach((socket: any, index: number) => {
             const categoryHash = socketIndexToCategory[index];
 
+            // Filter by category
             if (!SOCKET_WHITELIST.includes(categoryHash)) return;
 
+            // Must have a plug
             if (!socket.plugHash) return;
+            
             const plugDef = definitions[socket.plugHash];
 
+            // Filter: Must have icon (Basic visual check)
             if (plugDef?.displayProperties?.hasIcon) {
                 result.push({
                     hash: socket.plugHash,

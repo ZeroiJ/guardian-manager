@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { CharacterColumn } from '@/components/inventory/CharacterColumn';
@@ -41,9 +41,25 @@ export default function App() {
     // Extract hashes for manifest lookup
     // Only fetch for items we actually have
     const itemHashes = profile?.items.map(i => i.itemHash) || [];
-    const { definitions, loading: defsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
+    const { definitions: itemDefs, loading: itemDefsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
 
-    const loading = profileLoading || (itemHashes.length > 0 && defsLoading);
+    // Fetch Stat Groups (Dependent on Item Definitions)
+    const statGroupHashes = useMemo(() => {
+        const hashes = new Set<number | string>();
+        Object.values(itemDefs).forEach((def: any) => {
+            if (def?.stats?.statGroupHash) {
+                hashes.add(def.stats.statGroupHash);
+            }
+        });
+        return Array.from(hashes);
+    }, [itemDefs]);
+
+    const { definitions: statGroupDefs, loading: statGroupsLoading } = useDefinitions('DestinyStatGroupDefinition', statGroupHashes);
+
+    // Merge Definitions
+    const definitions = useMemo(() => ({ ...itemDefs, ...statGroupDefs }), [itemDefs, statGroupDefs]);
+
+    const loading = profileLoading || (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading));
 
     const handleDragStart = (event: DragStartEvent) => {
         if (event.active.data.current) {
