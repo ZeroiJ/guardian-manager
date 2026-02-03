@@ -63,8 +63,8 @@ export function categorizeSockets(
         mods: [],
     };
 
-    // Get live sockets
-    const liveSockets = item?.sockets?.sockets;
+    // Get live sockets (support both processed and raw paths)
+    const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
     const socketCategories = definition?.sockets?.socketCategories;
 
     if (!liveSockets || !socketCategories) return result;

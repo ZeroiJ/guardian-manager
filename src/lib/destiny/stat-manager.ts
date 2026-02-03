@@ -79,8 +79,8 @@ function getSocketBonuses(
 ): Map<number, number> {
     const bonuses = new Map<number, number>();
 
-    // Get live sockets from item
-    const liveSockets = item?.sockets?.sockets;
+    // Get live sockets from item (support both processed and raw paths)
+    const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
     if (!liveSockets) return bonuses;
 
     for (const socket of liveSockets) {
