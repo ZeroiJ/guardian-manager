@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { X, Lock, Unlock, Tag } from 'lucide-react';
 import { BungieImage } from '../BungieImage';
 import { getElementIcon } from '../destiny/ElementIcons';
-import { useHydratedItem } from '../../hooks/useHydratedItem';
 import RecoilStat from '../destiny/RecoilStat';
-import { getVisibleSockets, groupSocketsByType } from '../../utils/socket-utils';
+import { calculateStats } from '../../lib/destiny/stat-manager';
+import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
+import { StatHashes } from '../../lib/destiny-constants';
 
 interface ItemDetailModalProps {
     item: any;
@@ -39,19 +40,17 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             : tierType === 4 ? '#5076a3' // Rare
                 : '#333';
 
-    // Hydrate Data
-    const { stats } = useHydratedItem(item, definition, definitions);
-    const ElementIconComponent = getElementIcon(damageTypeHash);
-
-    // Get visible sockets using the new socket utilities
-    const visibleSockets = useMemo(() => {
-        return getVisibleSockets(item, definition, definitions);
+    // Calculate stats using the new stat engine
+    const calculatedStats = useMemo(() => {
+        return calculateStats(item, definition, definitions);
     }, [item, definition, definitions]);
 
-    // Group sockets by category (intrinsic, perks, mods)
-    const socketGroups = useMemo(() => {
-        return groupSocketsByType(visibleSockets);
-    }, [visibleSockets]);
+    const ElementIconComponent = getElementIcon(damageTypeHash);
+
+    // Categorize sockets using the new socket helper
+    const sockets = useMemo(() => {
+        return categorizeSockets(item, definition, definitions);
+    }, [item, definition, definitions]);
 
     // Class Icons Placeholder
     const classIcons: Record<number, string> = { 0: 'T', 1: 'H', 2: 'W' };
@@ -105,9 +104,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         style={{ background: `linear-gradient(to right, ${rarityColor}, transparent)` }}
                     >
                         <div className="flex items-center gap-4 z-10">
-                            <div className="w-12 h-12 border-2 border-white/20 shadow-lg bg-black">
-                                <BungieImage src={definition.displayProperties?.icon} className="w-full h-full" />
-                            </div>
+                            {/* Intrinsic Icon (Frame/Exotic perk) */}
+                            {sockets.intrinsic && (
+                                <div className="w-12 h-12 rounded-full border-2 border-yellow-500 bg-black overflow-hidden shadow-lg">
+                                    <BungieImage
+                                        src={sockets.intrinsic.plugDef?.displayProperties?.icon}
+                                        className="w-full h-full"
+                                    />
+                                </div>
+                            )}
+                            {!sockets.intrinsic && (
+                                <div className="w-12 h-12 border-2 border-white/20 shadow-lg bg-black">
+                                    <BungieImage src={definition.displayProperties?.icon} className="w-full h-full" />
+                                </div>
+                            )}
                             <div>
                                 <h1 className="text-2xl font-bold uppercase drop-shadow-md">{definition.displayProperties.name}</h1>
                                 <div className="text-sm text-white/80">{definition.itemTypeDisplayName}</div>
@@ -130,15 +140,23 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                         {/* STATS SECTION */}
                         <div className="space-y-1">
-                            {stats.length > 0 ? stats.map(stat => (
-                                <div key={stat.hash} className="flex items-center gap-3 text-xs">
+                            {calculatedStats.length > 0 ? calculatedStats.map(stat => (
+                                <div key={stat.statHash} className="flex items-center gap-3 text-xs">
                                     <div className="w-24 text-right text-gray-400 truncate">{stat.label}</div>
-                                    <div className="w-8 text-right font-mono font-bold">{stat.value}</div>
-                                    {stat.isRecoil ? (
-                                        <div className="flex-1"><RecoilStat value={stat.value} /></div>
+                                    <div className="w-8 text-right font-mono font-bold">
+                                        {stat.displayValue}
+                                        {stat.bonusValue > 0 && (
+                                            <span className="text-green-400 text-[10px] ml-0.5">+{stat.bonusValue}</span>
+                                        )}
+                                    </div>
+                                    {stat.statHash === StatHashes.RecoilDirection ? (
+                                        <div className="flex-1"><RecoilStat value={stat.displayValue} /></div>
                                     ) : stat.isBar ? (
                                         <div className="flex-1 h-3 bg-gray-700/50 rounded-sm overflow-hidden">
-                                            <div className="h-full bg-white" style={{ width: `${Math.min(100, stat.value)}%` }} />
+                                            <div
+                                                className="h-full bg-white"
+                                                style={{ width: `${Math.min(100, (stat.displayValue / stat.maximumValue) * 100)}%` }}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="flex-1" />
@@ -151,29 +169,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         <div>
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3>
 
-                            {visibleSockets.length > 0 ? (
+                            {(sockets.perks.length > 0 || sockets.mods.length > 0) ? (
                                 <div className="space-y-4">
-                                    {/* Intrinsic Perks (Exotic/Frame) */}
-                                    {socketGroups.intrinsic.length > 0 && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {socketGroups.intrinsic.map(socket => (
-                                                <ItemSocket
-                                                    key={socket.socketIndex}
-                                                    plugDef={definitions[socket.plugHash]}
-                                                    categoryHash={socket.categoryHash}
-                                                    isActive={socket.isEnabled}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-
                                     {/* Weapon Perks (Barrels, Mags, Traits) */}
-                                    {socketGroups.perks.length > 0 && (
+                                    {sockets.perks.length > 0 && (
                                         <div className="flex flex-wrap gap-2">
-                                            {socketGroups.perks.map(socket => (
+                                            {sockets.perks.map(socket => (
                                                 <ItemSocket
                                                     key={socket.socketIndex}
-                                                    plugDef={definitions[socket.plugHash]}
+                                                    plugDef={socket.plugDef}
                                                     categoryHash={socket.categoryHash}
                                                     isActive={socket.isEnabled}
                                                 />
@@ -181,13 +185,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                         </div>
                                     )}
 
-                                    {/* Armor Mods */}
-                                    {socketGroups.mods.length > 0 && (
+                                    {/* Armor/Weapon Mods */}
+                                    {sockets.mods.length > 0 && (
                                         <div className="flex flex-wrap gap-2">
-                                            {socketGroups.mods.map(socket => (
+                                            {sockets.mods.map(socket => (
                                                 <ItemSocket
                                                     key={socket.socketIndex}
-                                                    plugDef={definitions[socket.plugHash]}
+                                                    plugDef={socket.plugDef}
                                                     categoryHash={socket.categoryHash}
                                                     isActive={socket.isEnabled}
                                                 />
