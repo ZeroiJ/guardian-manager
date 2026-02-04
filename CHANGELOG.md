@@ -2,6 +2,30 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.14.0] - 2026-02-04
+
+### 🌟 Footer Implementation (Item Popup)
+
+Added a comprehensive footer to the Item Detail Popup, bringing it closer to DIM parity.
+
+#### New Features
+
+- **Exotic Box**: Dedicated section for Exotics showing:
+  - **Ornaments**: Displays active ornament icon.
+  - **Catalysts**: Displays active catalyst icon OR a "Golden Box" placeholder for unobtained catalysts.
+- **Mod Bar**: Displays weapon mods and shaders as small circular icons.
+
+#### Logic Enhancements
+
+- **Catalyst Detection**: Updated `socket-helper.ts` to identify catalyst sockets including `WeaponModsIntrinsic` (2237038328) for robust handling.
+- **Missing Catalyst State**: Implemented specific logic to render the "Golden Box" when a catalyst socket exists (or needs to be shown) but is empty/inactive.
+
+### Files Modified
+
+- `src/components/inventory/ItemDetailModal.tsx` - Added Footer JSX section.
+- `src/lib/destiny/socket-helper.ts` - Extended categorization logic.
+- `src/lib/destiny-constants.ts` - Added `WeaponModsIntrinsic` hash.
+
 ## [0.13.0] - 2026-02-04
 
 ### 🎯 Floating UI Popup Positioning
