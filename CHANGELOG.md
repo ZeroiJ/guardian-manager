@@ -2,6 +2,61 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.12.0] - 2026-02-04
+
+### 🎨 DIM-Exact Item Popup Replication
+
+Completely rebuilt the Item Detail Modal to achieve a **1:1 visual match** with Destiny Item Manager (DIM).
+
+#### Hybrid Styling Architecture
+- **Installed `sass`**: Added Dart Sass to enable SCSS compilation in Vite.
+- **Ported DIM SCSS Files**: Copied and adapted core DIM stylesheets:
+  - `src/styles/dim/_variables.scss` - All DIM color tokens, mixins, and utility functions.
+  - `src/styles/dim/dim-ui/common.module.scss` - Shared layout utilities (flexbox, reset button styles).
+  - `src/components/inventory/styles/ItemPopup.module.scss` - Main popup container, rarity backgrounds, desktop layout.
+  - `src/components/inventory/styles/ItemPopupHeader.module.scss` - Header typography, rarity colors, element icon styling.
+- **CSS Modules Integration**: Enabled importing `.module.scss` files directly in React components via TypeScript declarations (`src/declarations.d.ts`).
+
+#### Visual Fidelity
+- **Rarity-Based Theming**: Header and body backgrounds now match DIM's exact hex codes:
+  - Exotic: Header `#ceae33`, Body `#161204`
+  - Legendary: Header `#513065`, Body `#0e0811`
+  - Rare: Header `#5076a3`, Body `#0a0f15`
+  - Uncommon: Header `#366e42`, Body `#081109`
+  - Common: Header `#dcdcdc`, Body `#121212`
+- **320px Desktop Body Width**: Matches DIM's standard popup width.
+- **Right-Side Action Sidebar**: Lock, Tag, Compare, and Close buttons in a vertical strip.
+
+#### ItemDetailModal.tsx Refactor
+- **Layout Structure**: `styles.desktopPopup` (flex-row) with `styles.desktopPopupBody` (left) and `styles.desktopActions` (right).
+- **Header Component**: Uses `headerStyles.header`, `headerStyles.title`, `headerStyles.subtitle` for DIM-accurate typography.
+- **Rarity Class Binding**: Dynamic `styles[rarity]` and `headerStyles[rarity]` classes applied based on `tierType`.
+- **JIT Definition Fetching**: Preserved the Just-In-Time plug definition fetching for perks/mods.
+
+### 🔧 Technical Improvements
+
+#### Build System
+- **TypeScript Declarations**: Created `src/declarations.d.ts` to allow importing `*.module.scss` and `*.m.scss` files without type errors.
+- **SCSS Parsing Fix**: Renamed `common.m.scss` to `common.module.scss` and removed `@layer` wrapper to fix PostCSS parsing errors.
+- **Build Verification**: Confirmed `npm run build` passes with zero errors. Sass deprecation warnings are tool-level and safe to ignore.
+
+#### Code Cleanup
+- **Removed Unused Imports**: Cleaned up `BungieImage` and other unused imports from `ItemDetailModal.tsx`.
+- **Removed Unused Props**: Removed `characters` and `allItems` props from `ItemDetailModal` signature and `App.tsx` usage.
+- **Fixed Corrupted File**: Recovered `ItemDetailModal.tsx` from a malformed edit using `write_to_file` with full file overwrite.
+
+### Files Added
+- `src/styles/dim/_variables.scss`
+- `src/styles/dim/dim-ui/common.module.scss`
+- `src/components/inventory/styles/ItemPopup.module.scss`
+- `src/components/inventory/styles/ItemPopupHeader.module.scss`
+- `src/declarations.d.ts`
+
+### Files Modified
+- `src/components/inventory/ItemDetailModal.tsx` - Complete rewrite to use CSS Modules
+- `src/App.tsx` - Removed unused props from `ItemDetailModal` component call
+- `package.json` - Added `sass` dev dependency
+
 ## [0.11.0] - 2026-02-01
 
 ### Added
