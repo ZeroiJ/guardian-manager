@@ -7,6 +7,7 @@ import { calculateStats } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
 import { StatHashes } from '../../lib/destiny-constants';
+import { useDefinitions } from '../../hooks/useDefinitions';
 
 interface ItemDetailModalProps {
     item: any;
@@ -20,11 +21,39 @@ interface ItemDetailModalProps {
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     item,
     definition,
-    definitions,
+    definitions: initialDefinitions,
     characters,
     onClose
 }) => {
     if (!item || !definition) return null;
+
+    // --- Just-In-Time Definition Fetching for Perks ---
+    // 1. Extract all plug hashes from the item's sockets
+    const plugHashes = useMemo(() => {
+        const hashes = new Set<number>();
+        // Support both path structures just in case
+        const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
+
+        if (liveSockets) {
+            for (const s of liveSockets) {
+                if (s.plugHash) hashes.add(s.plugHash);
+            }
+        }
+        return Array.from(hashes);
+    }, [item]);
+
+    // 2. Fetch definitions for these plugs
+    // Note: optimization - we could filter out hashes we already have in initialDefinitions
+    const { definitions: plugDefinitions } = useDefinitions(
+        'DestinyInventoryItemDefinition',
+        plugHashes
+    );
+
+    // 3. Merge definitions (memoized to prevent infinite loops if used in dependencies)
+    const definitions = useMemo(() => ({
+        ...initialDefinitions,
+        ...plugDefinitions
+    }), [initialDefinitions, plugDefinitions]);
 
     // --- Logic ---
     const { state } = item;
@@ -54,7 +83,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     // Class Icons Placeholder
     const classIcons: Record<number, string> = { 0: 'T', 1: 'H', 2: 'W' };
-
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
