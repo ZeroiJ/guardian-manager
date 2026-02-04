@@ -132,20 +132,10 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         style={{ background: `linear-gradient(to right, ${rarityColor}, transparent)` }}
                     >
                         <div className="flex items-center gap-4 z-10">
-                            {/* Intrinsic Icon (Frame/Exotic perk) */}
-                            {sockets.intrinsic && (
-                                <div className="w-12 h-12 rounded-full border-2 border-yellow-500 bg-black overflow-hidden shadow-lg">
-                                    <BungieImage
-                                        src={sockets.intrinsic.plugDef?.displayProperties?.icon}
-                                        className="w-full h-full"
-                                    />
-                                </div>
-                            )}
-                            {!sockets.intrinsic && (
-                                <div className="w-12 h-12 border-2 border-white/20 shadow-lg bg-black">
-                                    <BungieImage src={definition.displayProperties?.icon} className="w-full h-full" />
-                                </div>
-                            )}
+                            {/* Item Icon */}
+                            <div className="w-12 h-12 border-2 border-white/20 shadow-lg bg-black">
+                                <BungieImage src={definition.displayProperties?.icon} className="w-full h-full" />
+                            </div>
                             <div>
                                 <h1 className="text-2xl font-bold uppercase drop-shadow-md">{definition.displayProperties.name}</h1>
                                 <div className="text-sm text-white/80">{definition.itemTypeDisplayName}</div>
@@ -197,33 +187,57 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         <div>
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3>
 
-                            {(sockets.perks.length > 0 || sockets.mods.length > 0) ? (
-                                <div className="space-y-4">
-                                    {/* Weapon Perks (Barrels, Mags, Traits) */}
-                                    {sockets.perks.length > 0 && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {sockets.perks.map(socket => (
+                            {(sockets.intrinsic || sockets.perks.length > 0 || sockets.mods.length > 0) ? (
+                                <div className="space-y-6">
+
+                                    {/* Row A: Intrinsics (Frame/Exotic) */}
+                                    {sockets.intrinsic && (
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12">
                                                 <ItemSocket
-                                                    key={socket.socketIndex}
-                                                    plugDef={socket.plugDef}
-                                                    categoryHash={socket.categoryHash}
-                                                    isActive={socket.isEnabled}
+                                                    plugDef={sockets.intrinsic.plugDef}
+                                                    categoryHash={sockets.intrinsic.categoryHash}
+                                                    isActive={sockets.intrinsic.isEnabled}
                                                 />
-                                            ))}
+                                            </div>
+                                            <div className="flex flex-col justify-center">
+                                                <span className="font-bold text-sm text-white">{sockets.intrinsic.plugDef.displayProperties.name}</span>
+                                                <span className="text-xs text-gray-400 uppercase tracking-wider">{sockets.intrinsic.plugDef.itemTypeDisplayName || 'Intrinsic'}</span>
+                                            </div>
                                         </div>
                                     )}
 
-                                    {/* Armor/Weapon Mods */}
+                                    {/* Row B: Weapon Perks (Barrels, Mags, Traits) */}
+                                    {sockets.perks.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-[10px] uppercase font-bold text-gray-600">Weapon Perks</h4>
+                                            <div className="flex flex-wrap gap-3">
+                                                {sockets.perks.map(socket => (
+                                                    <ItemSocket
+                                                        key={socket.socketIndex}
+                                                        plugDef={socket.plugDef}
+                                                        categoryHash={socket.categoryHash}
+                                                        isActive={socket.isEnabled}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Row C: Mods */}
                                     {sockets.mods.length > 0 && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {sockets.mods.map(socket => (
-                                                <ItemSocket
-                                                    key={socket.socketIndex}
-                                                    plugDef={socket.plugDef}
-                                                    categoryHash={socket.categoryHash}
-                                                    isActive={socket.isEnabled}
-                                                />
-                                            ))}
+                                        <div className="space-y-2 border-t border-white/5 pt-4">
+                                            <h4 className="text-[10px] uppercase font-bold text-gray-600">Mods</h4>
+                                            <div className="flex flex-wrap gap-3">
+                                                {sockets.mods.map(socket => (
+                                                    <ItemSocket
+                                                        key={socket.socketIndex}
+                                                        plugDef={socket.plugDef}
+                                                        categoryHash={socket.categoryHash}
+                                                        isActive={socket.isEnabled}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
