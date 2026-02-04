@@ -1,0 +1,160 @@
+@use '../../../styles/dim/variables' as *;
+@use 'sass:math';
+
+$iconOverlayScale: math.div(65, 96);
+
+.header {
+    composes: resetButton from '../../../styles/dim/dim-ui/common.module.scss';
+    display: block;
+    text-align: left;
+    width: 100%;
+    font-size: 15px;
+    line-height: 17px;
+    letter-spacing: -0.02em;
+    padding: 10px;
+
+    background-color: #555;
+    color: #eee;
+
+    &:has(.iconOverlay) {
+        padding-left: 5px + 28px * $iconOverlayScale;
+    }
+}
+
+.armory {
+    @include interactive($hover: true, $focus: true) {
+        outline: none;
+        cursor: pointer;
+
+        h1 {
+            text-decoration: underline;
+        }
+    }
+}
+
+.title {
+    font-size: 21px !important;
+    line-height: 24px;
+    text-decoration: none;
+    margin: 0 !important;
+    padding: 0;
+
+    @include destiny-header;
+
+    // Prevent the title running into the sheet close button
+    @include phone-portrait {
+        margin: 0 32px 0 0 !important;
+    }
+}
+
+.subtitle {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.type,
+.details {
+    display: flex;
+    align-self: flex-end;
+    align-items: center;
+}
+
+.type {
+    flex: 1;
+}
+
+.elementIcon {
+    height: 16px;
+    width: 16px;
+}
+
+.rare,
+.common,
+.exotic {
+    .elementIcon {
+        filter: drop-shadow(0 0 1px #222) drop-shadow(0 0 0 #222);
+    }
+}
+
+.itemType {
+    opacity: 0.7;
+}
+
+.power {
+    margin: 0 4px 0 2px;
+}
+
+.masterwork {
+    background-image: url('https://app.destinyitemmanager.com/static/masterworkHeader.png');
+    background-repeat: repeat-x;
+    background-size: cover;
+    background-position: top center;
+
+    &.exotic {
+        background-image: url('https://app.destinyitemmanager.com/static/exoticMasterworkHeader.png');
+    }
+}
+
+.common {
+    background-color: $common;
+}
+
+.common,
+.exotic {
+    color: #222;
+
+    /* stylelint-disable-next-line no-descending-specificity */
+    a {
+        color: #222;
+    }
+}
+
+.uncommon {
+    background-color: $uncommon;
+}
+
+.rare {
+    background-color: $rare;
+}
+
+.pursuit {
+    background-color: #333;
+    color: #eee;
+
+    /* stylelint-disable-next-line no-descending-specificity */
+    a {
+        color: #eee;
+    }
+}
+
+.legendary {
+    background-color: $legendary;
+}
+
+.exotic {
+    background-color: $exotic;
+
+    .itemType {
+        opacity: 0.9;
+    }
+}
+
+.iconOverlay {
+    composes: flexColumn from '../../../styles/dim/dim-ui/common.module.scss';
+    position: absolute;
+    box-sizing: border-box;
+    align-items: center;
+    top: 0;
+    left: 0;
+    width: math.round(28px * $iconOverlayScale);
+    height: math.round(96px * $iconOverlayScale);
+    background-size: cover;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    padding-top: math.round(3px * $iconOverlayScale);
+
+    >img {
+        width: math.round(22px * $iconOverlayScale);
+    }
+}
