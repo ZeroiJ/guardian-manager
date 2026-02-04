@@ -18,7 +18,7 @@ export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
-    const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any, referenceElement: HTMLElement | null } | null>(null);
 
     // Dnd Kit Sensors
     const sensors = useSensors(
@@ -98,8 +98,8 @@ export default function App() {
         });
     };
 
-    const handleItemClick = (item: any, definition: any) => {
-        setSelectedItem({ item, definition });
+    const handleItemClick = (item: any, definition: any, event: React.MouseEvent) => {
+        setSelectedItem({ item, definition, referenceElement: event.currentTarget as HTMLElement });
     };
 
     if (loading) {
@@ -347,6 +347,7 @@ export default function App() {
                         item={selectedItem.item}
                         definition={selectedItem.definition}
                         definitions={definitions}
+                        referenceElement={selectedItem.referenceElement}
                         onClose={() => setSelectedItem(null)}
                     />
                 )}

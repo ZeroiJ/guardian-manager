@@ -9,7 +9,7 @@ interface BucketRowProps {
     equipment: any[];
     inventory: any[];
     definitions: Record<string, any>;
-    onItemClick?: (item: any, definition: any) => void;
+    onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
 
@@ -38,7 +38,7 @@ const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inv
                         <InventoryItem
                             item={equippedItem}
                             definition={definitions[equippedItem.itemHash]}
-                            onClick={() => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash])}
+                            onClick={(e) => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash], e)}
                         />
                     )}
                 </div>
@@ -55,7 +55,7 @@ const BucketRow: React.FC<BucketRowProps> = ({ label, bucketHash, equipment, inv
                             <InventoryItem
                                 item={item}
                                 definition={definitions[item.itemHash]}
-                                onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
+                                onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
                             />
                         )}
                     </div>
@@ -74,7 +74,7 @@ interface CharacterColumnProps {
     definitions: Record<string, any>;
     artifactPower: number;
     onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
-    onItemClick?: (item: any, definition: any) => void;
+    onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
 export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equipment, inventory, postmaster, maxPower, definitions, artifactPower, onItemClick }) => {
@@ -165,7 +165,7 @@ export const CharacterColumn: React.FC<CharacterColumnProps> = ({ character, equ
                                     <InventoryItem
                                         item={item}
                                         definition={definitions[item.itemHash]}
-                                        onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
+                                        onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
                                     />
                                 </div>
                             ))}

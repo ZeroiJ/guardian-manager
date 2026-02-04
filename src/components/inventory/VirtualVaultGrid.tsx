@@ -6,11 +6,11 @@ interface VirtualVaultGridProps {
     definitions: Record<string, any>;
     className?: string;
     onItemContextMenu?: (e: React.MouseEvent, item: any, definition: any) => void;
-    onItemClick?: (item: any, definition: any) => void;
+    onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
 // Helper to group items by sub-category (e.g. "Auto Rifle")
-const SubCategorySection: React.FC<{ title: string, items: any[], definitions: Record<string, any>, onItemClick?: (item: any, def: any) => void }> = ({ title, items, definitions, onItemClick }) => {
+const SubCategorySection: React.FC<{ title: string, items: any[], definitions: Record<string, any>, onItemClick?: (item: any, def: any, event: React.MouseEvent) => void }> = ({ title, items, definitions, onItemClick }) => {
     if (items.length === 0) return null;
 
     // 1. Group by specific item type (e.g. "Hand Cannon")
@@ -39,7 +39,7 @@ const SubCategorySection: React.FC<{ title: string, items: any[], definitions: R
                                     <InventoryItem
                                         item={item}
                                         definition={definitions[item.itemHash]}
-                                        onClick={() => onItemClick && onItemClick(item, definitions[item.itemHash])}
+                                        onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
                                     />
                                 </div>
                             ))}

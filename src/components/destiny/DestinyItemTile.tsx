@@ -7,7 +7,7 @@ import { getElementIcon } from './ElementIcons';
 interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
     definition: any; // TODO: Define specific Bungie Definition Interface
-    onClick?: () => void;
+    onClick?: (event: React.MouseEvent) => void;
     onContextMenu?: (e: React.MouseEvent) => void;
     className?: string;
     isNew?: boolean; // New prop for "New Item" glow

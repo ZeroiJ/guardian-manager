@@ -4,7 +4,7 @@ import { RARITY_COLORS } from '../data/constants';
 interface InventoryItemProps {
     item: any;
     definition: any;
-    onClick?: () => void;
+    onClick?: (event: React.MouseEvent) => void;
 }
 
 export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {

@@ -8,6 +8,14 @@ import { ItemSocket } from '../item/ItemSocket';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes } from '../../lib/destiny-constants';
 import clsx from 'clsx';
+import {
+    useFloating,
+    offset,
+    flip,
+    shift,
+    autoUpdate,
+    FloatingPortal
+} from '@floating-ui/react';
 // Import CSS Modules
 import styles from './styles/ItemPopup.module.scss';
 import headerStyles from './styles/ItemPopupHeader.module.scss';
@@ -16,6 +24,7 @@ interface ItemDetailModalProps {
     item: any;
     definition: any;
     definitions: Record<string, any>;
+    referenceElement: HTMLElement | null;
     onClose: () => void;
 }
 
@@ -33,9 +42,22 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     item,
     definition,
     definitions: initialDefinitions,
+    referenceElement,
     onClose
 }) => {
-    if (!item || !definition) return null;
+    // --- Floating UI Setup ---
+    const { refs, floatingStyles } = useFloating({
+        elements: { reference: referenceElement },
+        placement: 'right-start',
+        middleware: [
+            offset(10),
+            flip({ fallbackPlacements: ['left-start', 'bottom', 'top'] }),
+            shift({ padding: 8 })
+        ],
+        whileElementsMounted: autoUpdate
+    });
+
+    if (!item || !definition || !referenceElement) return null;
 
     // --- JIT Definitions ---
     const plugHashes = useMemo(() => {
@@ -64,18 +86,26 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const ElementIconComponent = getElementIcon(damageTypeHash);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-            {/* DIM Layout using SCSS Modules */}
+        <FloatingPortal>
+            {/* Backdrop - click to close */}
             <div
+                className="fixed inset-0 z-[100] bg-black/30"
+                onClick={onClose}
+            />
+
+            {/* Floating Popup */}
+            <div
+                ref={refs.setFloating}
+                style={floatingStyles}
                 className={clsx(
+                    'z-[101]',
                     'item-popup',
                     styles.movePopupDialog,
-                    styles[rarity], // e.g. styles.exotic
+                    styles[rarity],
                     styles.desktopPopupRoot
                 )}
                 role="dialog"
                 aria-modal="true"
-                onClick={e => e.stopPropagation()}
             >
                 <div className={styles.desktopPopup}>
 
@@ -100,7 +130,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         </div>
 
                         {/* CONTENT (Custom Tailwind for internal layout to fit DIM shell) */}
-                        <div className="p-2 space-y-4 overflow-y-auto max-h-[80vh] bg-[#111] text-[#eee]">
+                        <div className="p-2 space-y-4 overflow-y-auto max-h-[60vh] bg-[#111] text-[#eee]">
 
                             {/* TABS Placeholder */}
                             <div className="flex border-b border-white/10 pb-0">
@@ -213,6 +243,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </FloatingPortal>
     );
 };
