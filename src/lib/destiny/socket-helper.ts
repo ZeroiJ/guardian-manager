@@ -67,6 +67,14 @@ export function categorizeSockets(
     const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
     const socketCategories = definition?.sockets?.socketCategories;
 
+    console.log('[DEBUG] categorizeSockets:', {
+        hasItem: !!item,
+        hasLiveSockets: !!liveSockets,
+        liveSocketsCount: liveSockets?.length,
+        hasSocketCategories: !!socketCategories,
+        socketCategoriesCount: socketCategories?.length
+    });
+
     if (!liveSockets || !socketCategories) return result;
 
     // Build socket index → category hash map
@@ -77,36 +85,63 @@ export function categorizeSockets(
         }
     }
 
+    console.log('[DEBUG] Socket Categories:', Object.entries(socketIndexToCategory).map(([idx, hash]) =>
+        `[${idx}] = ${hash}`
+    ));
+
     // Process each socket
     liveSockets.forEach((socket: any, index: number) => {
         const categoryHash = socketIndexToCategory[index];
 
         // Skip if no category
-        if (!categoryHash) return;
+        if (!categoryHash) {
+            console.log(`[DEBUG] Socket ${index}: No category`);
+            return;
+        }
 
         // Skip invisible sockets
-        if (socket.isVisible === false) return;
+        if (socket.isVisible === false) {
+            console.log(`[DEBUG] Socket ${index}: Not visible`);
+            return;
+        }
 
         // Must have a plug hash
         const plugHash = socket.plugHash;
-        if (!plugHash) return;
+        if (!plugHash) {
+            console.log(`[DEBUG] Socket ${index}: No plugHash`);
+            return;
+        }
 
         // Skip empty plug hashes
-        if (EMPTY_PLUG_HASHES.has(plugHash)) return;
+        if (EMPTY_PLUG_HASHES.has(plugHash)) {
+            console.log(`[DEBUG] Socket ${index}: Empty plug hash ${plugHash}`);
+            return;
+        }
 
         // Get plug definition
         const plugDef = definitions[plugHash];
 
         // Must have an icon
-        if (!plugDef?.displayProperties?.icon) return;
+        if (!plugDef?.displayProperties?.icon) {
+            console.log(`[DEBUG] Socket ${index}: No icon (plugHash: ${plugHash}, hasDef: ${!!plugDef})`);
+            return;
+        }
 
         // Skip cosmetic plugs (shaders, mementos)
         const plugCategoryHash = plugDef?.plug?.plugCategoryHash;
-        if (COSMETIC_PLUG_CATEGORIES.has(plugCategoryHash)) return;
+        if (COSMETIC_PLUG_CATEGORIES.has(plugCategoryHash)) {
+            console.log(`[DEBUG] Socket ${index}: Cosmetic plug`);
+            return;
+        }
 
         // Skip ornaments
         const plugCategoryIdentifier = plugDef?.plug?.plugCategoryIdentifier || '';
-        if (plugCategoryIdentifier.includes('skin')) return;
+        if (plugCategoryIdentifier.includes('skin')) {
+            console.log(`[DEBUG] Socket ${index}: Ornament/skin`);
+            return;
+        }
+
+        console.log(`[DEBUG] Socket ${index}: ACCEPTED (categoryHash: ${categoryHash}, name: ${plugDef?.displayProperties?.name})`);
 
         // Create resolved socket
         const resolvedSocket: ResolvedSocket = {
@@ -131,6 +166,12 @@ export function categorizeSockets(
             // Mods: Weapon/Armor mods
             result.mods.push(resolvedSocket);
         }
+    });
+
+    console.log('[DEBUG] Result:', {
+        hasIntrinsic: !!result.intrinsic,
+        perksCount: result.perks.length,
+        modsCount: result.mods.length
     });
 
     return result;
