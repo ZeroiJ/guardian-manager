@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
-import { X, Lock, Unlock, Tag } from 'lucide-react';
+import { X, Lock, Unlock, Tag, RefreshCw, Maximize2 } from 'lucide-react';
 import { BungieImage } from '../BungieImage';
 import { getElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
-import { StatHashes } from '../../lib/destiny-constants';
 import { useDefinitions } from '../../hooks/useDefinitions';
+import { StatHashes } from '../../lib/destiny-constants';
 
 interface ItemDetailModalProps {
     item: any;
@@ -27,230 +27,197 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 }) => {
     if (!item || !definition) return null;
 
-    // --- Just-In-Time Definition Fetching for Perks ---
-    // 1. Extract all plug hashes from the item's sockets
+    // --- JIT Definitions ---
     const plugHashes = useMemo(() => {
         const hashes = new Set<number>();
-        // Support both path structures just in case
         const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
-
         if (liveSockets) {
-            for (const s of liveSockets) {
-                if (s.plugHash) hashes.add(s.plugHash);
-            }
+            for (const s of liveSockets) if (s.plugHash) hashes.add(s.plugHash);
         }
         return Array.from(hashes);
     }, [item]);
 
-    // 2. Fetch definitions for these plugs
-    // Note: optimization - we could filter out hashes we already have in initialDefinitions
-    const { definitions: plugDefinitions } = useDefinitions(
-        'DestinyInventoryItemDefinition',
-        plugHashes
-    );
-
-    // 3. Merge definitions (memoized to prevent infinite loops if used in dependencies)
-    const definitions = useMemo(() => ({
-        ...initialDefinitions,
-        ...plugDefinitions
-    }), [initialDefinitions, plugDefinitions]);
+    const { definitions: plugDefinitions } = useDefinitions('DestinyInventoryItemDefinition', plugHashes);
+    const definitions = useMemo(() => ({ ...initialDefinitions, ...plugDefinitions }), [initialDefinitions, plugDefinitions]);
 
     // --- Logic ---
     const { state } = item;
-    // const isMasterwork = (state & 4) !== 0; // Keeping for future reference if needed
     const isLocked = (state & 1) !== 0;
     const power = item.instanceData?.primaryStat?.value || item.primaryStat?.value;
     const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
     const tierType = definition.inventory?.tierType || 0;
+    const itemTypeDisplayName = definition.itemTypeDisplayName;
 
-    // Rarity Color
-    const rarityColor = tierType === 6 ? '#ceae33' // Exotic
-        : tierType === 5 ? '#522f65' // Legendary
-            : tierType === 4 ? '#5076a3' // Rare
-                : '#333';
+    // DIM-Exact Colors
+    const isExotic = tierType === 6;
+    const isLegendary = tierType === 5;
+    const isRare = tierType === 4;
+    const isUncommon = tierType === 3;
 
-    // Calculate stats using the new stat engine
-    const calculatedStats = useMemo(() => {
-        return calculateStats(item, definition, definitions);
-    }, [item, definition, definitions]);
+    // Header Colors
+    const headerBg = isExotic ? '#ceae33'
+        : isLegendary ? '#522f65'
+            : isRare ? '#5076a3'
+                : isUncommon ? '#366f3c' : '#333';
 
+    // Body Backgrounds (Dark variants)
+    const bodyBg = isExotic ? '#161204'
+        : isLegendary ? '#0e0811'
+            : isRare ? '#0a0f15'
+                : '#121212';
+
+    const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
+    const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
     const ElementIconComponent = getElementIcon(damageTypeHash);
 
-    // Categorize sockets using the new socket helper
-    const sockets = useMemo(() => {
-        return categorizeSockets(item, definition, definitions);
-    }, [item, definition, definitions]);
-
-    // Class Icons Placeholder
+    // Class Icons
     const classIcons: Record<number, string> = { 0: 'T', 1: 'H', 2: 'W' };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-            {/* STRICT DOM OVERRIDE */}
-            <div className="flex h-[600px] w-[800px] bg-[#15171e] text-white overflow-hidden rounded-lg border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* DIM Layout: Flex Row (Body | Actions) */}
+            <div className="flex flex-row shadow-2xl rounded overflow-hidden" onClick={e => e.stopPropagation()}>
 
-                {/* LEFT SIDEBAR (Actions) */}
-                <div className="w-[220px] bg-[#090a0c] flex flex-col p-4 gap-4 border-r border-white/5 shrink-0">
-                    <div className="space-y-2">
-                        <button className="w-full flex items-center gap-3 px-3 py-2 bg-[#1a1a1a] hover:bg-[#252525] rounded transition-colors text-sm text-gray-300">
-                            <Tag size={16} /> <span>Tag Item</span>
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-3 py-2 bg-[#1a1a1a] hover:bg-[#252525] rounded transition-colors text-sm text-gray-300">
-                            {isLocked ? <Lock size={16} className="text-yellow-400" /> : <Unlock size={16} />}
-                            <span>{isLocked ? 'Locked' : 'Unlocked'}</span>
-                        </button>
-                    </div>
+                {/* --- BODY (320px) --- */}
+                <div className="w-[320px] flex flex-col" style={{ backgroundColor: bodyBg }}>
 
-                    <div className="border-t border-white/10 pt-4">
-                        <h4 className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-wider">Equip On</h4>
-                        <div className="grid grid-cols-3 gap-2">
-                            {characters.slice(0, 3).map(char => (
-                                <button key={char.characterId} className="h-8 bg-[#1a1a1a] rounded flex items-center justify-center text-xs font-bold hover:bg-[#333]">
-                                    {classIcons[char.classType]}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="border-t border-white/10 pt-4">
-                        <h4 className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-wider">Pull To</h4>
-                        <div className="grid grid-cols-3 gap-2">
-                            {characters.slice(0, 3).map(char => (
-                                <button key={char.characterId} className="h-8 bg-[#1a1a1a] rounded flex items-center justify-center text-xs font-bold hover:bg-[#333]">
-                                    {classIcons[char.classType]}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* RIGHT CONTENT (Data) */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    {/* HEADER: Name, Power, Element */}
+                    {/* 1. HEADER */}
                     <div
-                        className="p-4 relative flex items-center justify-between"
-                        style={{ background: `linear-gradient(to right, ${rarityColor}, transparent)` }}
+                        className="p-3 text-white relative min-h-[60px] flex flex-col justify-center"
+                        style={{ backgroundColor: headerBg }}
                     >
-                        <div className="flex items-center gap-4 z-10">
-                            {/* Item Icon */}
-                            <div className="w-12 h-12 border-2 border-white/20 shadow-lg bg-black">
-                                <BungieImage src={definition.displayProperties?.icon} className="w-full h-full" />
+                        {/* Top: Name */}
+                        <h1 className="text-xl font-bold uppercase leading-tight drop-shadow-md pr-6">
+                            {definition.displayProperties.name}
+                        </h1>
+
+                        {/* Bottom: Subtitle Row */}
+                        <div className="flex items-center justify-between mt-1 text-sm font-medium opacity-90">
+                            {/* Type | Ammo | Breaker */}
+                            <div className="flex items-center gap-2">
+                                <span>{itemTypeDisplayName}</span>
+                                {definition.equippingBlock?.ammoType === 1 && <span className="text-white">Primary</span>}
+                                {definition.equippingBlock?.ammoType === 2 && <span className="text-green-400">Special</span>}
+                                {definition.equippingBlock?.ammoType === 3 && <span className="text-purple-400">Heavy</span>}
                             </div>
-                            <div>
-                                <h1 className="text-2xl font-bold uppercase drop-shadow-md">{definition.displayProperties.name}</h1>
-                                <div className="text-sm text-white/80">{definition.itemTypeDisplayName}</div>
+
+                            {/* Power | Element */}
+                            <div className="flex items-center gap-1">
+                                {power && <span className="text-lg font-bold bg-black/20 px-1 rounded">{power}</span>}
+                                {ElementIconComponent && <ElementIconComponent size={16} />}
                             </div>
                         </div>
-
-                        <div className="flex items-center gap-2 z-10">
-                            {power && <span className="text-2xl font-bold text-yellow-400 font-mono">{power}</span>}
-                            {ElementIconComponent && <ElementIconComponent size={24} />}
-                        </div>
-
-                        {/* Close button inside header */}
-                        <button onClick={onClose} className="absolute top-2 right-2 p-1 hover:bg-black/20 rounded z-20">
-                            <X size={20} />
-                        </button>
                     </div>
 
-                    {/* SCROLLABLE BODY */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[#15171e]">
+                    {/* 2. CONTENT */}
+                    <div className="p-2 space-y-4 overflow-y-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-white/10">
 
-                        {/* STATS SECTION */}
-                        <div className="space-y-1">
+                        {/* TABS (Placeholder) */}
+                        <div className="flex border-b border-white/10 pb-0">
+                            <button className="px-4 py-2 text-sm font-bold border-b-2 border-orange-500 text-white">Overview</button>
+                            <button className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-gray-200">Triage</button>
+                        </div>
+
+                        {/* TAGS / NOTES (Quick Action) */}
+                        <div className="bg-[#111] border border-white/10 rounded p-2 flex items-center gap-2 text-gray-400 hover:text-white cursor-pointer transition-colors">
+                            <RefreshCw size={14} /> <span>Add notes</span>
+                        </div>
+
+                        {/* STATS */}
+                        <div className="bg-[#111] p-2 rounded">
                             {calculatedStats.length > 0 ? calculatedStats.map(stat => (
-                                <div key={stat.statHash} className="flex items-center gap-3 text-xs">
-                                    <div className="w-24 text-right text-gray-400 truncate">{stat.label}</div>
-                                    <div className="w-8 text-right font-mono font-bold">
+                                <div key={stat.statHash} className="flex items-center gap-2 mb-1 last:mb-0">
+                                    <div className="w-24 text-right text-xs text-gray-400 truncate">{stat.label}</div>
+                                    <div className="w-6 text-right text-xs font-bold text-white tabular-nums">
                                         {stat.displayValue}
-                                        {stat.bonusValue > 0 && (
-                                            <span className="text-green-400 text-[10px] ml-0.5">+{stat.bonusValue}</span>
-                                        )}
                                     </div>
-                                    {stat.statHash === StatHashes.RecoilDirection ? (
-                                        <div className="flex-1"><RecoilStat value={stat.displayValue} /></div>
-                                    ) : stat.isBar ? (
-                                        <div className="flex-1 h-3 bg-gray-700/50 rounded-sm overflow-hidden">
+                                    <div className="flex-1 h-3 bg-gray-700/30 rounded-full overflow-hidden flex items-center">
+                                        {stat.statHash === StatHashes.RecoilDirection ? (
+                                            <div className="w-full"><RecoilStat value={stat.displayValue} /></div>
+                                        ) : stat.isBar ? (
                                             <div
                                                 className="h-full bg-white"
-                                                style={{ width: `${Math.min(100, (stat.displayValue / stat.maximumValue) * 100)}%` }}
+                                                style={{
+                                                    width: `${Math.min(100, (stat.displayValue / stat.maximumValue) * 100)}%`,
+                                                    backgroundColor: stat.bonusValue > 0 ? '#4ade80' : 'white'
+                                                }}
                                             />
-                                        </div>
-                                    ) : (
-                                        <div className="flex-1" />
-                                    )}
+                                        ) : null}
+                                    </div>
                                 </div>
-                            )) : <div className="text-gray-500 italic">No stats available</div>}
+                            )) : <div className="text-gray-500 italic text-xs p-2">No stats</div>}
                         </div>
 
-                        {/* SEPARATOR */}
-                        <div className="h-px bg-white/10 my-2" />
+                        {/* SOCKETS GRID */}
+                        <div className="space-y-3">
 
-                        {/* PERKS SECTION */}
-                        <div>
-                            {/* <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3> */}
-
-                            {(sockets.intrinsic || sockets.perks.length > 0 || sockets.mods.length > 0) ? (
-                                <div className="space-y-6">
-
-                                    {/* Row A: Intrinsics (Frame/Exotic) */}
-                                    {sockets.intrinsic && (
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12">
-                                                <ItemSocket
-                                                    plugDef={sockets.intrinsic.plugDef}
-                                                    categoryHash={sockets.intrinsic.categoryHash}
-                                                    isActive={sockets.intrinsic.isEnabled}
-                                                />
-                                            </div>
-                                            <div className="flex flex-col justify-center">
-                                                <span className="font-bold text-sm text-white">{sockets.intrinsic.plugDef.displayProperties.name}</span>
-                                                <span className="text-xs text-gray-400 uppercase tracking-wider">{sockets.intrinsic.plugDef.itemTypeDisplayName || 'Intrinsic'}</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Row B: Weapon Perks (Barrels, Mags, Traits) */}
-                                    {sockets.perks.length > 0 && (
-                                        <div className="space-y-2">
-                                            <h4 className="text-[10px] uppercase font-bold text-gray-600">Weapon Perks</h4>
-                                            <div className="flex flex-wrap gap-3">
-                                                {sockets.perks.map(socket => (
-                                                    <ItemSocket
-                                                        key={socket.socketIndex}
-                                                        plugDef={socket.plugDef}
-                                                        categoryHash={socket.categoryHash}
-                                                        isActive={socket.isEnabled}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Row C: Mods */}
-                                    {sockets.mods.length > 0 && (
-                                        <div className="space-y-2 border-t border-white/5 pt-4">
-                                            <h4 className="text-[10px] uppercase font-bold text-gray-600">Mods</h4>
-                                            <div className="flex flex-wrap gap-3">
-                                                {sockets.mods.map(socket => (
-                                                    <ItemSocket
-                                                        key={socket.socketIndex}
-                                                        plugDef={socket.plugDef}
-                                                        categoryHash={socket.categoryHash}
-                                                        isActive={socket.isEnabled}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                            {/* Row A: Intrinsic */}
+                            {sockets.intrinsic && (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 shrink-0">
+                                        <ItemSocket
+                                            plugDef={sockets.intrinsic.plugDef}
+                                            categoryHash={sockets.intrinsic.categoryHash}
+                                            isActive={true}
+                                        />
+                                    </div>
+                                    <div className="leading-tight">
+                                        <div className="font-bold text-sm text-[#e2bf36]">{sockets.intrinsic.plugDef.displayProperties.name}</div>
+                                        <div className="text-xs text-gray-400">{sockets.intrinsic.plugDef.itemTypeDisplayName}</div>
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="text-gray-500 italic text-sm">No displayable perks</div>
+                            )}
+
+                            {/* Row B: Perks */}
+                            {sockets.perks.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {sockets.perks.map(socket => (
+                                        <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Row C: Mods */}
+                            {sockets.mods.length > 0 && (
+                                <div className="flex gap-2 pt-2 border-t border-white/10">
+                                    {sockets.mods.map(socket => (
+                                        <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
+                                    ))}
+                                </div>
                             )}
                         </div>
 
                     </div>
                 </div>
+
+                {/* --- SIDEBAR ACTIONS (Right Side) --- */}
+                <div className="w-[48px] bg-[#090909] flex flex-col items-center py-2 gap-2 border-l border-white/10">
+                    {/* Lock / Unlock */}
+                    <button
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded"
+                        title={isLocked ? "Unlock" : "Lock"}
+                    >
+                        {isLocked ? <Lock size={20} className="text-[#e2bf36]" /> : <Unlock size={20} />}
+                    </button>
+
+                    {/* Tag */}
+                    <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded">
+                        <Tag size={20} />
+                    </button>
+
+                    {/* Compare */}
+                    <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded">
+                        <Maximize2 size={20} />
+                    </button>
+
+                    <div className="w-8 h-px bg-white/10 my-1" />
+
+                    {/* Close */}
+                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-red-400 hover:bg-red-500/20 rounded">
+                        <X size={24} />
+                    </button>
+                </div>
+
             </div>
         </div>
     );
