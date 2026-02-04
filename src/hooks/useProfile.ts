@@ -72,6 +72,7 @@ export function useProfile() {
         const instanceData = bungieProfile.itemComponents?.instances?.data || {};
         const statsData = bungieProfile.itemComponents?.stats?.data || {};
         const socketsData = bungieProfile.itemComponents?.sockets?.data || {};
+        console.log('[DEBUG] useProfile Sockets Data Keys:', Object.keys(socketsData).length);
 
         // Extract Artifact Power
         const artifactPower = bungieProfile.profileProgression?.data?.seasonalArtifact?.powerBonus || 0;

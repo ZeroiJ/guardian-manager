@@ -67,6 +67,15 @@ export function categorizeSockets(
     const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
     const socketCategories = definition?.sockets?.socketCategories;
 
+    console.log('[DEBUG] categorizeSockets:', {
+        hasItem: !!item,
+        itemId: item?.itemInstanceId,
+        hasLiveSockets: !!liveSockets,
+        liveSocketsCount: liveSockets?.length,
+        hasSocketCategories: !!socketCategories,
+        socketCategoriesCount: socketCategories?.length
+    });
+
     if (!liveSockets || !socketCategories) return result;
 
     // Build socket index → category hash map
