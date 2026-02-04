@@ -165,7 +165,7 @@ app.get('/api/profile', async (c) => {
     const { membershipType, membershipId } = destinyMembership
     console.log(`[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`);
 
-    const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,1200`
+    const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,302,305,1200`
     console.log(`[Profile API] Fetching profile data from: ${profileUrl}`);
 
     const profileRes = await fetch(profileUrl, {
