@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { X, Lock, Unlock, Tag, RefreshCw, Maximize2 } from 'lucide-react';
-import { BungieImage } from '../BungieImage';
 import { getElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats } from '../../lib/destiny/stat-manager';
@@ -13,8 +12,6 @@ interface ItemDetailModalProps {
     item: any;
     definition: any;
     definitions: Record<string, any>;
-    characters: any[];
-    allItems: any[];
     onClose: () => void;
 }
 
@@ -22,7 +19,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     item,
     definition,
     definitions: initialDefinitions,
-    characters,
     onClose
 }) => {
     if (!item || !definition) return null;
@@ -69,9 +65,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
     const ElementIconComponent = getElementIcon(damageTypeHash);
-
-    // Class Icons
-    const classIcons: Record<number, string> = { 0: 'T', 1: 'H', 2: 'W' };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>

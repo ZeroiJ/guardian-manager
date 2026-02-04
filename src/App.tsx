@@ -347,8 +347,6 @@ export default function App() {
                         item={selectedItem.item}
                         definition={selectedItem.definition}
                         definitions={definitions}
-                        characters={characters}
-                        allItems={profile?.items || []}
                         onClose={() => setSelectedItem(null)}
                     />
                 )}
