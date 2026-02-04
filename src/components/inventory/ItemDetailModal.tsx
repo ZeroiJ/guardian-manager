@@ -183,9 +183,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             )) : <div className="text-gray-500 italic">No stats available</div>}
                         </div>
 
+                        {/* SEPARATOR */}
+                        <div className="h-px bg-white/10 my-2" />
+
                         {/* PERKS SECTION */}
                         <div>
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3>
+                            {/* <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/10 pb-1">Perks & Mods</h3> */}
 
                             {(sockets.intrinsic || sockets.perks.length > 0 || sockets.mods.length > 0) ? (
                                 <div className="space-y-6">

@@ -29,14 +29,19 @@ export const ItemSocket: React.FC<ItemSocketProps> = ({
         return null;
     }
 
-    // Check if this is an intrinsic/exotic perk
-    const isIntrinsic = categoryHash === SocketCategoryHashes.IntrinsicTraits ||
+    // Check if this is an intrinsic/exotic perk (Frame)
+    // 3956125808 = Intrinsic / Frame
+    const isIntrinsic = categoryHash === 3956125808 ||
+        categoryHash === SocketCategoryHashes.IntrinsicTraits ||
         categoryHash === SocketCategoryHashes.ArmorPerks_LargePerk;
 
-    // Determine border color based on type and state
+    // Shape: Square for Intrinsic, Circle for everything else
+    const shapeClass = isIntrinsic ? 'rounded-sm' : 'rounded-full';
+
+    // Border: Gold for Intrinsic, White/Gray for others
     const getBorderClasses = () => {
         if (isIntrinsic) {
-            return 'border-yellow-500 ring-1 ring-yellow-500/30';
+            return 'border-[#e2bf36]'; // DIM Gold
         }
         if (isActive) {
             return 'border-white/60';
@@ -51,9 +56,10 @@ export const ItemSocket: React.FC<ItemSocketProps> = ({
             {/* Socket Icon */}
             <div
                 className={`
-                    w-10 h-10 rounded-full overflow-hidden 
+                    w-10 h-10 ${shapeClass} overflow-hidden 
                     bg-[#222] border-2 ${getBorderClasses()}
-                    hover:border-yellow-400 transition-colors cursor-pointer
+                    hover:border-white transition-colors cursor-pointer
+                    shadow-sm
                 `}
             >
                 <BungieImage
