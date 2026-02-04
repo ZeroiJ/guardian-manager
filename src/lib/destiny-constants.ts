@@ -141,6 +141,10 @@ export const SocketCategoryHashes = {
     GhostShellPerks: 3301318876,
     EmblemCustomization: 279738248,
     Super: 457473665,
+    // Footer socket categories
+    WeaponMods: 2685412949,        // Weapon mod sockets (Backup Mag, etc.)
+    WeaponCosmetics: 2048875504,   // Shaders, Ornaments, Mementos
+    WeaponModsIntrinsic: 2237038328, // Catalyst socket category
 } as const;
 
 // ============================================================================
@@ -161,6 +165,8 @@ export const PlugCategoryHashes = {
     Shader: 2973005342,
     Mementos: 4181669225,
     ArmorStats: 748854354,     // Hidden armor stat plugs
+    // Catalyst sockets
+    V400EmptyExoticMasterwork: 2672355746,  // Empty Catalyst socket placeholder
 } as const;
 
 // ============================================================================

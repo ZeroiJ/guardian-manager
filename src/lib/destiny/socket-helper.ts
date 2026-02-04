@@ -7,6 +7,7 @@
 
 import {
     SocketCategoryHashes,
+    PlugCategoryHashes,
     EMPTY_PLUG_HASHES,
     COSMETIC_PLUG_CATEGORIES
 } from '../destiny-constants';
@@ -24,10 +25,21 @@ export interface ResolvedSocket {
     isVisible: boolean;
 }
 
+/** Catalyst socket state */
+export interface CatalystState {
+    socket: ResolvedSocket | null;
+    state: 'active' | 'empty' | 'missing';
+}
+
 export interface CategorizedSockets {
     intrinsic: ResolvedSocket | null;  // Frame/Exotic perk (usually one)
     perks: ResolvedSocket[];            // Barrels, Mags, Traits
-    mods: ResolvedSocket[];             // Weapon/Armor mods
+    mods: ResolvedSocket[];             // Armor mods (legacy)
+    // Footer Elements
+    weaponMods: ResolvedSocket[];       // Weapon Mods (Backup Mag, etc.)
+    cosmetics: ResolvedSocket[];        // Shaders
+    ornament: ResolvedSocket | null;    // Active ornament
+    catalyst: CatalystState | null;     // Catalyst with state
 }
 
 // ============================================================================
@@ -39,13 +51,17 @@ const CATEGORY_INTRINSIC = SocketCategoryHashes.IntrinsicTraits;      // 3956125
 const CATEGORY_PERKS = SocketCategoryHashes.WeaponPerks;              // 4241087561
 const CATEGORY_MODS = SocketCategoryHashes.ArmorMods;                 // 590099826
 const CATEGORY_ARMOR_PERK = SocketCategoryHashes.ArmorPerks_LargePerk; // 3154740035
+// Footer categories
+const CATEGORY_WEAPON_MODS = SocketCategoryHashes.WeaponMods;         // 2685412949
+const CATEGORY_WEAPON_COSMETICS = SocketCategoryHashes.WeaponCosmetics; // 2048875504
+const CATEGORY_WEAPON_MODS_INTRINSIC = SocketCategoryHashes.WeaponModsIntrinsic; // 2237038328
 
 // ============================================================================
 // MAIN FUNCTION
 // ============================================================================
 
 /**
- * Categorize sockets into Intrinsic, Perks, and Mods
+ * Categorize sockets into Intrinsic, Perks, Mods, and Footer elements
  * 
  * @param item - Live item data from API
  * @param definition - Item manifest definition
@@ -61,20 +77,20 @@ export function categorizeSockets(
         intrinsic: null,
         perks: [],
         mods: [],
+        // Footer
+        weaponMods: [],
+        cosmetics: [],
+        ornament: null,
+        catalyst: null,
     };
 
     // Get live sockets (support both processed and raw paths)
     const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
     const socketCategories = definition?.sockets?.socketCategories;
 
-    console.log('[DEBUG] categorizeSockets:', {
-        hasItem: !!item,
-        itemId: item?.itemInstanceId,
-        hasLiveSockets: !!liveSockets,
-        liveSocketsCount: liveSockets?.length,
-        hasSocketCategories: !!socketCategories,
-        socketCategoriesCount: socketCategories?.length
-    });
+    // Check if item is Exotic
+    const tierType = definition?.inventory?.tierType || 0;
+    const isExotic = tierType === 6;
 
     if (!liveSockets || !socketCategories) return result;
 
@@ -85,6 +101,10 @@ export function categorizeSockets(
             socketIndexToCategory[index] = cat.socketCategoryHash;
         }
     }
+
+    // Track catalyst socket separately (may be empty)
+    let foundCatalystSocket: ResolvedSocket | null = null;
+    let catalystIsEmpty = false;
 
     // Process each socket
     liveSockets.forEach((socket: any, index: number) => {
@@ -100,22 +120,23 @@ export function categorizeSockets(
         const plugHash = socket.plugHash;
         if (!plugHash) return;
 
-        // Skip empty plug hashes
-        if (EMPTY_PLUG_HASHES.has(plugHash)) return;
-
         // Get plug definition
         const plugDef = definitions[plugHash];
-
-        // Must have an icon
-        if (!plugDef?.displayProperties?.icon) return;
-
-        // Skip cosmetic plugs (shaders, mementos)
         const plugCategoryHash = plugDef?.plug?.plugCategoryHash;
-        if (COSMETIC_PLUG_CATEGORIES.has(plugCategoryHash)) return;
-
-        // Skip ornaments
         const plugCategoryIdentifier = plugDef?.plug?.plugCategoryIdentifier || '';
-        if (plugCategoryIdentifier.includes('skin')) return;
+
+        // Check for catalyst socket (may be empty for exotics)
+        if (isExotic && plugCategoryHash === PlugCategoryHashes.V400EmptyExoticMasterwork) {
+            catalystIsEmpty = true;
+            return; // Skip adding to other categories
+        }
+
+        // Check if this is an empty plug
+        const isEmpty = EMPTY_PLUG_HASHES.has(plugHash);
+        if (isEmpty) return;
+
+        // Must have an icon for display
+        if (!plugDef?.displayProperties?.icon) return;
 
         // Create resolved socket
         const resolvedSocket: ResolvedSocket = {
@@ -127,6 +148,32 @@ export function categorizeSockets(
             isVisible: socket.isVisible !== false,
         };
 
+        // Check for ornament (skin)
+        if (plugCategoryIdentifier.includes('skin')) {
+            result.ornament = resolvedSocket;
+            return;
+        }
+
+        // Check for shader
+        if (plugCategoryHash === PlugCategoryHashes.Shader) {
+            result.cosmetics.push(resolvedSocket);
+            return;
+        }
+
+        // Check for catalyst (active, with icon)
+        if (isExotic && (categoryHash === CATEGORY_WEAPON_MODS || categoryHash === CATEGORY_WEAPON_MODS_INTRINSIC)) {
+            // Check if this is a masterwork/catalyst plug
+            if (plugCategoryIdentifier.includes('masterwork') ||
+                plugCategoryIdentifier.includes('catalyst') ||
+                plugCategoryIdentifier.includes('exotic.masterwork')) {
+                foundCatalystSocket = resolvedSocket;
+                return;
+            }
+        }
+
+        // Skip cosmetic plugs for perk display
+        if (COSMETIC_PLUG_CATEGORIES.has(plugCategoryHash)) return;
+
         // Categorize by socket category hash
         if (categoryHash === CATEGORY_INTRINSIC || categoryHash === CATEGORY_ARMOR_PERK) {
             // Intrinsic: Usually only one per item
@@ -137,10 +184,28 @@ export function categorizeSockets(
             // Weapon perks: Barrels, Mags, Traits
             result.perks.push(resolvedSocket);
         } else if (categoryHash === CATEGORY_MODS) {
-            // Mods: Weapon/Armor mods
+            // Armor mods
             result.mods.push(resolvedSocket);
+        } else if (categoryHash === CATEGORY_WEAPON_MODS) {
+            // Weapon mods (Backup Mag, etc.)
+            result.weaponMods.push(resolvedSocket);
+        } else if (categoryHash === CATEGORY_WEAPON_COSMETICS) {
+            // Other cosmetics
+            result.cosmetics.push(resolvedSocket);
         }
     });
+
+    // Determine catalyst state for exotics
+    if (isExotic) {
+        if (foundCatalystSocket) {
+            result.catalyst = { socket: foundCatalystSocket, state: 'active' };
+        } else if (catalystIsEmpty) {
+            result.catalyst = { socket: null, state: 'empty' };
+        } else {
+            // Exotic with no catalyst socket found - might not have a catalyst
+            result.catalyst = { socket: null, state: 'missing' };
+        }
+    }
 
     return result;
 }
