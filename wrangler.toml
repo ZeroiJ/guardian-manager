@@ -1,15 +1,9 @@
-name = "guardian-manager"
-compatibility_date = "2024-01-01"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "dist"
+# guardian-manager/wrangler.toml
+# Cloudflare Pages Functions - Bindings Only
 
 [vars]
-# These will be overridden by the actual environment variables in Cloudflare Dashboard
 BUNGIE_CLIENT_ID = "51042"
-# BUNGIE_CLIENT_SECRET = "SECRET_MUST_BE_IN_DASHBOARD"
 BUNGIE_API_KEY = "18745be24a1c4b7bb0a5741eb4f2f6c2"
-# SESSION_SECRET = ""
-# FRONTEND_URL = ""
 BUNGIE_AUTH_URL = "https://www.bungie.net/en/OAuth/Authorize"
 
 [[kv_namespaces]]
@@ -20,4 +14,3 @@ id = "a0e4b35ad4694542a88d447836f6891d"
 binding = "guardian_db"
 database_name = "guardian-db"
 database_id = "9784d2e2-ca80-495c-986d-28ca84e1dc87"
-# migrations_dir = "api/migrations"
