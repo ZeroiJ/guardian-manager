@@ -1,5 +1,6 @@
 import React from 'react';
 import { RARITY_COLORS } from '../data/constants';
+import { BungieImage } from './BungieImage';
 
 interface InventoryItemProps {
     item: any;
@@ -8,17 +9,14 @@ interface InventoryItemProps {
 }
 
 export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
-    // URL Fix: Prepend Bungie base URL
-    // We check both item.icon and definition.displayProperties.icon just in case
-    const iconFragment = item?.icon || definition?.displayProperties?.icon;
-    const iconUrl = iconFragment ? `https://www.bungie.net${iconFragment}` : '/missing-icon.png';
+    // Get icon from item or definition
+    const icon = item?.icon || definition?.displayProperties?.icon;
 
     // Visual Style: Border based on rarity
     const tierType = definition?.inventory?.tierType || 0;
     const borderColor = RARITY_COLORS[tierType] || RARITY_COLORS[0];
 
     // Power Level
-    // Check various locations for primary stat value (instanceData or top-level)
     const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
 
     return (
@@ -27,11 +25,11 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             style={{ borderColor: borderColor }}
             onClick={onClick}
         >
-            {/* Image */}
-            <img
-                src={iconUrl}
+            {/* Image - using BungieImage for proper URL handling */}
+            <BungieImage
+                src={icon}
                 alt={definition?.displayProperties?.name || "Item"}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full"
             />
 
             {/* Overlay: Power Level */}
