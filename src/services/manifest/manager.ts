@@ -6,6 +6,9 @@ const TABLE_PREFIX = 'def:';
 // CACHE_BUSTER: Increment this to force all users to re-download manifest data
 const CACHE_BUSTER_VERSION = 'v2';
 
+// In-memory cache for O(1) synchronous lookups after first load
+const memoryCache: Map<string, Record<string, any>> = new Map();
+
 export class ManifestManager {
     /**
      * Initializes the manifest. Checks for version updates and clears cache if needed.
@@ -39,12 +42,16 @@ export class ManifestManager {
     }
 
     /**
-     * Ensures a specific table is loaded in IndexedDB.
-     * Caches the result in memory for the duration of the session if needed, 
-     * but IndexedDB is fast enough for most lookups.
+     * Ensures a specific table is loaded in IndexedDB and memory cache.
+     * Returns synchronously from memory if already cached.
      */
     static async loadTable(tableName: string): Promise<Record<string, any>> {
         if (typeof window === 'undefined') return {}; // Server-side guard
+
+        // Check memory cache first (instant)
+        if (memoryCache.has(tableName)) {
+            return memoryCache.get(tableName)!;
+        }
 
         const key = `${TABLE_PREFIX}${tableName}`;
         let table = await get(key);
@@ -68,7 +75,27 @@ export class ManifestManager {
             console.log(`[ManifestManager] Loaded ${tableName} from Cache.`);
         }
 
+        // Store in memory cache for instant future access
+        memoryCache.set(tableName, table);
         return table;
+    }
+
+    /**
+     * Synchronous lookup from memory cache. Returns empty object if not cached.
+     * Use this when you know the table has already been loaded.
+     */
+    static getDefinitionsSync(tableName: string, hashes: (number | string)[]): Record<string, any> {
+        const table = memoryCache.get(tableName);
+        if (!table) return {};
+
+        const results: Record<string, any> = {};
+        for (const hash of hashes) {
+            const hashStr = hash.toString();
+            if (table[hashStr]) {
+                results[hashStr] = table[hashStr];
+            }
+        }
+        return results;
     }
 
     /**

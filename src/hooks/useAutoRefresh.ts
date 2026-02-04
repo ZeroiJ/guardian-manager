@@ -20,8 +20,8 @@ interface UseAutoRefreshReturn {
     triggerRefresh: () => void;
 }
 
-/** Default polling interval: 30 seconds */
-const DEFAULT_INTERVAL_MS = 30_000;
+/** Default polling interval: 90 seconds (1.5 minutes) */
+const DEFAULT_INTERVAL_MS = 90_000;
 
 /**
  * Hook to manage automatic periodic data refreshing with smart guards.
