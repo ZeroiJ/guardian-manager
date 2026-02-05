@@ -176,19 +176,72 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             {/* SOCKETS GRID */}
                             <div className="space-y-3">
                                 {/* Row A: Intrinsic */}
+                                {/* Row A: Intrinsic + Exotic Actions */}
                                 {sockets.intrinsic && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 shrink-0">
-                                            <ItemSocket
-                                                plugDef={sockets.intrinsic.plugDef}
-                                                categoryHash={sockets.intrinsic.categoryHash}
-                                                isActive={true}
-                                            />
+                                    <div className="flex items-start justify-between gap-2">
+                                        {/* Intrinsic Info */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 shrink-0">
+                                                <ItemSocket
+                                                    plugDef={sockets.intrinsic.plugDef}
+                                                    categoryHash={sockets.intrinsic.categoryHash}
+                                                    isActive={true}
+                                                />
+                                            </div>
+                                            <div className="leading-tight">
+                                                <div className="font-bold text-sm text-[#e2bf36]">{sockets.intrinsic.plugDef.displayProperties.name}</div>
+                                                <div className="text-xs text-gray-400">{sockets.intrinsic.plugDef.itemTypeDisplayName}</div>
+                                            </div>
                                         </div>
-                                        <div className="leading-tight">
-                                            <div className="font-bold text-sm text-[#e2bf36]">{sockets.intrinsic.plugDef.displayProperties.name}</div>
-                                            <div className="text-xs text-gray-400">{sockets.intrinsic.plugDef.itemTypeDisplayName}</div>
-                                        </div>
+
+                                        {/* Exotic Box: Ornament & Catalyst (Moved from Footer) */}
+                                        {isExotic && (
+                                            <div className="flex gap-2 shrink-0">
+                                                {/* Ornament Box */}
+                                                <div className="flex flex-col items-center gap-1 group">
+                                                    <div className="w-10 h-10 border-2 border-white/10 bg-black/50 rounded flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-white/40 transition-colors">
+                                                        {sockets.ornament ? (
+                                                            <BungieImage
+                                                                src={sockets.ornament.plugDef.displayProperties.icon}
+                                                                className="w-full h-full object-cover"
+                                                                title={sockets.ornament.plugDef.displayProperties.name}
+                                                            />
+                                                        ) : (
+                                                            <div className="text-white/20 text-[8px] uppercase font-bold select-none">Base</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[8px] text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">Orn</div>
+                                                </div>
+
+                                                {/* Catalyst Box */}
+                                                <div className="flex flex-col items-center gap-1 group">
+                                                    <div className={clsx(
+                                                        "w-10 h-10 border-2 rounded flex items-center justify-center overflow-hidden relative transition-colors",
+                                                        sockets.catalyst?.state === 'active'
+                                                            ? "border-white/40 bg-black/50 hover:border-white/80"
+                                                            : "border-[#e2bf36] bg-[#e2bf36]/5" // Golden Box styling
+                                                    )}
+                                                        title={sockets.catalyst?.state === 'active'
+                                                            ? sockets.catalyst.socket?.plugDef.displayProperties.name
+                                                            : "Catalyst Missing"
+                                                        }
+                                                    >
+                                                        {sockets.catalyst?.state === 'active' && sockets.catalyst.socket ? (
+                                                            <BungieImage
+                                                                src={sockets.catalyst.socket.plugDef.displayProperties.icon}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Diamond className="text-[#e2bf36]" size={18} strokeWidth={1.5} />
+                                                        )}
+                                                    </div>
+                                                    <div className={clsx(
+                                                        "text-[8px] uppercase tracking-widest transition-colors",
+                                                        sockets.catalyst?.state === 'active' ? "text-gray-500 group-hover:text-gray-300" : "text-[#e2bf36]"
+                                                    )}>Cat</div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -211,84 +264,31 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 )}
                             </div>
 
-                            {/* FOOTER: Weapon Mods, Ornaments, Catalysts */}
-                            {(isExotic || sockets.weaponMods.length > 0 || sockets.cosmetics.length > 0 || sockets.ornament) && (
-                                <div className="border-t border-white/10 pt-4 mt-2 space-y-4">
-
-                                    {/* Exotic Box: Ornament & Catalyst */}
-                                    {isExotic && (
-                                        <div className="flex justify-center gap-4">
-                                            {/* Slot A: Ornament Box */}
-                                            <div className="flex flex-col items-center gap-1 group">
-                                                <div className="w-12 h-12 border-2 border-white/10 bg-black/50 rounded flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-white/40 transition-colors">
-                                                    {sockets.ornament ? (
-                                                        <BungieImage
-                                                            src={sockets.ornament.plugDef.displayProperties.icon}
-                                                            className="w-full h-full object-cover"
-                                                            title={sockets.ornament.plugDef.displayProperties.name}
-                                                        />
-                                                    ) : (
-                                                        <div className="text-white/20 text-[10px] uppercase font-bold select-none">Base</div>
-                                                    )}
-                                                </div>
-                                                <div className="text-[10px] text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">Orn</div>
+                            {/* FOOTER: Weapon Mods & Cosmetics */}
+                            {(sockets.weaponMods.length > 0 || sockets.cosmetics.length > 0) && (
+                                <div className="border-t border-white/10 pt-4 mt-2">
+                                    <div className="flex flex-wrap justify-center gap-2">
+                                        {/* Weapon Mods (Specs) */}
+                                        {sockets.weaponMods.map(socket => (
+                                            <div key={socket.socketIndex} className="scale-90">
+                                                <ItemSocket
+                                                    plugDef={socket.plugDef}
+                                                    categoryHash={socket.categoryHash}
+                                                    isActive={socket.isEnabled}
+                                                />
                                             </div>
-
-                                            {/* Slot B: Catalyst Box */}
-                                            <div className="flex flex-col items-center gap-1 group">
-                                                <div className={clsx(
-                                                    "w-12 h-12 border-2 rounded flex items-center justify-center overflow-hidden relative transition-colors",
-                                                    sockets.catalyst?.state === 'active'
-                                                        ? "border-white/40 bg-black/50 hover:border-white/80"
-                                                        : "border-[#e2bf36] bg-[#e2bf36]/5" // Golden Box styling
-                                                )}
-                                                    title={sockets.catalyst?.state === 'active'
-                                                        ? sockets.catalyst.socket?.plugDef.displayProperties.name
-                                                        : "Catalyst Missing"
-                                                    }
-                                                >
-                                                    {sockets.catalyst?.state === 'active' && sockets.catalyst.socket ? (
-                                                        <BungieImage
-                                                            src={sockets.catalyst.socket.plugDef.displayProperties.icon}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <Diamond className="text-[#e2bf36]" size={24} strokeWidth={1.5} />
-                                                    )}
-                                                </div>
-                                                <div className={clsx(
-                                                    "text-[10px] uppercase tracking-widest transition-colors",
-                                                    sockets.catalyst?.state === 'active' ? "text-gray-500 group-hover:text-gray-300" : "text-[#e2bf36]"
-                                                )}>Cat</div>
+                                        ))}
+                                        {/* Shaders */}
+                                        {sockets.cosmetics.map(socket => (
+                                            <div key={socket.socketIndex} className="scale-90">
+                                                <ItemSocket
+                                                    plugDef={socket.plugDef}
+                                                    categoryHash={socket.categoryHash}
+                                                    isActive={socket.isEnabled}
+                                                />
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Mod Bar: Weapon Mods & Cosmetics */}
-                                    {(sockets.weaponMods.length > 0 || sockets.cosmetics.length > 0) && (
-                                        <div className="flex flex-wrap justify-center gap-2">
-                                            {/* Weapon Mods (Specs) */}
-                                            {sockets.weaponMods.map(socket => (
-                                                <div key={socket.socketIndex} className="scale-90">
-                                                    <ItemSocket
-                                                        plugDef={socket.plugDef}
-                                                        categoryHash={socket.categoryHash}
-                                                        isActive={socket.isEnabled}
-                                                    />
-                                                </div>
-                                            ))}
-                                            {/* Shaders */}
-                                            {sockets.cosmetics.map(socket => (
-                                                <div key={socket.socketIndex} className="scale-90">
-                                                    <ItemSocket
-                                                        plugDef={socket.plugDef}
-                                                        categoryHash={socket.categoryHash}
-                                                        isActive={socket.isEnabled}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
