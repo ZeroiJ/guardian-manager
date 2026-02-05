@@ -133,19 +133,62 @@ app.get('/api/profile', async (c) => {
     let tokens;
     try {
         tokens = JSON.parse(authCookie)
-        console.log('[Profile API] Auth cookie parsed successfully');
     } catch (err) {
         console.error('[Profile API] Failed to parse auth cookie:', err);
         return c.text('Invalid auth cookie', 401)
     }
 
+    // Helper to fetch Memberships with manual Retry logic
+    let access_token = tokens.access_token;
+    let didRefresh = false;
+
+    // 1. Fetch Memberships
     console.log('[Profile API] Fetching memberships...');
-    const membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
+    let membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
         headers: {
             'X-API-Key': config.apiKey,
-            'Authorization': `Bearer ${tokens.access_token}`
+            'Authorization': `Bearer ${access_token}`
         }
     })
+
+    // CATCH 401 - Expired Token
+    if (membershipsRes.status === 401) {
+        console.warn('[Profile API] 401 Unauthorized on Memberships. Attempting Token Refresh...');
+
+        try {
+            // Import dynamically or assume it's available since we are in same project
+            const { refreshBungieTokens } = await import('../lib/auth');
+
+            if (!tokens.refresh_token) throw new Error('No refresh token available');
+
+            const newTokens = await refreshBungieTokens(tokens.refresh_token, c.env);
+            console.log('[Profile API] Token Refresh Successful!');
+
+            // Update Local Vars
+            access_token = newTokens.access_token;
+            // Update Cookie
+            setCookie(c, 'bungie_auth', JSON.stringify(newTokens), {
+                path: '/',
+                secure: true,
+                httpOnly: true,
+                maxAge: 3600 * 24 * 30,
+                sameSite: 'Lax',
+            });
+            didRefresh = true;
+
+            // RETRY REQUEST
+            membershipsRes = await fetch('https://www.bungie.net/Platform/User/GetMembershipsForCurrentUser/', {
+                headers: {
+                    'X-API-Key': config.apiKey,
+                    'Authorization': `Bearer ${access_token}`
+                }
+            });
+
+        } catch (refreshErr) {
+            console.error('[Profile API] Token Refresh Failed:', refreshErr);
+            return c.text('Session expired - Please login again', 401);
+        }
+    }
 
     if (!membershipsRes.ok) {
         const errorText = await membershipsRes.text();
@@ -154,7 +197,7 @@ app.get('/api/profile', async (c) => {
     }
 
     const membershipsData = await membershipsRes.json() as any
-    console.log('[Profile API] Memberships fetched:', membershipsData.Response?.destinyMemberships?.length || 0);
+    // ... (rest of logic) ...
 
     if (!membershipsData.Response?.destinyMemberships?.length) {
         console.error('[Profile API] No Destiny membership found');
@@ -166,14 +209,18 @@ app.get('/api/profile', async (c) => {
     console.log(`[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`);
 
     const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,302,305,1200`
-    console.log(`[Profile API] Fetching profile data from: ${profileUrl}`);
 
+    // 2. Fetch Profile (using potentially new access_token)
     const profileRes = await fetch(profileUrl, {
         headers: {
             'X-API-Key': config.apiKey,
-            'Authorization': `Bearer ${tokens.access_token}`
+            'Authorization': `Bearer ${access_token}`
         }
     })
+
+    // Note: If profile fails with 401 here, we *could* retry again, but it's unlikely if we just refreshed.
+    // For simplicity, we assume if Memberships worked, this will work. 
+    // If it fails with 401, it might be a weird edge case, safe to return 401.
 
     if (!profileRes.ok) {
         const errorText = await profileRes.text();
@@ -182,17 +229,8 @@ app.get('/api/profile', async (c) => {
     }
 
     const profileData = await profileRes.json() as any
-    console.log('[Profile API] Profile data fetched successfully');
+    // ... (rest of logic) ...
 
-    // DEBUG: Titan Data Verification
-    const characters = profileData.Response?.characters?.data || {};
-    const titan = Object.values(characters).find((c: any) => c.classType === 0);
-    if (titan) {
-        console.log('[Profile API] Titan Found:', (titan as any).characterId);
-        console.log('[Profile API] Titan Emblem:', `https://www.bungie.net${(titan as any).emblemPath}`);
-    }
-
-    console.log('[Profile API] Returning profile response');
     return c.json(profileData.Response)
 })
 
