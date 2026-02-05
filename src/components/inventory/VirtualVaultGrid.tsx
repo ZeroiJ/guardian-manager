@@ -10,35 +10,17 @@ interface VirtualVaultGridProps {
     onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
-// Visual Divider between types (e.g. "Auto Rifle")
-const TypeGroup: React.FC<{ type: string, items: any[], definitions: Record<string, any>, onItemClick?: (item: any, def: any, event: React.MouseEvent) => void }> = ({ type, items, definitions, onItemClick }) => {
-    // Get Icon
-    // Ideally we fetch from Category Definitions, but for now use the static map or fallback
+// Visual Divider Tile (Icon only)
+const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
 
     return (
-        <div className="mb-4">
-            {/* Type Header */}
-            <div className="flex items-center gap-2 mb-1 pl-1 opacity-70">
-                {iconUrl && (
-                    <img src={iconUrl} className="w-5 h-5 invert opacity-80" alt="" />
-                )}
-                <span className="text-xs font-bold uppercase tracking-widest text-[#e8e9ed]">{type}</span>
-                <div className="h-px bg-white/10 flex-grow ml-2" />
-            </div>
-
-            {/* Grid */}
-            <div className="flex flex-wrap gap-[2px] content-start">
-                {items.map((item) => (
-                    <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                        <InventoryItem
-                            item={item}
-                            definition={definitions[item.itemHash]}
-                            onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
-                        />
-                    </div>
-                ))}
-            </div>
+        <div className="w-[48px] h-[48px] flex items-center justify-center bg-[#1a1a1a]/50 select-none" title={type}>
+            {iconUrl ? (
+                <img src={iconUrl} className="w-8 h-8 invert opacity-20" alt={type} />
+            ) : (
+                <span className="text-[8px] text-white/20 font-bold uppercase">{type.slice(0, 3)}</span>
+            )}
         </div>
     );
 };
@@ -51,19 +33,31 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
     return (
         <div className="mb-8">
             {/* Bucket Header */}
-            <div className="text-lg font-bold text-[#e2bf36] uppercase tracking-wider mb-4 border-b border-[#e2bf36]/30 pb-1 w-full">
-                {title}
+            <div className="text-lg font-bold text-[#e2bf36] uppercase tracking-wider mb-2 border-b border-[#e2bf36]/30 pb-1 w-full flex items-center gap-2">
+                <span>{title}</span>
+                <span className="text-xs text-gray-500 font-normal normal-case opacity-50">
+                    ({Object.values(groups).reduce((acc, curr) => acc + curr.length, 0)})
+                </span>
             </div>
 
-            <div className="pl-2">
+            {/* Continuous Grid */}
+            <div className="flex flex-wrap gap-[2px] content-start pl-2">
                 {sortedTypes.map(type => (
-                    <TypeGroup
-                        key={type}
-                        type={type}
-                        items={groups[type]}
-                        definitions={definitions}
-                        onItemClick={onItemClick}
-                    />
+                    <React.Fragment key={type}>
+                        {/* Separator Tile */}
+                        <SeparatorTile type={type} />
+
+                        {/* Items for this Type */}
+                        {groups[type].map(item => (
+                            <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+                                <InventoryItem
+                                    item={item}
+                                    definition={definitions[item.itemHash]}
+                                    onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
+                                />
+                            </div>
+                        ))}
+                    </React.Fragment>
                 ))}
             </div>
         </div>
