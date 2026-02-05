@@ -43,6 +43,11 @@ app.get('/api/auth/login', (c) => {
     const config = getBungieConfig(c.env)
     const state = crypto.randomUUID()
 
+    // Dynamically determine redirect_uri based on current request origin
+    // This allows it to work on both Localhost (if whitelisted) and Production
+    const url = new URL(c.req.url)
+    const redirectUri = `${url.origin}/api/auth/callback`
+
     setCookie(c, 'oauth_state', state, {
         path: '/',
         secure: true,
@@ -53,10 +58,9 @@ app.get('/api/auth/login', (c) => {
 
     const params = new URLSearchParams({
         client_id: config.clientId,
-
         response_type: 'code',
         state: state,
-        // NO redirect_uri - rely on Portal registration
+        redirect_uri: redirectUri
     })
 
     return c.redirect(`${config.authUrl}?${params.toString()}`)
