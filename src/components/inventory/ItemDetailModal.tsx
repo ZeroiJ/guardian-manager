@@ -194,8 +194,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Exotic Box: Ornament & Catalyst (Moved from Footer) */}
-                                        {isExotic && (
+                                        {/* Actions Box: Ornament & Catalyst */}
+                                        {(isExotic || sockets.ornament) && (
                                             <div className="flex gap-2 shrink-0">
                                                 {/* Ornament Box */}
                                                 <div className="flex flex-col items-center gap-1 group">
@@ -213,33 +213,35 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                     <div className="text-[8px] text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">Orn</div>
                                                 </div>
 
-                                                {/* Catalyst Box */}
-                                                <div className="flex flex-col items-center gap-1 group">
-                                                    <div className={clsx(
-                                                        "w-10 h-10 border-2 rounded flex items-center justify-center overflow-hidden relative transition-colors",
-                                                        sockets.catalyst?.state === 'active'
-                                                            ? "border-white/40 bg-black/50 hover:border-white/80"
-                                                            : "border-[#e2bf36] bg-[#e2bf36]/5" // Golden Box styling
-                                                    )}
-                                                        title={sockets.catalyst?.state === 'active'
-                                                            ? sockets.catalyst.socket?.plugDef.displayProperties.name
-                                                            : "Catalyst Missing"
-                                                        }
-                                                    >
-                                                        {sockets.catalyst?.state === 'active' && sockets.catalyst.socket ? (
-                                                            <BungieImage
-                                                                src={sockets.catalyst.socket.plugDef.displayProperties.icon}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <Diamond className="text-[#e2bf36]" size={18} strokeWidth={1.5} />
+                                                {/* Catalyst Box (Exotic Only) */}
+                                                {isExotic && (
+                                                    <div className="flex flex-col items-center gap-1 group">
+                                                        <div className={clsx(
+                                                            "w-10 h-10 border-2 rounded flex items-center justify-center overflow-hidden relative transition-colors",
+                                                            sockets.catalyst?.state === 'active'
+                                                                ? "border-white/40 bg-black/50 hover:border-white/80"
+                                                                : "border-[#e2bf36] bg-[#e2bf36]/5" // Golden Box styling
                                                         )}
+                                                            title={sockets.catalyst?.state === 'active'
+                                                                ? sockets.catalyst.socket?.plugDef.displayProperties.name
+                                                                : "Catalyst Missing"
+                                                            }
+                                                        >
+                                                            {sockets.catalyst?.state === 'active' && sockets.catalyst.socket ? (
+                                                                <BungieImage
+                                                                    src={sockets.catalyst.socket.plugDef.displayProperties.icon}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <Diamond className="text-[#e2bf36]" size={18} strokeWidth={1.5} />
+                                                            )}
+                                                        </div>
+                                                        <div className={clsx(
+                                                            "text-[8px] uppercase tracking-widest transition-colors",
+                                                            sockets.catalyst?.state === 'active' ? "text-gray-500 group-hover:text-gray-300" : "text-[#e2bf36]"
+                                                        )}>Cat</div>
                                                     </div>
-                                                    <div className={clsx(
-                                                        "text-[8px] uppercase tracking-widest transition-colors",
-                                                        sockets.catalyst?.state === 'active' ? "text-gray-500 group-hover:text-gray-300" : "text-[#e2bf36]"
-                                                    )}>Cat</div>
-                                                </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
