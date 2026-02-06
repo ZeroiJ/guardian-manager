@@ -1,26 +1,44 @@
 import { ItemCategoryHashes } from '../destiny-constants';
 
+// Import Local Icons
+import autoRifle from '../../assets/icons/weapons/auto_rifle.svg';
+import handCannon from '../../assets/icons/weapons/hand_cannon.svg';
+import pulseRifle from '../../assets/icons/weapons/pulse_rifle.svg';
+import scoutRifle from '../../assets/icons/weapons/scout_rifle.svg';
+import fusionRifle from '../../assets/icons/weapons/fusion_rifle.svg';
+import sniperRifle from '../../assets/icons/weapons/sniper_rifle.svg';
+import shotgun from '../../assets/icons/weapons/shotgun.svg';
+import machinegun from '../../assets/icons/weapons/machinegun.svg';
+import rocketLauncher from '../../assets/icons/weapons/rocket_launcher.svg';
+import sidearm from '../../assets/icons/weapons/sidearm.svg';
+import sword from '../../assets/icons/weapons/sword_heavy.svg';
+import bow from '../../assets/icons/weapons/bow.svg';
+import linearFusion from '../../assets/icons/weapons/wire_rifle.svg';
+import smg from '../../assets/icons/weapons/smg.svg';
+import traceRifle from '../../assets/icons/weapons/beam_weapon.svg';
+import glaive from '../../assets/icons/weapons/glaive.svg';
+import grenadeLauncher from '../../assets/icons/weapons/grenade_launcher.svg';
+
 // Generic Icon Map for Weapon Types (Fallback if Manifest Category Icon is slow/missing)
 export const WEAPON_TYPE_ICONS: Record<string, string> = {
-    // Kinetic / General
-    'Auto Rifle': 'https://www.bungie.net/common/destiny2_content/icons/f2e51a66e66c99c89422961d50c776b2.png',
-    'Hand Cannon': 'https://www.bungie.net/common/destiny2_content/icons/12e6931215f91720d20d588506ac6393.png',
-    'Pulse Rifle': 'https://www.bungie.net/common/destiny2_content/icons/f46487df1cb72545d17960fc062f7d3a.png',
-    'Scout Rifle': 'https://www.bungie.net/common/destiny2_content/icons/873f32867e9148d57d09635b7194d21f.png',
-    'Fusion Rifle': 'https://www.bungie.net/common/destiny2_content/icons/d69e46a504b77203b5a195e638dbf6d9.png',
-    'Sniper Rifle': 'https://www.bungie.net/common/destiny2_content/icons/c7cba7c390554c22718e24c0840c4d87.png',
-    'Shotgun': 'https://www.bungie.net/common/destiny2_content/icons/24a18012484ab9f4a7c0f135293291dc.png',
-    'Machine Gun': 'https://www.bungie.net/common/destiny2_content/icons/c571987d60ed43f7be2e6c5354be2e02.png',
-    'Rocket Launcher': 'https://www.bungie.net/common/destiny2_content/icons/f5d75dd13cc334005cf39f993306db36.png',
-    'Sidearm': 'https://www.bungie.net/common/destiny2_content/icons/46320575e53317711d95393d93708e92.png',
-    'Sword': 'https://www.bungie.net/common/destiny2_content/icons/0c238b1f7e91d8481ffec9ba7c95780d.png',
-    'Bow': 'https://www.bungie.net/common/destiny2_content/icons/f1f855dd45524249a263dbab8a68bc43.png',
-    'Combat Bow': 'https://www.bungie.net/common/destiny2_content/icons/f1f855dd45524249a263dbab8a68bc43.png',
-    'Linear Fusion Rifle': 'https://www.bungie.net/common/destiny2_content/icons/663c5525997b5d1e44f8b965f5451a4a.png',
-    'Submachine Gun': 'https://www.bungie.net/common/destiny2_content/icons/246e65a044f51e330f81d85fb666002f.png',
-    'Trace Rifle': 'https://www.bungie.net/common/destiny2_content/icons/6554869c3a375cb450e181513233bd70.png',
-    'Glaive': 'https://www.bungie.net/common/destiny2_content/icons/e761661d9ac5f7c35f293b6e70f6991c.png',
-    'Grenade Launcher': 'https://www.bungie.net/common/destiny2_content/icons/93dc453303c20068a649ef243306a44c.png',
+    'Auto Rifle': autoRifle,
+    'Hand Cannon': handCannon,
+    'Pulse Rifle': pulseRifle,
+    'Scout Rifle': scoutRifle,
+    'Fusion Rifle': fusionRifle,
+    'Sniper Rifle': sniperRifle,
+    'Shotgun': shotgun,
+    'Machine Gun': machinegun,
+    'Rocket Launcher': rocketLauncher,
+    'Sidearm': sidearm,
+    'Sword': sword,
+    'Bow': bow,
+    'Combat Bow': bow,
+    'Linear Fusion Rifle': linearFusion,
+    'Submachine Gun': smg,
+    'Trace Rifle': traceRifle,
+    'Glaive': glaive,
+    'Grenade Launcher': grenadeLauncher,
 };
 
 export interface GroupedInventory {

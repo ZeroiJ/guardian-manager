@@ -19,7 +19,7 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
             {/* Inner box matches item feel but 'empty' - Phantom Style: bg-white/5, NO BORDER */}
             <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-sm">
                 {iconUrl ? (
-                    <img src={iconUrl} className="w-8 h-8 invert opacity-20" alt={type} />
+                    <img src={iconUrl} className="w-8 h-8 invert opacity-30" alt={type} />
                 ) : (
                     <span className="text-[8px] text-white/10 font-bold uppercase">{type.slice(0, 3)}</span>
                 )}
@@ -33,6 +33,19 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
     const sortedTypes = getSortedTypes(groups);
     if (sortedTypes.length === 0) return null;
 
+    // FLATTEN THE LIST: (Separator | Item)[]
+    type GridNode = { type: 'separator', label: string, id: string } | { type: 'item', item: any, id: string };
+    const flatList: GridNode[] = [];
+
+    sortedTypes.forEach(typeName => {
+        // 1. Add Separator
+        flatList.push({ type: 'separator', label: typeName, id: `sep-${typeName}` });
+        // 2. Add Items
+        groups[typeName].forEach(item => {
+            flatList.push({ type: 'item', item: item, id: item.itemInstanceId || item.itemHash });
+        });
+    });
+
     return (
         <div className="mb-4">
             {/* Bucket Header - Minimalist */}
@@ -45,22 +58,18 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
 
             {/* Continuous Grid - DIM Density (gap-1 = 4px) */}
             <div className="flex flex-wrap gap-1 content-start pl-0">
-                {sortedTypes.map(type => (
-                    <React.Fragment key={type}>
-                        {/* Separator Tile */}
-                        <SeparatorTile type={type} />
-
-                        {/* Items for this Type */}
-                        {groups[type].map(item => (
-                            <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                <InventoryItem
-                                    item={item}
-                                    definition={definitions[item.itemHash]}
-                                    onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
-                                />
-                            </div>
-                        ))}
-                    </React.Fragment>
+                {flatList.map(node => (
+                    node.type === 'separator' ? (
+                        <SeparatorTile key={node.id} type={node.label} />
+                    ) : (
+                        <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+                            <InventoryItem
+                                item={node.item}
+                                definition={definitions[node.item.itemHash]}
+                                onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
+                            />
+                        </div>
+                    )
                 ))}
             </div>
         </div>
