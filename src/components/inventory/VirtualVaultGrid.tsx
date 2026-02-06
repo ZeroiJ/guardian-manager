@@ -76,28 +76,62 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
     );
 };
 
-export const VirtualVaultGrid: React.FC<VirtualVaultGridProps> = ({ items, definitions, className, onItemClick }) => {
+export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'Weapons' | 'Armor' | 'General' }> = ({ items, definitions, className, onItemClick, category }) => {
 
     // Group Items using Engine
     const groupedInventory = useMemo(() => {
         return groupItemsForDisplay(items, definitions);
     }, [items, definitions]);
 
+    // Render Logic: If category provided, render ONLY that category (Merged if needed)
+    if (category === 'Weapons') {
+        // Merge Kinetic, Energy, Power
+        const deepMerge = (target: Record<string, any[]>, source: Record<string, any[]>) => {
+            Object.keys(source).forEach(key => {
+                if (target[key]) {
+                    target[key] = [...target[key], ...source[key]];
+                } else {
+                    target[key] = source[key];
+                }
+            });
+            return target;
+        };
+
+        const merged: Record<string, any[]> = {};
+        deepMerge(merged, groupedInventory.Kinetic);
+        deepMerge(merged, groupedInventory.Energy);
+        deepMerge(merged, groupedInventory.Power);
+
+        return (
+            <div className={`p-1 ${className} h-full`}>
+                <VaultBucket title="" groups={merged} definitions={definitions} onItemClick={onItemClick} />
+            </div>
+        );
+    }
+
+    if (category === 'Armor') {
+        return (
+            <div className={`p-1 ${className} h-full`}>
+                <VaultBucket title="" groups={groupedInventory.Armor} definitions={definitions} onItemClick={onItemClick} />
+            </div>
+        );
+    }
+
+    if (category === 'General') {
+        return (
+            <div className={`p-1 ${className || ''} h-full`}>
+                <VaultBucket title="" groups={groupedInventory.General} definitions={definitions} onItemClick={onItemClick} />
+            </div>
+        );
+    }
+
+    // Default: Render All (Fallback for other views if any)
     return (
         <div className={`p-4 ${className} pb-32`}>
-            {/* 1. Kinetic Weapons */}
             <VaultBucket title="Kinetic Weapons" groups={groupedInventory.Kinetic} definitions={definitions} onItemClick={onItemClick} />
-
-            {/* 2. Energy Weapons */}
             <VaultBucket title="Energy Weapons" groups={groupedInventory.Energy} definitions={definitions} onItemClick={onItemClick} />
-
-            {/* 3. Power Weapons */}
             <VaultBucket title="Power Weapons" groups={groupedInventory.Power} definitions={definitions} onItemClick={onItemClick} />
-
-            {/* 4. Armor */}
             <VaultBucket title="Armor" groups={groupedInventory.Armor} definitions={definitions} onItemClick={onItemClick} />
-
-            {/* 5. General / Consumables */}
             <VaultBucket title="General" groups={groupedInventory.General} definitions={definitions} onItemClick={onItemClick} />
         </div>
     );
