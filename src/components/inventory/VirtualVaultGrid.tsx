@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { InventoryItem } from '../InventoryItem';
+import { InventoryItem } from './InventoryItem';
 import { groupItemsForDisplay, getSortedTypes, WEAPON_TYPE_ICONS } from '../../lib/destiny/sort-engine';
 
 interface VirtualVaultGridProps {

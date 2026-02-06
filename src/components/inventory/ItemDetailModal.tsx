@@ -5,7 +5,7 @@ import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
-import { BungieImage } from '../BungieImage';
+import { BungieImage } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes } from '../../lib/destiny-constants';
 import clsx from 'clsx';

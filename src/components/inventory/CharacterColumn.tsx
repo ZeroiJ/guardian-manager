@@ -1,7 +1,7 @@
 import React from 'react';
-import { InventoryItem } from '../InventoryItem';
+import { InventoryItem } from './InventoryItem';
 import { BUCKETS } from '../../data/constants';
-import { bungieNetPath } from '../BungieImage';
+import { bungieNetPath } from '../ui/BungieImage';
 
 interface BucketRowProps {
     label: string;

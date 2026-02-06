@@ -1,6 +1,6 @@
 import React from 'react';
-import { RARITY_COLORS } from '../data/constants';
-import { BungieImage } from './BungieImage';
+import { RARITY_COLORS } from '../../data/constants';
+import { BungieImage } from '../ui/BungieImage';
 
 interface InventoryItemProps {
     item: any;

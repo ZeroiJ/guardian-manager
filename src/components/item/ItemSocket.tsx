@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BungieImage } from '../BungieImage';
+import { BungieImage } from '../ui/BungieImage';
 import { SocketCategoryHashes } from '../../lib/destiny-constants';
 import {
     useFloating,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
-import { BungieImage } from '../BungieImage';
+import { BungieImage } from '../ui/BungieImage';
 import { getElementIcon } from './ElementIcons';
 
 interface DestinyItemTileProps {
