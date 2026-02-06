@@ -2,7 +2,32 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
-## [0.14.0] - 2026-02-04
+## [0.15.0] - 2026-02-06
+
+### 🚀 DIM-Style Vault & Project Polish
+
+Achieved visual parity with DIM's Vault Grid and performed a major cleanup of the project structure and authentication logic.
+
+#### Visual Overhaul
+
+- **Phantom Separators**: Replaced text headers in the Vault with "Inline Icon Separators". These use official SVG icons (Auto Rifle, Hand Cannon, etc.) rendered with a "Phantom" style (`bg-white/5`, no border, transparent icon) to blend seamlessly into the grid.
+- **Flat List Rendering**: Refactored `VirtualVaultGrid` to flatten items and separators into a single continuous list. Items now wrap naturally around the separator icons, creating a dense, space-efficient grid (gap-1).
+- **Vector Icons**: Configured the project to load **local SVG icons** (imported from `destiny-icons`) instead of relying on Bungie's raster PNGs. This ensures crisp rendering at any scale.
+
+#### Architectural Cleanup
+
+- **Slim Cookies**: Fixed the persistent `401 Unauthorized` loop by "slimming down" the auth cookie keys (t, r, m) to avoid browser size limits.
+- **Dynamic Secure Flag**: Implemented auto-detection for `secure` cookies to support both `localhost` (http) and Production (https) without manual config changes.
+- **Project Reorg**: Moved `src/conductor` documentation to `docs/conductor`. Grouped root components into clear subdirectories (`src/components/ui`, `src/components/inventory`).
+
+### Files Modified
+
+- `src/components/inventory/VirtualVaultGrid.tsx` - Flat List logic & Separator styling.
+- `src/lib/destiny/sort-engine.ts` - Updated to use local SVG imports.
+- `functions/api/[[route]].ts` - Updated auth logic for Slim Cookies.
+- `src/assets/icons/weapons/*.svg` - Added 17 weapon type icons.
+
+### [0.14.0] - 2026-02-04
 
 ### 🌟 Footer Implementation (Item Popup)
 
