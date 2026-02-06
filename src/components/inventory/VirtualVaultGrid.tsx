@@ -76,12 +76,59 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
     );
 };
 
-export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'Weapons' | 'Armor' | 'General' }> = ({ items, definitions, className, onItemClick, category }) => {
+export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'Weapons' | 'Armor' | 'General'; bucketHash?: number }> = ({ items, definitions, className, onItemClick, category, bucketHash }) => {
 
     // Group Items using Engine
     const groupedInventory = useMemo(() => {
         return groupItemsForDisplay(items, definitions);
     }, [items, definitions]);
+
+    // 1. Specific Bucket Mode (Slot-Based)
+    if (bucketHash) {
+        // Filter items for this specific bucket
+        // We can reuse the group logic or just filter raw items?
+        // Raw filter is safer as 'groupedInventory' splits by Kinetic/Energy/Power but might not have granular bucket info easily accessible without mapping back.
+        // Actually, groupedInventory.Kinetic IS array of items.
+
+        // Let's filter from the raw 'items' list passed in, it's cleaner for strict bucket matching.
+        const bucketItems = items.filter(item => definitions[item.itemHash]?.inventory?.bucketTypeHash === bucketHash);
+
+        // We still need to group them by Type (Auto Rifle, etc) for the VaultBucket renderer to work (it expects groups).
+        // Sort Engine `groupItemsForDisplay` returns huge object.
+        // Let's make a mini-grouper or reuse logic?
+        // We can just call `groupItemsForDisplay` on the filtered subset!
+
+        // Wait, `groupItemsForDisplay` returns { Kinetic: [], Energy: [], ... }
+        // If we pass ONLY Kinetic items, it will return { Kinetic: [...], Energy: [], ... }
+        // So we can just grab the values.
+
+        const subGroups = groupItemsForDisplay(bucketItems, definitions);
+        // Merge all categories (likely only one will be populated, e.g. Kinetic)
+        // But what if we ask for "Consumables"? They might end up in 'General'.
+
+        // General Merging Strategy:
+        const merged: Record<string, any[]> = {};
+        const deepMerge = (target: Record<string, any[]>, source: Record<string, any[]>) => {
+            Object.keys(source).forEach(key => {
+                if (target[key]) {
+                    target[key] = [...target[key], ...source[key]];
+                } else {
+                    target[key] = source[key];
+                }
+            });
+        };
+        deepMerge(merged, subGroups.Kinetic);
+        deepMerge(merged, subGroups.Energy);
+        deepMerge(merged, subGroups.Power);
+        deepMerge(merged, subGroups.Armor);
+        deepMerge(merged, subGroups.General);
+
+        return (
+            <div className={`p-1 ${className} h-full`}>
+                <VaultBucket title="" groups={merged} definitions={definitions} onItemClick={onItemClick} />
+            </div>
+        );
+    }
 
     // Render Logic: If category provided, render ONLY that category (Merged if needed)
     if (category === 'Weapons') {

@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { StoreHeader } from '@/components/inventory/StoreHeader';
-import { InventoryFloor } from '@/components/inventory/InventoryFloor';
-import { CharacterBucket } from '@/components/inventory/CharacterBucket';
+import { InventoryBucketLabel } from '@/components/inventory/InventoryBucketLabel';
+import { StoreBucket } from '@/components/inventory/StoreBucket';
+import { BUCKETS } from '@/data/constants';
 import DestinyItemTile from '@/components/destiny/DestinyItemTile';
 import { DroppableZone } from '@/components/inventory/DroppableZone';
 import { VirtualVaultGrid } from '@/components/inventory/VirtualVaultGrid';
@@ -256,10 +257,11 @@ export default function App() {
                 </div>
 
                 {/* Horizontal Content - THE FLOORS */}
-                <div className="flex-1 flex flex-col p-4 gap-8 overflow-x-auto">
+                {/* Horizontal Content - SLOT BASED ROWS */}
+                <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
 
                     {/* Floor 1: HEADERS (Emblems + Stats) */}
-                    <div className="flex gap-2 min-w-max">
+                    <div className="flex gap-2 min-w-max h-[155px]"> {/* Fixed height for alignment */}
                         {characters.map((char: any) => (
                             <StoreHeader
                                 key={char.characterId}
@@ -272,90 +274,49 @@ export default function App() {
                         </DroppableZone>
                     </div>
 
-                    {/* Floor 2: WEAPONS */}
-                    <InventoryFloor label="Weapons">
-                        {characters.map((char: any) => {
-                            const { equipment, inventory } = getItemsForCharacter(char.characterId); // Note contextMenu needs passing!
-                            // Optimization: getItemsForCharacter is being called multiple times now?
-                            // We should probably memoize it or hoist it up if perf suffers.
-                            // For now, it's fine.
-                            return (
-                                <DroppableZone key={char.characterId} id={char.characterId}>
-                                    <CharacterBucket
-                                        category="Weapons"
-                                        equipment={equipment}
-                                        inventory={inventory}
-                                        definitions={definitions}
-                                        onItemClick={handleItemClick} // Missing context menu?
-                                    />
-                                </DroppableZone>
-                            );
-                        })}
-                        <DroppableZone id="vault" className="flex-1 min-w-[300px] bg-[#11111b] border border-[#333]">
-                            <VirtualVaultGrid
-                                category="Weapons"
-                                items={vaultItems}
-                                definitions={definitions}
-                                onItemContextMenu={handleContextMenu}
-                                onItemClick={handleItemClick}
-                            />
-                        </DroppableZone>
-                    </InventoryFloor>
+                    {/* DYNAMIC ROWS Loop */}
+                    {[
+                        { label: 'Kinetic Weapons', hash: BUCKETS.Kinetic },
+                        { label: 'Energy Weapons', hash: BUCKETS.Energy },
+                        { label: 'Power Weapons', hash: BUCKETS.Power },
+                        { label: 'Helmets', hash: BUCKETS.Helmet },
+                        { label: 'Arms', hash: BUCKETS.Gauntlets },
+                        { label: 'Chest', hash: BUCKETS.Chest },
+                        { label: 'Legs', hash: BUCKETS.Legs },
+                        { label: 'Class Items', hash: BUCKETS.Class },
+                    ].map(row => (
+                        <div key={row.hash} className="flex flex-col min-w-max">
+                            <InventoryBucketLabel label={row.label} />
+                            <div className="flex gap-2 items-stretch">
+                                {/* Characters */}
+                                {characters.map((char: any) => {
+                                    const { equipment, inventory } = getItemsForCharacter(char.characterId);
+                                    return (
+                                        <DroppableZone key={char.characterId} id={char.characterId}>
+                                            <StoreBucket
+                                                bucketHash={row.hash}
+                                                equipment={equipment}
+                                                inventory={inventory}
+                                                definitions={definitions}
+                                                onItemClick={handleItemClick}
+                                            />
+                                        </DroppableZone>
+                                    );
+                                })}
 
-                    {/* Floor 3: ARMOR */}
-                    <InventoryFloor label="Armor">
-                        {characters.map((char: any) => {
-                            const { equipment, inventory } = getItemsForCharacter(char.characterId);
-                            return (
-                                <DroppableZone key={char.characterId} id={char.characterId}>
-                                    <CharacterBucket
-                                        category="Armor"
-                                        equipment={equipment}
-                                        inventory={inventory}
+                                {/* Vault */}
+                                <DroppableZone id="vault" className="flex-1 min-w-[300px] bg-[#11111b] border border-[#333]">
+                                    <VirtualVaultGrid
+                                        bucketHash={row.hash}
+                                        items={vaultItems}
                                         definitions={definitions}
+                                        onItemContextMenu={handleContextMenu}
                                         onItemClick={handleItemClick}
                                     />
                                 </DroppableZone>
-                            );
-                        })}
-                        <DroppableZone id="vault" className="flex-1 min-w-[300px] bg-[#11111b] border border-[#333]">
-                            <VirtualVaultGrid
-                                category="Armor"
-                                items={vaultItems}
-                                definitions={definitions}
-                                onItemContextMenu={handleContextMenu}
-                                onItemClick={handleItemClick}
-                            />
-                        </DroppableZone>
-                    </InventoryFloor>
-
-                    {/* Floor 4: GENERAL */}
-                    <InventoryFloor label="General">
-                        {characters.map((char: any) => {
-                            const { equipment, inventory } = getItemsForCharacter(char.characterId);
-                            return (
-                                <DroppableZone key={char.characterId} id={char.characterId}>
-                                    <CharacterBucket
-                                        category="General"
-                                        equipment={equipment}
-                                        inventory={inventory}
-                                        definitions={definitions}
-                                        onItemClick={handleItemClick}
-                                    />
-                                </DroppableZone>
-                            );
-                        })}
-                        <DroppableZone id="vault" className="flex-1 min-w-[300px] bg-[#11111b] border border-[#333]">
-                            <VirtualVaultGrid
-                                category="General"
-                                items={vaultItems}
-                                definitions={definitions}
-                                onItemContextMenu={handleContextMenu}
-                                onItemClick={handleItemClick}
-                            />
-                        </DroppableZone>
-                    </InventoryFloor>
-
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Drag Overlay */}
