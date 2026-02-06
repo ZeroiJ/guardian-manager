@@ -10,17 +10,20 @@ interface VirtualVaultGridProps {
     onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
-// Visual Divider Tile (Icon only)
+// Visual Divider Tile (Icon only) - DIM Style "Phantom Item"
 const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
 
     return (
-        <div className="w-[48px] h-[48px] flex items-center justify-center bg-[#1a1a1a]/50 select-none" title={type}>
-            {iconUrl ? (
-                <img src={iconUrl} className="w-8 h-8 invert opacity-20" alt={type} />
-            ) : (
-                <span className="text-[8px] text-white/20 font-bold uppercase">{type.slice(0, 3)}</span>
-            )}
+        <div className="w-[48px] h-[48px] flex items-center justify-center select-none p-[2px]" title={type}>
+            {/* Inner box matches item feel but 'empty' */}
+            <div className="w-full h-full flex items-center justify-center bg-black/20 rounded-sm border border-white/5">
+                {iconUrl ? (
+                    <img src={iconUrl} className="w-8 h-8 invert opacity-20" alt={type} />
+                ) : (
+                    <span className="text-[8px] text-white/10 font-bold uppercase">{type.slice(0, 3)}</span>
+                )}
+            </div>
         </div>
     );
 };
@@ -31,17 +34,17 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
     if (sortedTypes.length === 0) return null;
 
     return (
-        <div className="mb-8">
+        <div className="mb-4">
             {/* Bucket Header */}
-            <div className="text-lg font-bold text-[#e2bf36] uppercase tracking-wider mb-2 border-b border-[#e2bf36]/30 pb-1 w-full flex items-center gap-2">
+            <div className="text-xs font-bold text-[#e2bf36] uppercase tracking-wider mb-2 border-b border-[#e2bf36]/20 pb-1 w-full flex items-center gap-2 opacity-80">
                 <span>{title}</span>
-                <span className="text-xs text-gray-500 font-normal normal-case opacity-50">
+                <span className="text-[10px] text-gray-500 font-normal normal-case opacity-50">
                     ({Object.values(groups).reduce((acc, curr) => acc + curr.length, 0)})
                 </span>
             </div>
 
-            {/* Continuous Grid */}
-            <div className="flex flex-wrap gap-[2px] content-start pl-2">
+            {/* Continuous Grid - DIM Density (gap-1 = 4px) */}
+            <div className="flex flex-wrap gap-1 content-start pl-0">
                 {sortedTypes.map(type => (
                     <React.Fragment key={type}>
                         {/* Separator Tile */}
