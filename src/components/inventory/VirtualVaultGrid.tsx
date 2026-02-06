@@ -16,8 +16,8 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
 
     return (
         <div className="w-[48px] h-[48px] flex items-center justify-center select-none p-[2px]" title={type}>
-            {/* Inner box matches item feel but 'empty' */}
-            <div className="w-full h-full flex items-center justify-center bg-black/20 rounded-sm border border-white/5">
+            {/* Inner box matches item feel but 'empty' - Phantom Style: bg-white/5, NO BORDER */}
+            <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-sm">
                 {iconUrl ? (
                     <img src={iconUrl} className="w-8 h-8 invert opacity-20" alt={type} />
                 ) : (
@@ -35,10 +35,10 @@ const VaultBucket: React.FC<{ title: string, groups: Record<string, any[]>, defi
 
     return (
         <div className="mb-4">
-            {/* Bucket Header */}
-            <div className="text-xs font-bold text-[#e2bf36] uppercase tracking-wider mb-2 border-b border-[#e2bf36]/20 pb-1 w-full flex items-center gap-2 opacity-80">
+            {/* Bucket Header - Minimalist */}
+            <div className="text-[10px] font-bold text-[#e2bf36] uppercase tracking-wider mb-1 border-b border-[#e2bf36]/10 pb-1 w-full flex items-center gap-2 opacity-60">
                 <span>{title}</span>
-                <span className="text-[10px] text-gray-500 font-normal normal-case opacity-50">
+                <span className="text-[9px] text-gray-500 font-normal normal-case opacity-50">
                     ({Object.values(groups).reduce((acc, curr) => acc + curr.length, 0)})
                 </span>
             </div>
