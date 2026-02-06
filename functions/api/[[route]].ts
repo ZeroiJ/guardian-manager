@@ -109,17 +109,28 @@ app.get('/api/auth/callback', async (c) => {
 
     const tokens = await response.json() as any
     console.log('[OAuth Callback] Tokens received successfully');
-    console.log('[OAuth Callback] Token keys:', Object.keys(tokens));
 
-    setCookie(c, 'bungie_auth', JSON.stringify(tokens), {
+    // SLIM COOKIE: Store only essential data to keep size under 4KB
+    // t: access_token, r: refresh_token, m: membership_id, e: expiry_epoch
+    const session = {
+        t: tokens.access_token,
+        r: tokens.refresh_token,
+        m: tokens.membership_id,
+        e: Date.now() + (tokens.expires_in * 1000)
+    };
+
+    // Dynamic Secure Flag: Allow localhost (http) to save cookies
+    const isSecure = c.req.url.startsWith('https');
+
+    setCookie(c, 'bungie_auth', JSON.stringify(session), {
         path: '/',
-        secure: true,
+        secure: isSecure,
         httpOnly: true,
-        maxAge: 3600 * 24 * 30, // 30 days
+        maxAge: 3600 * 24 * 90, // 90 days (Refresh Token lifespan)
         sameSite: 'Lax',
     })
 
-    console.log('[OAuth Callback] Cookie set, redirecting to /dashboard');
+    console.log(`[OAuth Callback] Cookie set (Secure=${isSecure}), redirecting to /dashboard`);
     return c.redirect('/dashboard')
 })
 
@@ -129,21 +140,25 @@ app.get('/api/profile', async (c) => {
     const config = getBungieConfig(c.env)
     const authCookie = getCookie(c, 'bungie_auth')
 
+    // DEBUG: Check if cookie is arriving
+    console.log('[Profile API] Cookie Header Present:', !!c.req.header('Cookie'));
+
     if (!authCookie) {
         console.error('[Profile API] No auth cookie found');
         return c.text('Unauthorized', 401)
     }
 
-    let tokens;
+    let session;
     try {
-        tokens = JSON.parse(authCookie)
+        session = JSON.parse(authCookie)
     } catch (err) {
         console.error('[Profile API] Failed to parse auth cookie:', err);
         return c.text('Invalid auth cookie', 401)
     }
 
     // Helper to fetch Memberships with manual Retry logic
-    let access_token = tokens.access_token;
+    // Read from Slim Cookie (t=access_token, r=refresh_token)
+    let access_token = session.t || session.access_token; // Fallback for old cookies
     let didRefresh = false;
 
     // 1. Fetch Memberships
@@ -163,19 +178,32 @@ app.get('/api/profile', async (c) => {
             // Import dynamically or assume it's available since we are in same project
             const { refreshBungieTokens } = await import('../lib/auth');
 
-            if (!tokens.refresh_token) throw new Error('No refresh token available');
+            // Read refresh token from slim key 'r'
+            const refreshToken = session.r || session.refresh_token;
 
-            const newTokens = await refreshBungieTokens(tokens.refresh_token, c.env);
+            if (!refreshToken) throw new Error('No refresh token available');
+
+            const newTokens = await refreshBungieTokens(refreshToken, c.env);
             console.log('[Profile API] Token Refresh Successful!');
 
             // Update Local Vars
             access_token = newTokens.access_token;
-            // Update Cookie
-            setCookie(c, 'bungie_auth', JSON.stringify(newTokens), {
+
+            // Update Cookie (Store as SLIM)
+            const newSession = {
+                t: newTokens.access_token,
+                r: newTokens.refresh_token,
+                m: newTokens.membership_id,
+                e: Date.now() + (newTokens.expires_in * 1000)
+            };
+
+            const isSecure = c.req.url.startsWith('https');
+
+            setCookie(c, 'bungie_auth', JSON.stringify(newSession), {
                 path: '/',
-                secure: true,
+                secure: isSecure,
                 httpOnly: true,
-                maxAge: 3600 * 24 * 30,
+                maxAge: 3600 * 24 * 90,
                 sameSite: 'Lax',
             });
             didRefresh = true;
@@ -304,14 +332,17 @@ app.post('/api/actions/transfer', async (c) => {
     const authCookie = getCookie(c, 'bungie_auth')
     if (!authCookie) return c.text('Unauthorized', 401)
 
-    const tokens = JSON.parse(authCookie)
+    const session = JSON.parse(authCookie)
+    // Read access_token from 't'
+    const access_token = session.t || session.access_token;
+
     const body = await c.req.json() as any
 
     const response = await fetch('https://www.bungie.net/Platform/Destiny2/Actions/Items/TransferItem/', {
         method: 'POST',
         headers: {
             'X-API-Key': config.apiKey,
-            'Authorization': `Bearer ${tokens.access_token}`,
+            'Authorization': `Bearer ${access_token}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
@@ -330,8 +361,8 @@ app.get('/api/metadata', async (c) => {
     const authCookie = getCookie(c, 'bungie_auth')
     if (!authCookie) return c.json({ tags: {}, notes: {} })
 
-    const tokens = JSON.parse(authCookie)
-    const membershipId = tokens.membership_id
+    const session = JSON.parse(authCookie)
+    const membershipId = session.m || session.membership_id // Slim vs Old
 
     const metadata = await c.env.guardian_db.prepare(
         'SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?'
@@ -351,8 +382,8 @@ app.post('/api/metadata', async (c) => {
     const authCookie = getCookie(c, 'bungie_auth')
     if (!authCookie) return c.text('Unauthorized', 401)
 
-    const tokens = JSON.parse(authCookie)
-    const membershipId = tokens.membership_id
+    const session = JSON.parse(authCookie)
+    const membershipId = session.m || session.membership_id
     const { itemId, type, value } = await c.req.json() as any
 
     // 1. Get existing metadata
