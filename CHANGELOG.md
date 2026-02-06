@@ -2,6 +2,33 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.16.0] - 2026-02-06
+
+### 🧱 Layout Overhaul: The Floor System
+
+Rewrote the main dashboard to use a "Floor-based" layout (Rows) instead of independent columns. This ensures perfect alignment of inventory sections across all characters and the vault.
+
+#### Synchronized Shelves
+
+- **Header Floor**: Emblems and Stats are now aligned in a top row.
+- **Weapons Floor**: The "Great Wall of Guns". All character weapons and the Vault's weapon grid are horizontally adjacent.
+  - **Vault Grid Merge**: The Vault now renders a single continuous list for **Weapons** (Kinetic + Energy + Power merged), sorted by slot and type. No more sub-headers breaking the flow.
+- **Armor Floor**: Starts at the exact same Y-pixel for everyone, solving the misalignment caused by expanding vault lists.
+
+#### Components Refactor
+
+- **StoreHeader**: Extracted emblem/stats logic into a standalone component.
+- **InventoryFloor**: New wrapper component that enforces `align-stretch` on its children.
+- **CharacterBucket**: Specialized component for rendering strict category groups (Weapons/Armor) for characters.
+
+### Files Modified
+
+- `src/App.tsx` - Complete layout rewrite.
+- `src/components/inventory/StoreHeader.tsx` - New component.
+- `src/components/inventory/InventoryFloor.tsx` - New component.
+- `src/components/inventory/CharacterBucket.tsx` - New component.
+- `src/components/inventory/VirtualVaultGrid.tsx` - Added `category` prop for merged rendering.
+
 ## [0.15.0] - 2026-02-06
 
 ### 🚀 DIM-Style Vault & Project Polish
