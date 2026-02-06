@@ -2,6 +2,30 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.17.0] - 2026-02-06
+
+### 🎹 Vertical Rhythm Refactor
+
+Refactored the dashboard to enforce strict "Slot-Based" Vertical Rhythm. Instead of grouping all Weapons into one big block, we now render explicit rows for each inventory bucket.
+
+#### Why?
+
+To solve the "Jagged Alignment" issue where a massive Vault Weapon collection would push the Armor section down, misaligning it with characters who have fewer weapons. Now, **Row 1 (Kinetic)** stretches to the height of the tallest Kinetic section (usually Vault), and **Row 2 (Energy)** starts cleanly below it for everyone.
+
+#### Structural Changes
+
+- **8 Explicit Rows**: Kinetic, Energy, Power, Helmet, Gauntlets, Chest, Legs, Class Item.
+- **StoreBucket**: Specialized component to render a single inventory slot (Equipped + 3x3 Grid).
+- **InventoryBucketLabel**: Sticky header for each specific row.
+- **VirtualVaultGrid**: Updated to support filtering by `bucketHash` to render "Mini Walls" for each slot.
+
+### Files Modified
+
+- `src/App.tsx` - Replaced "Floor System" with "Slot Loop".
+- `src/components/inventory/StoreBucket.tsx` - New component.
+- `src/components/inventory/InventoryBucketLabel.tsx` - New component.
+- `src/components/inventory/VirtualVaultGrid.tsx` - Added `bucketHash` prop.
+
 ## [0.16.0] - 2026-02-06
 
 ### 🧱 Layout Overhaul: The Floor System
