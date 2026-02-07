@@ -292,7 +292,7 @@ export default function App() {
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
                                     return (
-                                        <DroppableZone key={char.characterId} id={char.characterId}>
+                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-[340px] flex-shrink-0">
                                             <StoreBucket
                                                 bucketHash={row.hash}
                                                 equipment={equipment}
@@ -305,7 +305,7 @@ export default function App() {
                                 })}
 
                                 {/* Vault */}
-                                <DroppableZone id="vault" className="flex-1 min-w-[300px] bg-[#11111b] border border-[#333]">
+                                <DroppableZone id="vault" className="flex-1 min-w-[300px] max-w-[600px] bg-[#11111b] border border-[#333]">
                                     <VirtualVaultGrid
                                         bucketHash={row.hash}
                                         items={vaultItems}
