@@ -50,43 +50,56 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
 };
 
 // ============================================================================
-// GRID NODE TYPE - Union of Separator and Item
+// ITEM TILE - Wrapped inventory item
 // ============================================================================
-type GridNode =
-    | { type: 'separator'; label: string; id: string }
-    | { type: 'item'; item: any; id: string };
+const ItemTile: React.FC<{
+    item: any;
+    definition: any;
+    onClick?: (item: any, definition: any, e: React.MouseEvent) => void;
+}> = ({ item, definition, onClick }) => (
+    <div className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+        <InventoryItem
+            item={item}
+            definition={definition}
+            onClick={(e) => onClick && onClick(item, definition, e)}
+        />
+    </div>
+);
 
 // ============================================================================
-// FLATTEN GROUPS - Create a single mixed array with injected separators
+// VAULT GROUP - Uses "display: contents" to be invisible to flex layout
+// This is the DIM Pattern #4!
 // ============================================================================
-const flattenGroupsWithSeparators = (
-    groups: Record<string, any[]>,
-    definitions: Record<string, any>,
-    prefix: string = ''
-): GridNode[] => {
-    const sortedTypes = getSortedTypes(groups);
-    const flatList: GridNode[] = [];
+const VaultGroup: React.FC<{
+    typeName: string;
+    items: any[];
+    definitions: Record<string, any>;
+    onItemClick?: (item: any, definition: any, e: React.MouseEvent) => void;
+    prefix: string;
+}> = ({ typeName, items, definitions, onItemClick, prefix }) => {
+    // Sort items by power descending
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => calculatePower(b, definitions) - calculatePower(a, definitions));
+    }, [items, definitions]);
 
-    sortedTypes.forEach(typeName => {
-        // Sort items within type by power (descending)
-        const sortedItems = [...groups[typeName]].sort((a, b) => {
-            return calculatePower(b, definitions) - calculatePower(a, definitions);
-        });
+    return (
+        // 🔥 THE MAGIC: display:contents makes this wrapper "invisible"
+        // Children flow directly into the parent flex container
+        <div style={{ display: 'contents' }}>
+            {/* Separator Icon */}
+            <SeparatorTile type={typeName} />
 
-        // Inject Separator Tile
-        flatList.push({ type: 'separator', label: typeName, id: `${prefix}sep-${typeName}` });
-
-        // Then push all items of this type
-        sortedItems.forEach(item => {
-            flatList.push({
-                type: 'item',
-                item: item,
-                id: `${prefix}${item.itemInstanceId || item.itemHash}`
-            });
-        });
-    });
-
-    return flatList;
+            {/* Items */}
+            {sortedItems.map(item => (
+                <ItemTile
+                    key={`${prefix}${item.itemInstanceId || item.itemHash}`}
+                    item={item}
+                    definition={definitions[item.itemHash]}
+                    onClick={onItemClick}
+                />
+            ))}
+        </div>
+    );
 };
 
 // ============================================================================
@@ -123,23 +136,21 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
             groups[typeName].push(item);
         });
 
-        const flatList = flattenGroupsWithSeparators(groups, definitions, 'bucket-');
+        const sortedTypes = getSortedTypes(groups);
 
         return (
             <div className={`p-1 ${className} h-full`}>
+                {/* Single flex container - groups use display:contents */}
                 <div className="flex flex-wrap gap-1 content-start">
-                    {flatList.map(node => (
-                        node.type === 'separator' ? (
-                            <SeparatorTile key={node.id} type={node.label} />
-                        ) : (
-                            <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                <InventoryItem
-                                    item={node.item}
-                                    definition={definitions[node.item.itemHash]}
-                                    onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
-                                />
-                            </div>
-                        )
+                    {sortedTypes.map(typeName => (
+                        <VaultGroup
+                            key={`bucket-${typeName}`}
+                            typeName={typeName}
+                            items={groups[typeName]}
+                            definitions={definitions}
+                            onItemClick={onItemClick}
+                            prefix="bucket-"
+                        />
                     ))}
                 </div>
             </div>
@@ -163,23 +174,20 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         deepMerge(merged, groupedInventory.Energy);
         deepMerge(merged, groupedInventory.Power);
 
-        const flatList = flattenGroupsWithSeparators(merged, definitions, 'weapons-');
+        const sortedTypes = getSortedTypes(merged);
 
         return (
             <div className={`p-1 ${className} h-full`}>
                 <div className="flex flex-wrap gap-1 content-start">
-                    {flatList.map(node => (
-                        node.type === 'separator' ? (
-                            <SeparatorTile key={node.id} type={node.label} />
-                        ) : (
-                            <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                <InventoryItem
-                                    item={node.item}
-                                    definition={definitions[node.item.itemHash]}
-                                    onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
-                                />
-                            </div>
-                        )
+                    {sortedTypes.map(typeName => (
+                        <VaultGroup
+                            key={`weapons-${typeName}`}
+                            typeName={typeName}
+                            items={merged[typeName]}
+                            definitions={definitions}
+                            onItemClick={onItemClick}
+                            prefix="weapons-"
+                        />
                     ))}
                 </div>
             </div>
@@ -187,23 +195,20 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     }
 
     if (category === 'Armor') {
-        const flatList = flattenGroupsWithSeparators(groupedInventory.Armor, definitions, 'armor-');
+        const sortedTypes = getSortedTypes(groupedInventory.Armor);
 
         return (
             <div className={`p-1 ${className} h-full`}>
                 <div className="flex flex-wrap gap-1 content-start">
-                    {flatList.map(node => (
-                        node.type === 'separator' ? (
-                            <SeparatorTile key={node.id} type={node.label} />
-                        ) : (
-                            <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                <InventoryItem
-                                    item={node.item}
-                                    definition={definitions[node.item.itemHash]}
-                                    onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
-                                />
-                            </div>
-                        )
+                    {sortedTypes.map(typeName => (
+                        <VaultGroup
+                            key={`armor-${typeName}`}
+                            typeName={typeName}
+                            items={groupedInventory.Armor[typeName]}
+                            definitions={definitions}
+                            onItemClick={onItemClick}
+                            prefix="armor-"
+                        />
                     ))}
                 </div>
             </div>
@@ -211,23 +216,20 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     }
 
     if (category === 'General') {
-        const flatList = flattenGroupsWithSeparators(groupedInventory.General, definitions, 'general-');
+        const sortedTypes = getSortedTypes(groupedInventory.General);
 
         return (
             <div className={`p-1 ${className || ''} h-full`}>
                 <div className="flex flex-wrap gap-1 content-start">
-                    {flatList.map(node => (
-                        node.type === 'separator' ? (
-                            <SeparatorTile key={node.id} type={node.label} />
-                        ) : (
-                            <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                                <InventoryItem
-                                    item={node.item}
-                                    definition={definitions[node.item.itemHash]}
-                                    onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
-                                />
-                            </div>
-                        )
+                    {sortedTypes.map(typeName => (
+                        <VaultGroup
+                            key={`general-${typeName}`}
+                            typeName={typeName}
+                            items={groupedInventory.General[typeName]}
+                            definitions={definitions}
+                            onItemClick={onItemClick}
+                            prefix="general-"
+                        />
                     ))}
                 </div>
             </div>
@@ -235,40 +237,59 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     }
 
     // ========================================================================
-    // DEFAULT: FULL VAULT VIEW - One Continuous Snake Flow
+    // DEFAULT: FULL VAULT VIEW - Continuous Snake via display:contents
     // ========================================================================
-    // Merge all weapons into unified groups
     const mergedWeapons: Record<string, any[]> = {};
     deepMerge(mergedWeapons, groupedInventory.Kinetic);
     deepMerge(mergedWeapons, groupedInventory.Energy);
     deepMerge(mergedWeapons, groupedInventory.Power);
 
-    // Create ONE continuous flat list: Weapons → Armor → General
-    const fullFlatList: GridNode[] = [
-        ...flattenGroupsWithSeparators(mergedWeapons, definitions, 'w-'),
-        ...flattenGroupsWithSeparators(groupedInventory.Armor, definitions, 'a-'),
-        ...flattenGroupsWithSeparators(groupedInventory.General, definitions, 'g-'),
-    ];
+    const weaponTypes = getSortedTypes(mergedWeapons);
+    const armorTypes = getSortedTypes(groupedInventory.Armor);
+    const generalTypes = getSortedTypes(groupedInventory.General);
 
     return (
         <div className={`p-2 ${className} pb-32`}>
-            {/* SINGLE Continuous Grid - The "Snake Flow" */}
+            {/* SINGLE Continuous Grid - Groups use display:contents for snake flow */}
             <div className="flex flex-wrap gap-1 content-start">
-                {fullFlatList.map(node => (
-                    node.type === 'separator' ? (
-                        <SeparatorTile key={node.id} type={node.label} />
-                    ) : (
-                        <div key={node.id} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
-                            <InventoryItem
-                                item={node.item}
-                                definition={definitions[node.item.itemHash]}
-                                onClick={(e) => onItemClick && onItemClick(node.item, definitions[node.item.itemHash], e)}
-                            />
-                        </div>
-                    )
+                {/* Weapons */}
+                {weaponTypes.map(typeName => (
+                    <VaultGroup
+                        key={`w-${typeName}`}
+                        typeName={typeName}
+                        items={mergedWeapons[typeName]}
+                        definitions={definitions}
+                        onItemClick={onItemClick}
+                        prefix="w-"
+                    />
+                ))}
+
+                {/* Armor */}
+                {armorTypes.map(typeName => (
+                    <VaultGroup
+                        key={`a-${typeName}`}
+                        typeName={typeName}
+                        items={groupedInventory.Armor[typeName]}
+                        definitions={definitions}
+                        onItemClick={onItemClick}
+                        prefix="a-"
+                    />
+                ))}
+
+                {/* General */}
+                {generalTypes.map(typeName => (
+                    <VaultGroup
+                        key={`g-${typeName}`}
+                        typeName={typeName}
+                        items={groupedInventory.General[typeName]}
+                        definitions={definitions}
+                        onItemClick={onItemClick}
+                        prefix="g-"
+                    />
                 ))}
             </div>
         </div>
     );
 };
+
 
