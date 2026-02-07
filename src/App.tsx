@@ -261,7 +261,7 @@ export default function App() {
                 <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
 
                     {/* Floor 1: HEADERS (Emblems + Stats) */}
-                    <div className="flex gap-2 min-w-max h-[155px]"> {/* Fixed height for alignment */}
+                    <div className="flex gap-0.5 min-w-max h-[155px]"> {/* Fixed height for alignment */}
                         {characters.map((char: any) => (
                             <StoreHeader
                                 key={char.characterId}
@@ -287,12 +287,12 @@ export default function App() {
                     ].map(row => (
                         <div key={row.hash} className="flex flex-col min-w-max">
                             <InventoryBucketLabel label={row.label} />
-                            <div className="flex gap-2 items-stretch">
+                            <div className="flex gap-0.5 items-stretch">
                                 {/* Characters */}
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
                                     return (
-                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-[340px] flex-shrink-0">
+                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-fit flex-shrink-0">
                                             <StoreBucket
                                                 bucketHash={row.hash}
                                                 equipment={equipment}
@@ -305,7 +305,7 @@ export default function App() {
                                 })}
 
                                 {/* Vault */}
-                                <DroppableZone id="vault" className="flex-1 min-w-[300px] max-w-[600px] bg-[#11111b] border border-[#333]">
+                                <DroppableZone id="vault" className="flex-1 min-w-[200px] bg-[#11111b] border border-[#333]">
                                     <VirtualVaultGrid
                                         bucketHash={row.hash}
                                         items={vaultItems}
