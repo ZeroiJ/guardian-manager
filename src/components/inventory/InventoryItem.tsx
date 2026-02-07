@@ -21,7 +21,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
     return (
         <div
-            className="relative h-12 w-12 box-border border-2 bg-[#292929] cursor-pointer hover:brightness-110 active:scale-95 transition-all"
+            className="relative h-12 w-12 box-border border-2 bg-[#292929] cursor-pointer hover:brightness-125 hover:scale-110 hover:z-10 active:scale-95 transition-all duration-150"
             style={{ borderColor: borderColor }}
             onClick={onClick}
         >
@@ -34,7 +34,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
             {/* Overlay: Power Level */}
             {power && (
-                <div className="absolute bottom-0 right-0 left-0 bg-black/60 px-1 text-right pointer-events-none">
+                <div className="absolute bottom-0 right-0 left-0 bg-black/70 px-0.5 text-right pointer-events-none backdrop-blur-sm">
                     <span className="text-[10px] font-bold text-[#f5dc56] font-mono leading-none">
                         {power}
                     </span>

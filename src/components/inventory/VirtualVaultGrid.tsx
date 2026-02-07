@@ -39,11 +39,11 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
             title={type}
         >
             {iconUrl ? (
-                <img src={iconUrl} className="w-8 h-8 invert opacity-30" alt={type} />
+                <img src={iconUrl} className="w-8 h-8 invert opacity-50" alt={type} />
             ) : ArmorIcon ? (
-                <ArmorIcon className="w-6 h-6 text-white/30" />
+                <ArmorIcon className="w-6 h-6 text-white/50" />
             ) : (
-                <span className="text-[8px] text-white/20 font-bold uppercase text-center leading-none px-1">{type}</span>
+                <span className="text-[8px] text-white/40 font-bold uppercase text-center leading-none px-1">{type}</span>
             )}
         </div>
     );

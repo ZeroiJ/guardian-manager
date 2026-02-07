@@ -305,7 +305,7 @@ export default function App() {
                                 })}
 
                                 {/* Vault */}
-                                <DroppableZone id="vault" className="flex-1 min-w-[200px] max-w-[calc(100vw-500px)] bg-[#11111b] border border-[#333]">
+                                <DroppableZone id="vault" className="flex-1 min-w-[200px] max-w-[calc(100vw-500px)] bg-[#11111b] border border-[#444]">
                                     <VirtualVaultGrid
                                         bucketHash={row.hash}
                                         items={vaultItems}

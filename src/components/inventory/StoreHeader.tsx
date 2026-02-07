@@ -12,7 +12,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     // 1. Vault Header
     if (storeId === 'vault') {
         return (
-            <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-[#11111b] border border-[#333] flex flex-col relative select-none">
+            <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-[#11111b] border border-[#444] flex flex-col relative select-none">
                 {/* Header (Matches Character Emblem: h-[48px]) */}
                 <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md relative z-20">
                     <div className="flex flex-col leading-none">
@@ -57,7 +57,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     // For header, we display current light.
 
     return (
-        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border border-[#333] flex flex-col select-none relative">
+        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border border-[#444] flex flex-col select-none relative">
             {/* Header / Emblem */}
             <div
                 className="relative h-[48px] w-full bg-cover bg-center flex items-center justify-between px-2 bg-no-repeat z-20 shadow-md"
@@ -96,7 +96,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
                     return (
                         <div key={statConfig.label} className="flex items-center h-[14px]">
                             {/* Label */}
-                            <span className="w-12 text-[9px] text-gray-400 font-bold uppercase tracking-wider text-right mr-2">{statConfig.label}</span>
+                            <span className="w-12 text-[9px] text-gray-300 font-semibold uppercase tracking-wider text-right mr-2">{statConfig.label}</span>
 
                             {/* Value (Hero) */}
                             <span className={`w-6 text-[11px] font-bold font-mono text-right mr-2 ${isTierMax ? 'text-[#f5dc56]' : 'text-white'}`}>
@@ -104,7 +104,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
                             </span>
 
                             {/* Visual Bar (Secondary) */}
-                            <div className="flex-1 h-1.5 bg-[#1a1a1a] relative rounded-sm overflow-hidden opacity-80">
+                            <div className="flex-1 h-1.5 bg-[#222] relative rounded-sm overflow-hidden">
                                 <div
                                     className={`h-full ${isTierMax ? 'bg-[#f5dc56]' : 'bg-white/40'}`}
                                     style={{ width: `${Math.min(100, value)}%` }}
