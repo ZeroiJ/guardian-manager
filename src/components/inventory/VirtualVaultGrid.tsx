@@ -16,18 +16,18 @@ const calculatePower = (item: any, definitions: any) => {
 };
 
 
-// Visual Divider Tile (Icon only) - DIM Style "Phantom Item"
+// Visual Divider Tile (Icon only) - DIM Style "Inline Separator"
 const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
 
     return (
         <div className="w-[48px] h-[48px] flex items-center justify-center select-none p-[2px]" title={type}>
-            {/* Inner box matches item feel but 'empty' - Phantom Style: bg-white/5, NO BORDER */}
+            {/* Inline Separator: bg-white/5 to match DIM's phantom look, no border, centered icon */}
             <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-sm">
                 {iconUrl ? (
                     <img src={iconUrl} className="w-8 h-8 invert opacity-30" alt={type} />
                 ) : (
-                    <span className="text-[8px] text-white/10 font-bold uppercase">{type.slice(0, 3)}</span>
+                    <span className="text-[8px] text-white/10 font-bold uppercase text-center leading-none">{type}</span>
                 )}
             </div>
         </div>
