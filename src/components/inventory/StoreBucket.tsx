@@ -15,50 +15,46 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const bucketItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
-    // 2. Inventory Slots (8 slots to fill 3 columns beside equipped)
+    // 2. Inventory Slots (9 slots to fill 3x3 grid)
     const inventorySlots = [...Array(9)].map((_, idx) => bucketItems[idx] || null);
 
     return (
-        // Container: 260px wide (matches StoreHeader)
-        // Layout: Equipped (64px) + gap (8px) + Grid (3 cols × 64px + 2 gaps × 8px = 208px) = 280px
-        <div className="flex items-start min-h-[72px] flex-shrink-0 w-[260px] bg-dim-surface border-r border-dim-border p-1 gap-2">
+        // Container: 280px wide = Equipped (64px) + gap (8px) + Grid (3×64 + 2×8 = 208px)
+        <div className="flex items-start min-h-[72px] flex-shrink-0 bg-dim-surface border-r border-dim-border p-1 gap-2">
 
             {/* Equipped Item (Left) */}
             <div className="flex-shrink-0">
-                <div className="w-16 h-16 bg-dim-bg border border-dim-border relative">
-                    {!equippedItem && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[8px] uppercase tracking-widest font-semibold text-dim-text-muted">
-                            —
-                        </div>
-                    )}
-                    {equippedItem && (
-                        <InventoryItem
-                            item={equippedItem}
-                            definition={definitions[equippedItem.itemHash]}
-                            onClick={(e) => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash], e)}
-                        />
-                    )}
-                </div>
+                {equippedItem ? (
+                    <InventoryItem
+                        item={equippedItem}
+                        definition={definitions[equippedItem.itemHash]}
+                        onClick={(e) => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash], e)}
+                    />
+                ) : (
+                    <div className="w-16 h-16 bg-dim-bg border border-dim-border flex items-center justify-center">
+                        <span className="opacity-20 text-[8px] uppercase tracking-widest font-semibold text-dim-text-muted">—</span>
+                    </div>
+                )}
             </div>
 
-            {/* Inventory Grid (Right - 3 columns) */}
-            <div className="flex-1 grid grid-cols-3 gap-2 content-start">
+            {/* Inventory Grid (Right - 3x3) */}
+            <div className="grid grid-cols-3 gap-2 content-start">
                 {inventorySlots.map((item, idx) => (
-                    <div
-                        key={idx}
-                        className="w-16 h-16 bg-dim-bg border border-dim-border relative"
-                    >
-                        {item && (
-                            <InventoryItem
-                                item={item}
-                                definition={definitions[item.itemHash]}
-                                onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
-                            />
-                        )}
-                    </div>
+                    item ? (
+                        <InventoryItem
+                            key={idx}
+                            item={item}
+                            definition={definitions[item.itemHash]}
+                            onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
+                        />
+                    ) : (
+                        <div
+                            key={idx}
+                            className="w-16 h-16 bg-dim-bg border border-dim-border"
+                        />
+                    )
                 ))}
             </div>
         </div>
     );
 };
-
