@@ -2,6 +2,16 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.17.1] - 2026-02-07
+
+### 🏗️ Vault Refactor: Vertical Stacking
+
+Changed the Vault rendering logic to match DIM's "Stacked" layout.
+
+- **Type Grouping**: Instead of one continuous "snake" of items, the Vault now renders distinct blocks for each weapon type (e.g., Auto Rifles, then Hand Cannons, etc.).
+- **Vertical Growth**: This forces the Vault column to grow vertically with clear visual separation between types, rather than filling horizontal space indefinitely.
+- **Sorting**: Items within each block are sorted by Power Level (Descending).
+
 ## [0.17.0] - 2026-02-06
 
 ### 🎹 Vertical Rhythm Refactor

@@ -10,6 +10,12 @@ interface VirtualVaultGridProps {
     onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
+// Helper for sorting
+const calculatePower = (item: any, definitions: any) => {
+    return (item.primaryStat?.value) || (definitions[item.itemHash]?.investmentStats?.find((s: any) => s.statTypeHash === 1935470627)?.value) || 0;
+};
+
+
 // Visual Divider Tile (Icon only) - DIM Style "Phantom Item"
 const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
@@ -86,49 +92,60 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     // 1. Specific Bucket Mode (Slot-Based)
     if (bucketHash) {
         // Filter items for this specific bucket
-        // We can reuse the group logic or just filter raw items?
-        // Raw filter is safer as 'groupedInventory' splits by Kinetic/Energy/Power but might not have granular bucket info easily accessible without mapping back.
-        // Actually, groupedInventory.Kinetic IS array of items.
-
-        // Let's filter from the raw 'items' list passed in, it's cleaner for strict bucket matching.
         const bucketItems = items.filter(item => definitions[item.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
-        // We still need to group them by Type (Auto Rifle, etc) for the VaultBucket renderer to work (it expects groups).
-        // Sort Engine `groupItemsForDisplay` returns huge object.
-        // Let's make a mini-grouper or reuse logic?
-        // We can just call `groupItemsForDisplay` on the filtered subset!
+        // Group by Item Type Display Name (e.g., "Auto Rifle", "Helmet")
+        const groups: Record<string, any[]> = {};
 
-        // Wait, `groupItemsForDisplay` returns { Kinetic: [], Energy: [], ... }
-        // If we pass ONLY Kinetic items, it will return { Kinetic: [...], Energy: [], ... }
-        // So we can just grab the values.
+        bucketItems.forEach(item => {
+            const def = definitions[item.itemHash];
+            const typeName = def?.itemTypeDisplayName || 'Unknown';
 
-        const subGroups = groupItemsForDisplay(bucketItems, definitions);
-        // Merge all categories (likely only one will be populated, e.g. Kinetic)
-        // But what if we ask for "Consumables"? They might end up in 'General'.
+            if (!groups[typeName]) {
+                groups[typeName] = [];
+            }
+            groups[typeName].push(item);
+        });
 
-        // General Merging Strategy:
-        const merged: Record<string, any[]> = {};
-        const deepMerge = (target: Record<string, any[]>, source: Record<string, any[]>) => {
-            Object.keys(source).forEach(key => {
-                if (target[key]) {
-                    target[key] = [...target[key], ...source[key]];
-                } else {
-                    target[key] = source[key];
-                }
-            });
-        };
-        deepMerge(merged, subGroups.Kinetic);
-        deepMerge(merged, subGroups.Energy);
-        deepMerge(merged, subGroups.Power);
-        deepMerge(merged, subGroups.Armor);
-        deepMerge(merged, subGroups.General);
+        // Sort Types Alphabetically
+        const sortedTypes = Object.keys(groups).sort((a, b) => a.localeCompare(b));
 
         return (
-            <div className={`p-1 ${className} h-full`}>
-                <VaultBucket title="" groups={merged} definitions={definitions} onItemClick={onItemClick} />
+            <div className={`p-1 ${className} h-full flex flex-col gap-2`}>
+                {sortedTypes.map(type => {
+                    // Sort items within group by power (descending)
+                    const groupItems = groups[type].sort((a, b) => {
+                        const powerA = calculatePower(a, definitions);
+                        const powerB = calculatePower(b, definitions);
+                        return powerB - powerA;
+                    });
+
+                    return (
+                        <div key={type} className="flex flex-col">
+                            {/* Optional: Type Header? DIM uses icons or just spacing. 
+                                For now, spacing is the key differentiator requested. 
+                                We can add a tiny label if needed, but let's stick to just the grid first. 
+                            */}
+                            {/* <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">{type}</div> */}
+
+                            <div className="flex flex-wrap gap-[2px] content-start">
+                                {groupItems.map(item => (
+                                    <div key={item.itemInstanceId || item.itemHash} className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+                                        <InventoryItem
+                                            item={item}
+                                            definition={definitions[item.itemHash]}
+                                            onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         );
     }
+
 
     // Render Logic: If category provided, render ONLY that category (Merged if needed)
     if (category === 'Weapons') {
