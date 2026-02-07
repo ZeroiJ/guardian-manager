@@ -12,20 +12,20 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     // 1. Vault Header
     if (storeId === 'vault') {
         return (
-            <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-[#11111b] border border-[#444] flex flex-col relative select-none">
+            <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-dim-surface border border-dim-border-light flex flex-col relative select-none">
                 {/* Header (Matches Character Emblem: h-[48px]) */}
-                <div className="h-[48px] flex items-center px-4 bg-[#0d0d15] border-b border-white/5 justify-between flex-shrink-0 shadow-md relative z-20">
+                <div className="h-[48px] flex items-center px-4 bg-dim-bg border-b border-dim-border justify-between flex-shrink-0 shadow-md relative z-20">
                     <div className="flex flex-col leading-none">
-                        <span className="font-bold text-lg text-[#ccc] tracking-wide">Vault</span>
+                        <span className="font-bold text-lg text-dim-text tracking-wide">Vault</span>
                         <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Storage</span>
                     </div>
-                    <div className="text-xl font-bold text-[#ccc] font-mono tracking-tighter">
+                    <div className="text-xl font-bold text-dim-text font-mono tracking-tighter">
                         {vaultCount} <span className="text-[#666] text-sm">/ {vaultMax}</span>
                     </div>
                 </div>
 
                 {/* Stats Block Placeholder (Matches Character Stats: ~102px) */}
-                <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5 z-10 relative shadow-sm h-[103px] justify-center">
+                <div className="flex flex-col bg-dim-bg border-b border-dim-border p-1 gap-0.5 z-10 relative shadow-sm h-[103px] justify-center">
                     {/* Mock Currency / Info Display to fill space */}
                     <div className="flex items-center justify-between px-2 py-1 opacity-40">
                         <span className="text-[10px] uppercase font-bold text-gray-500">Glimmer</span>
@@ -57,7 +57,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     // For header, we display current light.
 
     return (
-        <div className="flex-shrink-0 w-[240px] bg-[#11111b] border border-[#444] flex flex-col select-none relative">
+        <div className="flex-shrink-0 w-[240px] bg-dim-surface border border-dim-border-light flex flex-col select-none relative">
             {/* Header / Emblem */}
             <div
                 className="relative h-[48px] w-full bg-cover bg-center flex items-center justify-between px-2 bg-no-repeat z-20 shadow-md"
@@ -81,7 +81,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
             </div>
 
             {/* Stats Row */}
-            <div className="flex flex-col bg-[#0a0a10] border-b border-white/5 p-1 gap-0.5 z-10 relative shadow-sm h-[103px]">
+            <div className="flex flex-col bg-dim-bg border-b border-dim-border p-1 gap-0.5 z-10 relative shadow-sm h-[103px]">
                 {[
                     { label: 'Health', hash: 392767087 }, // Resilience
                     { label: 'Melee', hash: 4244567218 }, // Strength

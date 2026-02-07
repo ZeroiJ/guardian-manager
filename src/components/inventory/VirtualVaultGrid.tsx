@@ -35,7 +35,7 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
 
     return (
         <div
-            className="w-[48px] h-[48px] flex items-center justify-center bg-white/5 rounded-sm"
+            className="w-16 h-16 flex items-center justify-center bg-dim-surface rounded-sm border border-dim-border"
             title={type}
         >
             {iconUrl ? (
@@ -57,7 +57,7 @@ const ItemTile: React.FC<{
     definition: any;
     onClick?: (item: any, definition: any, e: React.MouseEvent) => void;
 }> = ({ item, definition, onClick }) => (
-    <div className="w-[48px] h-[48px] border border-white/5 bg-[#1a1a1a]">
+    <div className="w-16 h-16">
         <InventoryItem
             item={item}
             definition={definition}
@@ -141,7 +141,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         return (
             <div className={`p-1 ${className} h-full`}>
                 {/* Single flex container - groups use display:contents */}
-                <div className="flex flex-wrap gap-1 content-start">
+                <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
                             key={`bucket-${typeName}`}
@@ -178,7 +178,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
 
         return (
             <div className={`p-1 ${className} h-full`}>
-                <div className="flex flex-wrap gap-1 content-start">
+                <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
                             key={`weapons-${typeName}`}
@@ -199,7 +199,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
 
         return (
             <div className={`p-1 ${className} h-full`}>
-                <div className="flex flex-wrap gap-1 content-start">
+                <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
                             key={`armor-${typeName}`}
@@ -220,7 +220,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
 
         return (
             <div className={`p-1 ${className || ''} h-full`}>
-                <div className="flex flex-wrap gap-1 content-start">
+                <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
                             key={`general-${typeName}`}
@@ -251,7 +251,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     return (
         <div className={`p-2 ${className} pb-32`}>
             {/* SINGLE Continuous Grid - Groups use display:contents for snake flow */}
-            <div className="flex flex-wrap gap-1 content-start">
+            <div className="flex flex-wrap gap-2 content-start">
                 {/* Weapons */}
                 {weaponTypes.map(typeName => (
                     <VaultGroup

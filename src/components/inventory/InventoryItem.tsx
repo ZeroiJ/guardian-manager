@@ -12,7 +12,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     // Get icon from item or definition
     const icon = item?.icon || definition?.displayProperties?.icon;
 
-    // Visual Style: Border based on rarity
+    // Visual Style: Border based on rarity (1px per design system)
     const tierType = definition?.inventory?.tierType || 0;
     const borderColor = RARITY_COLORS[tierType] || RARITY_COLORS[0];
 
@@ -21,7 +21,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
     return (
         <div
-            className="relative h-12 w-12 box-border border-2 bg-[#292929] cursor-pointer hover:brightness-125 hover:scale-110 hover:z-10 active:scale-95 transition-all duration-150"
+            className="relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150"
             style={{ borderColor: borderColor }}
             onClick={onClick}
         >
@@ -32,10 +32,10 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
                 className="absolute inset-0 w-full h-full"
             />
 
-            {/* Overlay: Power Level */}
+            {/* Overlay: Power Level - white text per design audit */}
             {power && (
-                <div className="absolute bottom-0 right-0 left-0 bg-black/70 px-0.5 text-right pointer-events-none backdrop-blur-sm">
-                    <span className="text-[10px] font-bold text-[#f5dc56] font-mono leading-none">
+                <div className="absolute bottom-0 right-0 left-0 bg-black/75 px-0.5 text-right pointer-events-none">
+                    <span className="text-[11px] font-medium text-dim-text font-mono leading-none font-tabular">
                         {power}
                     </span>
                 </div>
@@ -43,3 +43,4 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
         </div>
     );
 };
+

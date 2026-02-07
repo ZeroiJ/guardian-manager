@@ -1,38 +1,95 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: var(--font-serif);
-  --font-sans: var(--font-sans);
+  /* === DIM-Inspired Design Tokens === */
 
-  --color-void: #a359ff;
-  --color-solar: #ff6b00;
-  --color-arc: #00d4ff;
-  --color-primary: #ffffff;
-  --color-surface: #111111;
-  --color-border: #333333;
-  --color-tavus-pink: #ff90e8;
-  --color-acid-green: #00ff00;
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
+  /* Backgrounds */
+  --color-dim-bg: #0f1115;
+  --color-dim-surface: #161920;
+  --color-dim-surface-alt: #1a1d24;
+
+  /* Text */
+  --color-dim-text: #e8e8e8;
+  --color-dim-text-muted: #6b7280;
+  --color-dim-text-faint: #4b5563;
+
+  /* Accents */
+  --color-dim-header: #9ca3af;
+  --color-dim-border: #2a2d35;
+  --color-dim-border-light: #444;
+
+  /* Elements */
+  --color-void: #a855f7;
+  --color-solar: #f0631e;
+  --color-arc: #79bbe8;
+  --color-stasis: #4d88ff;
+  --color-strand: #35e366;
+  --color-prismatic: #e3619b;
+
+  /* Rarity */
+  --color-rarity-common: #dcdcdc;
+  --color-rarity-uncommon: #366e42;
+  --color-rarity-rare: #5076a3;
+  --color-rarity-legendary: #513065;
+  --color-rarity-exotic: #c3a019;
+
+  /* Status */
+  --color-masterwork: #eade8b;
+  --color-power-gold: #f5dc56;
+  --color-xp-green: #5ea16a;
+
+  /* Item Sizing */
+  --item-size: 64px;
+  --item-gap: 8px;
+
+  /* Shadows */
   --shadow-neo: 4px 4px 0px rgba(0, 0, 0, 0.5);
   --shadow-neo-hover: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }
 
+/* Global Styles */
+body {
+  background-color: #0f1115;
+  color: #e8e8e8;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Typography Utilities */
+.text-header {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9ca3af;
+}
+
+/* Tabular Numbers for Power Levels */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 @layer utilities {
+
   /* Custom Scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
     width: 8px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: #111;
+    background: #0f1115;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #333;
-    border: 1px solid #000;
+    background: #2a2d35;
+    border: 1px solid #0f1115;
+    border-radius: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #444;
   }
 }
