@@ -10,6 +10,17 @@ interface VirtualVaultGridProps {
     onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
+import { Shield, Shirt, Footprints, Component, Ghost, User } from 'lucide-react';
+
+const ARMOR_ICONS: Record<string, React.FC<any>> = {
+    'Helmet': Shield,
+    'Gauntlets': Component, // Generic for Gauntlets
+    'Chest Armor': Shirt,
+    'Leg Armor': Footprints,
+    'Class Item': User, // Class Item placeholder
+    'Ghost': Ghost,
+};
+
 // Helper for sorting
 const calculatePower = (item: any, definitions: any) => {
     return (item.primaryStat?.value) || (definitions[item.itemHash]?.investmentStats?.find((s: any) => s.statTypeHash === 1935470627)?.value) || 0;
@@ -19,6 +30,7 @@ const calculatePower = (item: any, definitions: any) => {
 // Visual Divider Tile (Icon only) - DIM Style "Inline Separator"
 const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
+    const ArmorIcon = ARMOR_ICONS[type];
 
     return (
         <div className="w-[48px] h-[48px] flex items-center justify-center select-none p-[2px]" title={type}>
@@ -26,8 +38,10 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
             <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-sm">
                 {iconUrl ? (
                     <img src={iconUrl} className="w-8 h-8 invert opacity-30" alt={type} />
+                ) : ArmorIcon ? (
+                    <ArmorIcon className="w-6 h-6 text-white/30" />
                 ) : (
-                    <span className="text-[8px] text-white/10 font-bold uppercase text-center leading-none">{type}</span>
+                    <span className="text-[8px] text-white/10 font-bold uppercase text-center leading-none px-1">{type}</span>
                 )}
             </div>
         </div>
@@ -190,11 +204,21 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     }
 
     // Default: Render All (Fallback for other views if any)
+    // 2026-02-07: DIM Style - Merge all weapons into one "Weapons" bucket so types (Auto Rifle) are unified.
+    const mergedWeapons: Record<string, any[]> = {};
+    const deepMerge = (target: Record<string, any[]>, source: Record<string, any[]>) => {
+        Object.keys(source).forEach(key => {
+            if (target[key]) target[key] = [...target[key], ...source[key]];
+            else target[key] = source[key];
+        });
+    };
+    deepMerge(mergedWeapons, groupedInventory.Kinetic);
+    deepMerge(mergedWeapons, groupedInventory.Energy);
+    deepMerge(mergedWeapons, groupedInventory.Power);
+
     return (
         <div className={`p-4 ${className} pb-32`}>
-            <VaultBucket title="Kinetic Weapons" groups={groupedInventory.Kinetic} definitions={definitions} onItemClick={onItemClick} />
-            <VaultBucket title="Energy Weapons" groups={groupedInventory.Energy} definitions={definitions} onItemClick={onItemClick} />
-            <VaultBucket title="Power Weapons" groups={groupedInventory.Power} definitions={definitions} onItemClick={onItemClick} />
+            <VaultBucket title="Weapons" groups={mergedWeapons} definitions={definitions} onItemClick={onItemClick} />
             <VaultBucket title="Armor" groups={groupedInventory.Armor} definitions={definitions} onItemClick={onItemClick} />
             <VaultBucket title="General" groups={groupedInventory.General} definitions={definitions} onItemClick={onItemClick} />
         </div>
