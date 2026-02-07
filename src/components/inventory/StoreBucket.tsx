@@ -12,25 +12,25 @@ interface StoreBucketProps {
 export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment, inventory, definitions, onItemClick }) => {
 
     // 1. Strict Filter Logic
-    // We assume equipment/inventory passed ARE for the correct character.
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const bucketItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
-    // 2. The Loop (9 Slots fixed size)
+    // 2. Inventory Slots (8 slots to fill 3 columns beside equipped)
     const inventorySlots = [...Array(9)].map((_, idx) => bucketItems[idx] || null);
 
     return (
-        <div className="flex items-start min-h-[50px] flex-shrink-0 w-[240px] bg-[#11111b] border-r border-[#333] p-1">
-            {/* 3. Equipped Item (Left Column) */}
-            <div className="flex-shrink-0 mr-[4px]">
-                <div className="w-[48px] h-[48px] bg-[#292929] border border-white/10 relative group shadow-lg">
-                    {/* Label overlay when empty (optional, maybe not needed if we have row headers) */}
+        // Container: 260px wide (matches StoreHeader)
+        // Layout: Equipped (64px) + gap (8px) + Grid (3 cols × 64px + 2 gaps × 8px = 208px) = 280px
+        <div className="flex items-start min-h-[72px] flex-shrink-0 w-[260px] bg-dim-surface border-r border-dim-border p-1 gap-2">
+
+            {/* Equipped Item (Left) */}
+            <div className="flex-shrink-0">
+                <div className="w-16 h-16 bg-dim-bg border border-dim-border relative">
                     {!equippedItem && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10 text-[9px] uppercase tracking-widest font-bold text-gray-500">
-                            Empty
+                        <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[8px] uppercase tracking-widest font-semibold text-dim-text-muted">
+                            —
                         </div>
                     )}
-
                     {equippedItem && (
                         <InventoryItem
                             item={equippedItem}
@@ -41,12 +41,12 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
                 </div>
             </div>
 
-            {/* 4. Inventory Grid (Right Column - 3x3) */}
-            <div className="flex-1 flex flex-wrap gap-[2px] content-start w-[148px]">
+            {/* Inventory Grid (Right - 3 columns) */}
+            <div className="flex-1 grid grid-cols-3 gap-2 content-start">
                 {inventorySlots.map((item, idx) => (
                     <div
                         key={idx}
-                        className="w-[48px] h-[48px] bg-[#141414] border border-white/5 box-border relative"
+                        className="w-16 h-16 bg-dim-bg border border-dim-border relative"
                     >
                         {item && (
                             <InventoryItem
@@ -61,3 +61,4 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
         </div>
     );
 };
+
