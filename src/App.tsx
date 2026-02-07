@@ -285,9 +285,9 @@ export default function App() {
                         { label: 'Legs', hash: BUCKETS.Legs },
                         { label: 'Class Items', hash: BUCKETS.Class },
                     ].map(row => (
-                        <div key={row.hash} className="flex flex-col min-w-max">
+                        <div key={row.hash} className="flex flex-col w-full">
                             <InventoryBucketLabel label={row.label} />
-                            <div className="flex gap-0.5 items-stretch">
+                            <div className="flex gap-0.5 items-stretch w-full">
                                 {/* Characters */}
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
@@ -305,7 +305,7 @@ export default function App() {
                                 })}
 
                                 {/* Vault */}
-                                <DroppableZone id="vault" className="flex-1 min-w-[200px] bg-[#11111b] border border-[#333]">
+                                <DroppableZone id="vault" className="flex-1 min-w-[200px] max-w-[calc(100vw-500px)] bg-[#11111b] border border-[#333]">
                                     <VirtualVaultGrid
                                         bucketHash={row.hash}
                                         items={vaultItems}
