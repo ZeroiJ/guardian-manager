@@ -261,7 +261,7 @@ export default function App() {
                 <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
 
                     {/* Floor 1: HEADERS (Emblems + Stats) */}
-                    <div className="flex gap-4 min-w-max h-[160px] items-start"> {/* Fixed height for alignment */}
+                    <div className="flex gap-2 min-w-max h-[160px] items-start"> {/* Fixed height for alignment */}
                         {characters.map((char: any) => (
                             <StoreHeader
                                 key={char.characterId}
@@ -287,7 +287,7 @@ export default function App() {
                     ].map(row => (
                         <div key={row.hash} className="flex flex-col w-full">
                             <InventoryBucketLabel label={row.label} />
-                            <div className="flex gap-4 items-start">
+                            <div className="flex gap-2 items-start">
                                 {/* Characters */}
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);

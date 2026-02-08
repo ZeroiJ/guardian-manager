@@ -15,12 +15,9 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const bucketItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
-    // 2. Inventory Slots (9 slots to fill 3x3 grid)
-    const inventorySlots = [...Array(9)].map((_, idx) => bucketItems[idx] || null);
-
     return (
-        // Container: 280px wide = Equipped (64px) + gap (8px) + Grid (3×64 + 2×8 = 208px)
-        <div className="flex items-start min-h-[72px] flex-shrink-0 bg-dim-surface border-r border-dim-border p-1 gap-2">
+        // Container: No fixed width, content-sized
+        <div className="flex items-start min-h-[68px] flex-shrink-0 gap-2">
 
             {/* Equipped Item (Left) */}
             <div className="flex-shrink-0">
@@ -37,24 +34,18 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
                 )}
             </div>
 
-            {/* Inventory Grid (Right - 3x3) */}
-            <div className="grid grid-cols-3 gap-1 content-start">
-                {inventorySlots.map((item, idx) => (
-                    item ? (
-                        <InventoryItem
-                            key={idx}
-                            item={item}
-                            definition={definitions[item.itemHash]}
-                            onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
-                        />
-                    ) : (
-                        <div
-                            key={idx}
-                            className="w-16 h-16 bg-dim-bg border border-dim-border"
-                        />
-                    )
+            {/* Inventory Grid (Right) - Only render actual items, no empty slots */}
+            <div className="flex flex-wrap gap-2 content-start max-w-[208px]">
+                {bucketItems.map((item, idx) => (
+                    <InventoryItem
+                        key={idx}
+                        item={item}
+                        definition={definitions[item.itemHash]}
+                        onClick={(e) => onItemClick && onItemClick(item, definitions[item.itemHash], e)}
+                    />
                 ))}
             </div>
         </div>
     );
 };
+
