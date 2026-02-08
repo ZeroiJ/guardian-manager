@@ -2,7 +2,7 @@ import React from 'react';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { Lock, Star, Ban, StickyNote } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
-
+import { ElementIcon } from './ElementIcons';
 
 interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
@@ -26,7 +26,7 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
-
+    const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
 
     // Border Logic: Masterwork overrides Rarity
     const borderColor = isMasterwork ? MASTERWORK_GOLD : (RARITY_COLORS[definition.inventory?.tierType] || RARITY_COLORS[0]);
@@ -82,12 +82,18 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 {note && <StickyNote size={10} className="text-blue-400 drop-shadow-md" strokeWidth={3} />}
             </div>
 
-            {/* Power Level - Bottom Right */}
-            {power && (
-                <div className="absolute bottom-0 left-0 right-0 h-[14px] bg-gradient-to-t from-black/90 to-black/40 flex items-center justify-end px-[2px] z-20 pointer-events-none">
-                    <span className="text-[10px] leading-none font-bold text-[#f5dc56] drop-shadow-md font-mono tracking-tighter">
-                        {power}
-                    </span>
+            {/* Icon Tray (Element & Power) - Bottom Bar */}
+            {(damageTypeHash || power) && (
+                <div className="absolute bottom-0 left-0 right-0 h-[14px] bg-gradient-to-t from-black/90 to-black/40 flex items-center px-[2px] justify-between z-20 pointer-events-none">
+                    {/* Element Icon */}
+                    <ElementIcon damageTypeHash={damageTypeHash} size={11} className="drop-shadow-sm" />
+
+                    {/* Power Level */}
+                    {power && (
+                        <span className="text-[10px] leading-none font-bold text-[#f5dc56] drop-shadow-md font-mono tracking-tighter ml-auto">
+                            {power}
+                        </span>
+                    )}
                 </div>
             )}
 
