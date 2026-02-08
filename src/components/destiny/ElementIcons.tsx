@@ -1,17 +1,9 @@
 import React from 'react';
-import { BungieImage } from '../ui/BungieImage';
 
 /**
- * Element/Damage Type Icons using official Bungie CDN images
- * 
- * Icon paths from Bungie manifest DamageType definitions:
- * - Arc: /common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066f42e76f40.png
- * - Solar: /common/destiny2_content/icons/DestinyDamageTypeDefinition_2a1773e1ce0b5af5.png
- * - Void: /common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3ec.png
- * - Stasis: /common/destiny2_content/icons/DestinyDamageTypeDefinition_530c4c3e7981dc2e.png
- * - Strand: /common/destiny2_content/icons/DestinyDamageTypeDefinition_0397f43dc2d797a5.png
- * - Kinetic: /common/destiny2_content/icons/DestinyDamageTypeDefinition_3385a924fd3ccb92.png
- * - Prismatic: /common/destiny2_content/icons/DestinyDamageTypeDefinition_a21c0bb8b29d7dd9.png
+ * Element/Damage Type Icons
+ * High-quality SVG icons for all Destiny 2 damage types
+ * These are local SVGs that don't depend on Bungie CDN availability
  */
 
 interface ElementIconProps {
@@ -19,78 +11,82 @@ interface ElementIconProps {
     size?: number;
 }
 
-// Official Bungie CDN paths for damage type icons
-const DAMAGE_TYPE_ICON_PATHS: Record<number, string> = {
-    // Arc (2303181850)
-    2303181850: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_092d066f42e76f40.png',
-    // Solar (1847026933)
-    1847026933: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_2a1773e1ce0b5af5.png',
-    // Void (3454344768)
-    3454344768: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3ec.png',
-    // Stasis (151347233)
-    151347233: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_530c4c3e7981dc2e.png',
-    // Strand (3949783978)
-    3949783978: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_0397f43dc2d797a5.png',
-    // Kinetic (3373582085)
-    3373582085: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_3385a924fd3ccb92.png',
-    // Prismatic (2483051472) - The Final Shape
-    2483051472: '/common/destiny2_content/icons/DestinyDamageTypeDefinition_a21c0bb8b29d7dd9.png',
-};
-
-/**
- * Element icon component that uses official Bungie images
- */
-const ElementIcon: React.FC<ElementIconProps & { iconPath: string }> = ({
-    className = '',
-    size = 16,
-    iconPath
-}) => (
-    <BungieImage
-        src={iconPath}
-        alt="Element"
-        className={className}
-        style={{ width: size, height: size }}
-    />
+// Arc (Electric Blue) - Lightning bolt design
+export const ArcIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <circle cx="16" cy="16" r="15" fill="#79bce1" />
+        <path d="M16 4 L11 15 H15 L12 28 L23 13 H18 L21 4 Z" fill="#fff" />
+    </svg>
 );
 
-// Create named components for each element (for backward compatibility)
-export const ArcIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[2303181850]} />
+// Solar (Orange/Fire) - Sun/flame design
+export const SolarIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <circle cx="16" cy="16" r="15" fill="#f97316" />
+        <circle cx="16" cy="16" r="7" fill="#fff" />
+        <circle cx="16" cy="16" r="4" fill="#f97316" />
+    </svg>
 );
 
-export const SolarIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[1847026933]} />
+// Void (Purple) - Spiral/void design
+export const VoidIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <circle cx="16" cy="16" r="15" fill="#a855f7" />
+        <circle cx="16" cy="16" r="7" fill="none" stroke="#fff" strokeWidth="3" />
+    </svg>
 );
 
-export const VoidIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[3454344768]} />
+// Stasis (Ice Blue) - Crystal/diamond design
+export const StasisIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <polygon points="16,1 31,16 16,31 1,16" fill="#60a5fa" />
+        <polygon points="16,8 24,16 16,24 8,16" fill="#fff" />
+    </svg>
 );
 
-export const StasisIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[151347233]} />
+// Strand (Green) - Weave/thread design
+export const StrandIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <circle cx="16" cy="16" r="15" fill="#22c55e" />
+        <path d="M8 16 Q12 6, 16 16 Q20 26, 24 16" fill="none" stroke="#fff" strokeWidth="3" />
+    </svg>
 );
 
-export const StrandIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[3949783978]} />
+// Kinetic (Gray/Silver) - Bullet/physical design
+export const KineticIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <circle cx="16" cy="16" r="15" fill="#888888" />
+        <circle cx="16" cy="16" r="6" fill="#333" />
+        <circle cx="16" cy="16" r="2" fill="#fff" />
+    </svg>
 );
 
-export const KineticIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[3373582085]} />
-);
-
-export const PrismaticIcon: React.FC<ElementIconProps> = (props) => (
-    <ElementIcon {...props} iconPath={DAMAGE_TYPE_ICON_PATHS[2483051472]} />
+// Prismatic (Rainbow/Multi) - Prismatic light design
+export const PrismaticIcon: React.FC<ElementIconProps> = ({ className = '', size = 16 }) => (
+    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+        <defs>
+            <linearGradient id="prismaticGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="25%" stopColor="#eab308" />
+                <stop offset="50%" stopColor="#22c55e" />
+                <stop offset="75%" stopColor="#60a5fa" />
+                <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+        </defs>
+        <circle cx="16" cy="16" r="15" fill="url(#prismaticGrad)" />
+        <polygon points="16,6 22,14 22,22 16,26 10,22 10,14" fill="#fff" fillOpacity="0.9" />
+    </svg>
 );
 
 // Hash to Component map
 export const DAMAGE_TYPE_ICONS: Record<number, React.FC<ElementIconProps>> = {
-    2303181850: ArcIcon,
-    1847026933: SolarIcon,
-    3454344768: VoidIcon,
-    151347233: StasisIcon,
-    3949783978: StrandIcon,
-    3373582085: KineticIcon,
-    2483051472: PrismaticIcon,
+    2303181850: ArcIcon,     // Arc
+    1847026933: SolarIcon,   // Solar
+    3454344768: VoidIcon,    // Void
+    151347233: StasisIcon,   // Stasis
+    3949783978: StrandIcon,  // Strand
+    3373582085: KineticIcon, // Kinetic
+    2483051472: PrismaticIcon, // Prismatic (The Final Shape)
 };
 
 /**
@@ -99,12 +95,4 @@ export const DAMAGE_TYPE_ICONS: Record<number, React.FC<ElementIconProps>> = {
 export function getElementIcon(damageTypeHash: number | undefined): React.FC<ElementIconProps> | null {
     if (!damageTypeHash) return null;
     return DAMAGE_TYPE_ICONS[damageTypeHash] || null;
-}
-
-/**
- * Get the icon path directly for a damage type hash
- */
-export function getElementIconPath(damageTypeHash: number | undefined): string | null {
-    if (!damageTypeHash) return null;
-    return DAMAGE_TYPE_ICON_PATHS[damageTypeHash] || null;
 }
