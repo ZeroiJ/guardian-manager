@@ -24,8 +24,8 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
                     </div>
                 </div>
 
-                {/* Stats Block Placeholder (Matches Character Stats: ~102px) */}
-                <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative h-[103px] justify-center">
+                {/* Stats Block Placeholder (Matches Character Stats: ~100px) */}
+                <div className="flex flex-col bg-dim-bg border-b border-dim-border p-2 gap-0.5 z-10 relative h-[100px] justify-center overflow-hidden">
                     {/* Currency Display */}
                     <div className="flex items-center justify-between px-1 py-0.5">
                         <span className="text-[10px] uppercase font-semibold text-dim-text-muted">Glimmer</span>
@@ -83,7 +83,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
             </div>
 
             {/* Stats Row - Gray Bars, Gold only for T10 */}
-            <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative h-[103px]">
+            <div className="flex flex-col bg-dim-bg border-b border-dim-border p-2 gap-0.5 z-10 relative h-[100px] overflow-hidden">
                 {[
                     { label: 'Mobility', hash: 2996146975 },
                     { label: 'Resilience', hash: 392767087 },

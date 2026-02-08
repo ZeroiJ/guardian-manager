@@ -38,7 +38,7 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
             </div>
 
             {/* Inventory Grid (Right - 3x3) */}
-            <div className="grid grid-cols-3 gap-2 content-start">
+            <div className="grid grid-cols-3 gap-1 content-start">
                 {inventorySlots.map((item, idx) => (
                     item ? (
                         <InventoryItem
