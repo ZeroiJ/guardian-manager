@@ -122,12 +122,12 @@ export default function App() {
         if (isAuthError) {
             return (
                 <div className="h-screen bg-[#050505] flex flex-col items-center justify-center font-sans space-y-8 relative overflow-hidden">
-                    {/* Background Ambience */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1a1a2e] via-[#050505] to-[#050505] opacity-50" />
+                    {/* Background - Flat solid */}
+                    <div className="absolute inset-0 bg-dim-bg" />
 
                     <div className="z-10 text-center space-y-6 max-w-lg px-6">
                         <div className="mb-8">
-                            <div className="inline-block p-4 rounded-full bg-[#f5dc56]/10 border border-[#f5dc56]/20 mb-4 shadow-[0_0_30px_rgba(245,220,86,0.1)]">
+                            <div className="inline-block p-4 rounded-full bg-[#f5dc56]/10 border border-[#f5dc56]/20 mb-4">
                                 <Search className="w-12 h-12 text-[#f5dc56]" />
                             </div>
                             <h1 className="text-5xl font-bold tracking-tighter text-white mb-2">
@@ -138,14 +138,14 @@ export default function App() {
                             </p>
                         </div>
 
-                        <div className="bg-[#11111b] border border-white/5 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
+                        <div className="bg-dim-surface border border-dim-border rounded-xl p-8">
                             <p className="text-gray-300 mb-8 leading-relaxed">
                                 Connect your Bungie account to manage inventory, optimize loadouts, and organize your vault with advanced tools.
                             </p>
 
                             <a
                                 href="/api/auth/login"
-                                className="block w-full py-4 px-6 bg-[#f5dc56] hover:bg-[#e6ce4b] text-black font-bold text-lg rounded-lg transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(245,220,86,0.3)] hover:shadow-[0_0_30px_rgba(245,220,86,0.5)]"
+                                className="block w-full py-4 px-6 bg-[#f5dc56] hover:bg-[#e6ce4b] text-black font-bold text-lg rounded-lg transition-colors"
                             >
                                 Login with Bungie
                             </a>
@@ -220,7 +220,7 @@ export default function App() {
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="h-screen bg-[#11111b] text-[#e8e9ed] font-sans flex flex-col overflow-y-auto selection:bg-[#f5dc56] selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                 {/* Top Bar */}
-                <div className="sticky top-0 h-12 bg-[#0d0d15] border-b border-white/5 flex items-center px-4 justify-between flex-shrink-0 z-50 shadow-md">
+                <div className="sticky top-0 h-12 bg-dim-bg border-b border-dim-border flex items-center px-4 justify-between flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
                         <span className="font-bold text-xl tracking-tight text-white">Guardian<span className="text-[#f5dc56]">Nexus</span></span>
                         <nav className="flex gap-4 text-sm font-medium text-gray-400">

@@ -14,7 +14,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
         return (
             <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-dim-surface border border-dim-border-light flex flex-col relative select-none">
                 {/* Header (Matches Character Emblem: h-[56px]) */}
-                <div className="h-[56px] flex items-center px-4 bg-dim-bg border-b border-dim-border justify-between flex-shrink-0 shadow-md relative z-20">
+                <div className="h-[56px] flex items-center px-4 bg-dim-bg border-b border-dim-border justify-between flex-shrink-0 relative z-20">
                     <div className="flex flex-col leading-tight">
                         <span className="font-bold text-xl text-dim-text tracking-wide">Vault</span>
                         <span className="text-[10px] text-dim-text-muted font-medium uppercase tracking-wider">Storage</span>
@@ -25,7 +25,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
                 </div>
 
                 {/* Stats Block Placeholder (Matches Character Stats: ~102px) */}
-                <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative shadow-sm h-[103px] justify-center">
+                <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative h-[103px] justify-center">
                     {/* Currency Display */}
                     <div className="flex items-center justify-between px-1 py-0.5">
                         <span className="text-[10px] uppercase font-semibold text-dim-text-muted">Glimmer</span>
@@ -57,7 +57,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
         <div className="flex-shrink-0 w-[260px] bg-dim-surface border border-dim-border-light flex flex-col select-none relative">
             {/* Header / Emblem - Clean Overlay Style */}
             <div
-                className="relative h-[56px] w-full bg-cover bg-center flex items-center justify-between px-4 bg-no-repeat z-20 shadow-md"
+                className="relative h-[56px] w-full bg-cover bg-center flex items-center justify-between px-4 bg-no-repeat z-20"
                 style={{ backgroundImage: `url(${bungieNetPath(emblemBackgroundPath)})` }}
             >
                 {/* Solid Dark Overlay (not gradient) */}
@@ -71,7 +71,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
 
                 {/* Right: POWER LEVEL IS KING */}
                 <div className="relative z-10 flex flex-col items-end leading-tight">
-                    <div className="text-2xl font-bold text-white drop-shadow-lg font-mono tracking-tight font-tabular">
+                    <div className="text-2xl font-bold text-white font-mono tracking-tight font-tabular">
                         {light}
                     </div>
                     {/* Sub Power: Base + Artifact */}
@@ -83,7 +83,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
             </div>
 
             {/* Stats Row - Gray Bars, Gold only for T10 */}
-            <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative shadow-sm h-[103px]">
+            <div className="flex flex-col bg-dim-bg border-b border-dim-border p-3 gap-1 z-10 relative h-[103px]">
                 {[
                     { label: 'Mobility', hash: 2996146975 },
                     { label: 'Resilience', hash: 392767087 },
