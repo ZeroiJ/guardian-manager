@@ -218,13 +218,13 @@ export default function App() {
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="h-screen bg-[#11111b] text-[#e8e9ed] font-sans flex flex-col overflow-y-auto selection:bg-[#f5dc56] selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+            <div className="h-screen bg-black text-white font-sans flex flex-col overflow-y-auto selection:bg-white selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                 {/* Top Bar */}
-                <div className="sticky top-0 h-12 bg-dim-bg border-b border-dim-border flex items-center px-4 justify-between flex-shrink-0 z-50">
+                <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
-                        <span className="font-bold text-xl tracking-tight text-white">Guardian<span className="text-[#f5dc56]">Nexus</span></span>
+                        <span className="font-bold text-xl tracking-tight text-white">GuardianNexus</span>
                         <nav className="flex gap-4 text-sm font-medium text-gray-400">
-                            <button className="text-white hover:text-white transition-colors bg-[#292929] px-3 py-1 rounded">Inventory</button>
+                            <button className="text-white transition-colors bg-void-surface px-3 py-1 border border-void-border">Inventory</button>
                             <button className="hover:text-white transition-colors">Progress</button>
                             <button className="hover:text-white transition-colors">Vendors</button>
                         </nav>

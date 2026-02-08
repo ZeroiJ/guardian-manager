@@ -1,60 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  /* === DIM-Inspired Design Tokens === */
+  /* === VOID MONOCHROME DESIGN TOKENS === */
+  /* "Sin City" aesthetic: Only loot has color */
 
   /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Backgrounds */
-  --color-dim-bg: #0f1115;
-  --color-dim-surface: #161920;
-  --color-dim-surface-alt: #1a1d24;
+  /* Backgrounds (Pure Black) */
+  --color-void-bg: #000000;
+  --color-void-surface: #0a0a0a;
+  --color-void-elevated: #111111;
 
-  /* Text */
-  --color-dim-text: #e8e8e8;
-  --color-dim-text-muted: #6b7280;
-  --color-dim-text-faint: #4b5563;
+  /* Borders (Dark Gray) */
+  --color-void-border: #262626;
+  --color-void-border-light: #333333;
 
-  /* Accents */
-  --color-dim-header: #9ca3af;
-  --color-dim-border: #2a2d35;
-  --color-dim-border-light: #444;
+  /* Text (Monochrome) */
+  --color-void-text: #ffffff;
+  --color-void-text-secondary: #888888;
+  --color-void-text-muted: #555555;
+  --color-void-header: #ededed;
 
-  /* Elements */
+  /* Legacy aliases */
+  --color-dim-bg: #000000;
+  --color-dim-surface: #0a0a0a;
+  --color-dim-text: #ffffff;
+  --color-dim-text-muted: #888888;
+  --color-dim-header: #ededed;
+  --color-dim-border: #262626;
+  --color-dim-border-light: #333333;
+
+  /* Loot Colors (The ONLY color in the UI) */
+  --color-solar: #f97316;
+  --color-arc: #3b82f6;
   --color-void: #a855f7;
-  --color-solar: #f0631e;
-  --color-arc: #79bbe8;
-  --color-stasis: #4d88ff;
-  --color-strand: #35e366;
-  --color-prismatic: #e3619b;
+  --color-stasis: #60a5fa;
+  --color-strand: #22c55e;
+  --color-prismatic: #ec4899;
 
   /* Rarity */
-  --color-rarity-common: #dcdcdc;
-  --color-rarity-uncommon: #366e42;
-  --color-rarity-rare: #5076a3;
-  --color-rarity-legendary: #513065;
-  --color-rarity-exotic: #c3a019;
+  --color-rarity-legendary: #a855f7;
+  --color-rarity-exotic: #eab308;
+  --color-masterwork: #fbbf24;
 
-  /* Status */
-  --color-masterwork: #eade8b;
-  --color-power-gold: #f5dc56;
-  --color-xp-green: #5ea16a;
-
-  /* Item Sizing */
+  /* Sizing */
   --item-size: 64px;
   --item-gap: 8px;
-
-  /* Shadows */
-  --shadow-neo: 4px 4px 0px rgba(0, 0, 0, 0.5);
-  --shadow-neo-hover: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }
 
-/* Global Styles */
+/* Global Styles - VOID MONOCHROME */
 body {
-  background-color: #0f1115;
-  color: #e8e8e8;
+  background-color: #000000;
+  color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -64,7 +63,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #ededed;
 }
 
 /* Tabular Numbers for Power Levels */
@@ -74,22 +73,22 @@ body {
 
 @layer utilities {
 
-  /* Custom Scrollbar */
+  /* Custom Scrollbar - Monochrome */
   .scrollbar-thin::-webkit-scrollbar {
     width: 8px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: #0f1115;
+    background: #000000;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2a2d35;
-    border: 1px solid #0f1115;
+    background: #262626;
+    border: 1px solid #000000;
     border-radius: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #444;
+    background: #333333;
   }
 }
