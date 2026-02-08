@@ -34,8 +34,8 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
                 )}
             </div>
 
-            {/* Inventory Grid (Right) - Only render actual items, no empty slots */}
-            <div className="flex flex-wrap gap-2 content-start max-w-[208px]">
+            {/* Inventory Grid (Right) - 3x3 grid, only actual items */}
+            <div className="grid grid-cols-3 gap-2 content-start">
                 {bucketItems.map((item, idx) => (
                     <InventoryItem
                         key={idx}
