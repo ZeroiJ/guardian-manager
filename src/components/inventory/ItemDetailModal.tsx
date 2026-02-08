@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, Lock, Unlock, Tag, RefreshCw, Maximize2, Diamond } from 'lucide-react';
-import { getElementIcon } from '../destiny/ElementIcons';
+
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
@@ -77,7 +77,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const { state } = item;
     const isLocked = (state & 1) !== 0;
     const power = item.instanceData?.primaryStat?.value || item.primaryStat?.value;
-    const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
     const tierType = definition.inventory?.tierType || 0;
     const isExotic = tierType === 6;
     const itemTypeDisplayName = definition.itemTypeDisplayName;
@@ -85,7 +84,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
-    const ElementIconComponent = getElementIcon(damageTypeHash);
+
 
     return (
         <FloatingPortal>
@@ -125,7 +124,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     <div className={headerStyles.itemType}>{itemTypeDisplayName}</div>
                                 </div>
                                 <div className={headerStyles.details}>
-                                    {ElementIconComponent && <ElementIconComponent size={16} className={headerStyles.elementIcon} />}
+
                                     <div className={headerStyles.power}>{power}</div>
                                 </div>
                             </div>
