@@ -87,12 +87,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
     const ElementIconComponent = getElementIcon(damageTypeHash);
 
-    // DEBUG: Log socket data
-    console.log('[ItemDetailModal] Item:', definition?.displayProperties?.name);
-    console.log('[ItemDetailModal] Item sockets raw:', item?.sockets);
-    console.log('[ItemDetailModal] Categorized sockets:', sockets);
-    console.log('[ItemDetailModal] Perks count:', sockets?.perks?.length);
-
     return (
         <FloatingPortal>
             {/* Backdrop - click to close */}

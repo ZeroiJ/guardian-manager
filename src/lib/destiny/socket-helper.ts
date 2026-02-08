@@ -110,34 +110,20 @@ export function categorizeSockets(
     liveSockets.forEach((socket: any, index: number) => {
         const categoryHash = socketIndexToCategory[index];
 
-        // DEBUG: Log each socket
-        console.log(`[Socket ${index}] categoryHash=${categoryHash}, plugHash=${socket.plugHash}, isVisible=${socket.isVisible}`);
-
         // Skip if no category
-        if (!categoryHash) {
-            console.log(`[Socket ${index}] SKIPPED: no category`);
-            return;
-        }
+        if (!categoryHash) return;
 
         // Skip invisible sockets
-        if (socket.isVisible === false) {
-            console.log(`[Socket ${index}] SKIPPED: invisible`);
-            return;
-        }
+        if (socket.isVisible === false) return;
 
         // Must have a plug hash
         const plugHash = socket.plugHash;
-        if (!plugHash) {
-            console.log(`[Socket ${index}] SKIPPED: no plugHash`);
-            return;
-        }
+        if (!plugHash) return;
 
         // Get plug definition
         const plugDef = definitions[plugHash];
         const plugCategoryHash = plugDef?.plug?.plugCategoryHash;
         const plugCategoryIdentifier = plugDef?.plug?.plugCategoryIdentifier || '';
-
-        console.log(`[Socket ${index}] plugDef found=${!!plugDef}, plugCategoryHash=${plugCategoryHash}, identifier=${plugCategoryIdentifier}`);
 
         // Check for catalyst socket (may be empty for exotics)
         if (isExotic && plugCategoryHash === PlugCategoryHashes.V400EmptyExoticMasterwork) {
@@ -147,16 +133,11 @@ export function categorizeSockets(
 
         // Check if this is an empty plug
         const isEmpty = EMPTY_PLUG_HASHES.has(plugHash);
-        if (isEmpty) {
-            console.log(`[Socket ${index}] SKIPPED: empty plug`);
-            return;
-        }
+        if (isEmpty) return;
 
         // Must have an icon for display
-        if (!plugDef?.displayProperties?.icon) {
-            console.log(`[Socket ${index}] SKIPPED: no icon (plugDef=${!!plugDef})`);
-            return;
-        }
+        if (!plugDef?.displayProperties?.icon) return;
+
 
         // Create resolved socket
         const resolvedSocket: ResolvedSocket = {
