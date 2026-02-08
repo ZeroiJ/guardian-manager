@@ -54,7 +54,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     const basePower = light - (artifactPower || 0);
 
     return (
-        <div className="flex-shrink-0 w-[260px] bg-dim-surface border border-dim-border-light flex flex-col select-none relative">
+        <div className="flex-shrink-0 w-[290px] bg-dim-surface border border-dim-border-light flex flex-col select-none relative">
             {/* Header / Emblem - Clean Overlay Style */}
             <div
                 className="relative h-[56px] w-full bg-cover bg-center flex items-center justify-between px-4 bg-no-repeat z-20"

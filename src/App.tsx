@@ -292,7 +292,7 @@ export default function App() {
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
                                     return (
-                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-[260px] flex-shrink-0">
+                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-[290px] flex-shrink-0">
                                             <StoreBucket
                                                 bucketHash={row.hash}
                                                 equipment={equipment}
