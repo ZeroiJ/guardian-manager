@@ -145,9 +145,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 <RefreshCw size={14} /> <span>Add notes</span>
                             </div>
 
-                            {/* STATS */}
+                            {/* STATS - Only show stats with actual values */}
                             <div className="p-2 rounded">
-                                {calculatedStats.length > 0 ? calculatedStats.map(stat => (
+                                {calculatedStats.filter(stat => stat.displayValue > 0).length > 0 ? calculatedStats.filter(stat => stat.displayValue > 0).map(stat => (
                                     <div key={stat.statHash} className="flex items-center gap-2 mb-1 last:mb-0">
                                         <div className="w-24 text-right text-xs text-gray-400 truncate">{stat.label}</div>
                                         <div className="w-6 text-right text-xs font-bold text-white tabular-nums">
@@ -173,15 +173,32 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             {/* SEPARATOR */}
                             <div className="h-px bg-white/10 my-2" />
 
-                            {/* SOCKETS GRID */}
+                            {/* SOCKETS GRID - Reorganized to match DIM layout */}
                             <div className="space-y-3">
-                                {/* Row A: Intrinsic */}
-                                {/* Row A: Intrinsic + Exotic Actions */}
+                                {/* Row A: Perks (main perks first) */}
+                                {sockets.perks.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {sockets.perks.map(socket => (
+                                            <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Row B: Mods */}
+                                {sockets.mods.length > 0 && (
+                                    <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        {sockets.mods.map(socket => (
+                                            <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Row C: Intrinsic Frame (at bottom like DIM) */}
                                 {sockets.intrinsic && (
-                                    <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start justify-between gap-2 pt-2 border-t border-white/10">
                                         {/* Intrinsic Info */}
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 shrink-0">
+                                            <div className="w-10 h-10 shrink-0">
                                                 <ItemSocket
                                                     plugDef={sockets.intrinsic.plugDef}
                                                     categoryHash={sockets.intrinsic.categoryHash}
@@ -244,24 +261,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                 )}
                                             </div>
                                         )}
-                                    </div>
-                                )}
-
-                                {/* Row B: Perks */}
-                                {sockets.perks.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                        {sockets.perks.map(socket => (
-                                            <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Row C: Mods */}
-                                {sockets.mods.length > 0 && (
-                                    <div className="flex gap-2 pt-2 border-t border-white/10">
-                                        {sockets.mods.map(socket => (
-                                            <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
-                                        ))}
                                     </div>
                                 )}
                             </div>
