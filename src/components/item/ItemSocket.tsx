@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BungieImage } from '../ui/BungieImage';
 import { SocketCategoryHashes } from '../../lib/destiny-constants';
+import { ThumbsUp } from 'lucide-react';
 import {
     useFloating,
     offset,
@@ -22,6 +23,8 @@ interface ItemSocketProps {
     categoryHash: number;
     /** Whether the plug is currently active/enabled */
     isActive?: boolean;
+    /** Whether this perk is part of a wishlist roll */
+    isWishlistPerk?: boolean;
 }
 
 /**
@@ -36,7 +39,8 @@ interface ItemSocketProps {
 export const ItemSocket: React.FC<ItemSocketProps> = ({
     plugDef,
     categoryHash,
-    isActive = true
+    isActive = true,
+    isWishlistPerk = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -78,10 +82,13 @@ export const ItemSocket: React.FC<ItemSocketProps> = ({
     // Shape: Square for Intrinsic, Circle for everything else
     const shapeClass = isIntrinsic ? 'rounded-sm' : 'rounded-full';
 
-    // Border: Gold for Intrinsic, White/Gray for others
+    // Border: Gold for Intrinsic, Green for Wishlist, White/Gray for others
     const getBorderClasses = () => {
         if (isIntrinsic) {
             return 'border-[#e2bf36]'; // DIM Gold
+        }
+        if (isWishlistPerk) {
+            return 'border-green-400'; // Wishlist highlight
         }
         if (isActive) {
             return 'border-white/60';
@@ -99,7 +106,7 @@ export const ItemSocket: React.FC<ItemSocketProps> = ({
                 ref={refs.setReference}
                 {...getReferenceProps()}
                 className={`
-                    w-10 h-10 ${shapeClass} overflow-hidden 
+                    relative w-10 h-10 ${shapeClass} overflow-hidden 
                     bg-[#222] border-2 ${getBorderClasses()}
                     hover:border-white transition-colors cursor-pointer
                     shadow-sm
@@ -109,6 +116,12 @@ export const ItemSocket: React.FC<ItemSocketProps> = ({
                     src={icon}
                     className="w-full h-full object-cover"
                 />
+                {/* Wishlist indicator */}
+                {isWishlistPerk && (
+                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center z-10">
+                        <ThumbsUp size={7} className="text-white" />
+                    </div>
+                )}
             </div>
 
             {/* Portaled Tooltip - renders at document root to escape overflow */}

@@ -8,6 +8,7 @@ import { ItemSocket } from '../item/ItemSocket';
 import { BungieImage } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes } from '../../lib/destiny-constants';
+import { useWishlistContext } from '../../contexts/WishlistContext';
 import clsx from 'clsx';
 import {
     useFloating,
@@ -85,6 +86,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
+
+    // Wishlist matching
+    const { getItemWishlistRoll } = useWishlistContext();
+    const wishlistRoll = useMemo(() => {
+        const categories = definition.itemCategoryHashes || [];
+        return getItemWishlistRoll(item, item.itemHash, categories);
+    }, [item, definition, getItemWishlistRoll]);
+    const wishlistPerks = wishlistRoll?.wishListPerks || new Set<number>();
 
 
     return (
@@ -179,7 +188,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {sockets.perks.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                         {sockets.perks.map(socket => (
-                                            <ItemSocket key={socket.socketIndex} plugDef={socket.plugDef} categoryHash={socket.categoryHash} isActive={socket.isEnabled} />
+                                            <ItemSocket
+                                                key={socket.socketIndex}
+                                                plugDef={socket.plugDef}
+                                                categoryHash={socket.categoryHash}
+                                                isActive={socket.isEnabled}
+                                                isWishlistPerk={wishlistPerks.has(socket.plugHash)}
+                                            />
                                         ))}
                                     </div>
                                 )}
