@@ -56,9 +56,9 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 className="absolute inset-0 z-0 bg-[#222]"
             />
 
-            {/* Masterwork Overlay (Texture) */}
+            {/* Masterwork Yellow Hue + Glow */}
             {isMasterwork && (
-                <div className="absolute inset-0 border border-[#f5dc56]/30 z-10 pointer-events-none mix-blend-overlay" />
+                <div className="absolute inset-0 z-10 pointer-events-none bg-[#f5dc56]/10 shadow-[inset_0_0_8px_rgba(245,220,86,0.4)]" />
             )}
 
             {/* New Item Glow (Pulse) */}
