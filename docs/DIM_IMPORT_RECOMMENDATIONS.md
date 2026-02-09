@@ -8,13 +8,21 @@ Analysis of which DIM features to port to Guardian Nexus, prioritized by value a
 
 ## High Priority (Immediate Value)
 
-### 1. Wishlist System ❌
+### 1. Wishlist System ✅
 
 **Source:** `app/wishlists/`
 
 Tag rolls as "god roll" / "trash" based on community data. Instant engagement feature.
 
-**Status:** Not implemented. No wishlist integration found.
+**Status:** IMPLEMENTED — Full wishlist system with Voltron auto-load:
+
+- ✅ Parser for DIM/DTR/Banshee formats (`src/lib/wishlist/parser.ts`)
+- ✅ Matcher for perk combinations (`src/lib/wishlist/matcher.ts`)
+- ✅ React hook with localStorage (`src/hooks/useWishlist.ts`)
+- ✅ Global context provider (`src/contexts/WishlistContext.tsx`)
+- ✅ 👍/👎 indicators on vault and character items
+- ✅ Green border + badge on matching perks in popup
+- ✅ Settings UI for managing sources (`src/components/settings/WishlistSettings.tsx`)
 
 ### 2. Item Comparisons ❌
 
@@ -91,7 +99,7 @@ Shows what items can infuse into what.
 
 | Feature | Status | Priority |
 |---------|--------|----------|
-| Wishlist System | ❌ | High |
+| Wishlist System | ✅ | High |
 | Item Comparisons | ❌ | High |
 | Search Filters | 🚧 (basic `is:`) | High |
 | Loadout System | ❌ | Medium |
@@ -105,5 +113,5 @@ Shows what items can infuse into what.
 ## Recommended Next Steps
 
 1. **Complete Search Filters** — Add `is:dupe`, `perk:*`, `stat:*` syntax
-2. **Wishlist Integration** — Community wishlists + god roll indicators
-3. **Comparison Sheet** — Side-by-side weapon stats
+2. **Comparison Sheet** — Side-by-side weapon stats
+3. **Loadout System** — Save/restore equipment sets

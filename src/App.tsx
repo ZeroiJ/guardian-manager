@@ -16,12 +16,14 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
 import { calculateMaxPower } from '@/lib/destiny/powerUtils';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
     const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any, referenceElement: HTMLElement | null } | null>(null);
+    const { showToast } = useToast();
 
     // Dnd Kit Sensors
     const sensors = useSensors(
@@ -70,25 +72,66 @@ export default function App() {
         }
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveDragItem(null);
 
         if (!over) return;
 
         const sourceItem = active.data.current?.item;
-        const targetContainerId = over.id as string; // 'vault' or characterId
+        let targetContainerId = over.id as string; // 'vault' or characterId or 'header_characterId' or 'characterId_bucketHash'
 
         if (!sourceItem) return;
 
+        // Parse Target ID
+        let isVault = targetContainerId === 'vault';
+        let finalTargetId = targetContainerId;
+
+        // Handle Header Drop ("header_12345")
+        if (targetContainerId.startsWith('header_')) {
+            finalTargetId = targetContainerId.replace('header_', '');
+            isVault = false;
+        }
+        // Handle Bucket Drop ("12345_hash")
+        // We need to support character IDs that might have underscores? 
+        // Bungie Character IDs are usually numeric. 
+        // Safer approach: split by last underscore if we append suffix.
+        // But here we appended `_${row.hash}`.
+        else if (targetContainerId !== 'vault' && targetContainerId.includes('_')) {
+            // Extract character ID. Assuming ID doesn't have underscores or we split correctly.
+            // Destiny Character IDs are int64 strings.
+            const parts = targetContainerId.split('_');
+            // The last part is hash, the rest is ID.
+            // But actually, simple split is enough for now as char IDs are numeric.
+            finalTargetId = parts[0];
+            isVault = false;
+        }
+
         // If dropped on same owner, do nothing
-        if (sourceItem.owner === targetContainerId) return;
+        if (sourceItem.owner === finalTargetId) return;
 
         // Execute Move
-        const isVault = targetContainerId === 'vault';
-        console.log(`Moving item ${sourceItem.itemInstanceId} from ${sourceItem.owner} to ${targetContainerId}`);
+        console.log(`Moving item ${sourceItem.itemInstanceId} from ${sourceItem.owner} to ${finalTargetId}`);
 
-        moveItem(sourceItem.itemInstanceId, sourceItem.itemHash, targetContainerId, isVault);
+        try {
+            await moveItem(sourceItem.itemInstanceId, sourceItem.itemHash, finalTargetId, isVault);
+
+            // Get proper names for Toast
+            const targetName = isVault ? 'Vault' : 'Character'; // Todo: get class name
+
+            showToast({
+                title: 'Item Transferred',
+                message: `${active.data.current?.definition?.displayProperties?.name || 'Item'} moved to ${targetName}`,
+                type: 'success',
+                duration: 10000 // 10s as requested
+            });
+        } catch (error) {
+            showToast({
+                title: 'Transfer Failed',
+                message: 'Failed to move item. Please try again.',
+                type: 'error'
+            });
+        }
     };
 
     const handleContextMenu = (e: React.MouseEvent, item: any, definition: any) => {
@@ -263,11 +306,12 @@ export default function App() {
                     {/* Floor 1: HEADERS (Emblems + Stats) */}
                     <div className="flex gap-2 min-w-max h-[160px] items-start"> {/* Fixed height for alignment */}
                         {characters.map((char: any) => (
-                            <StoreHeader
-                                key={char.characterId}
-                                storeId={char.characterId}
-                                character={char}
-                            />
+                            <DroppableZone key={char.characterId} id={`header_${char.characterId}`} className="flex-shrink-0">
+                                <StoreHeader
+                                    storeId={char.characterId}
+                                    character={char}
+                                />
+                            </DroppableZone>
                         ))}
                         <DroppableZone id="vault" className="flex-1 min-w-[300px] flex flex-col">
                             <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
@@ -292,7 +336,7 @@ export default function App() {
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
                                     return (
-                                        <DroppableZone key={char.characterId} id={char.characterId} className="w-[290px] flex-shrink-0">
+                                        <DroppableZone key={char.characterId} id={`${char.characterId}_${row.hash}`} className="w-[290px] flex-shrink-0">
                                             <StoreBucket
                                                 bucketHash={row.hash}
                                                 equipment={equipment}
