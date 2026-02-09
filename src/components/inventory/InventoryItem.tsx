@@ -3,6 +3,8 @@ import { RARITY_COLORS } from '../../data/constants';
 import { BungieImage } from '../ui/BungieImage';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { InventoryWishListRoll } from '../../lib/wishlist/types';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 interface InventoryItemProps {
     item: any;
@@ -22,10 +24,34 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     // Power Level
     const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
 
+    // Draggable Logic
+    // Only enable drag for items with an instance ID (actual inventory items)
+    const isDraggable = !!item?.itemInstanceId;
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: item?.itemInstanceId || 'placeholder',
+        data: {
+            // We pass a Ref to the current data so the event handler has access to it
+            // Using a ref is better performance-wise but data object works too if memoized.
+            // dnd-kit recommends passing data here.
+            current: { item, definition }
+        },
+        disabled: !isDraggable
+    });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        borderColor: borderColor,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 50 : undefined
+    };
+
     return (
         <div
-            className="relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150"
-            style={{ borderColor: borderColor }}
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150 ${isDragging ? 'brightness-50' : ''}`}
+            style={style}
             onClick={onClick}
         >
             {/* Image - using BungieImage for proper URL handling */}
