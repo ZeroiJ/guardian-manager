@@ -1,8 +1,9 @@
 import React from 'react';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
-import { Lock, Star, Ban, StickyNote } from 'lucide-react';
+import { Lock, Star, Ban, StickyNote, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { BungieImage } from '../ui/BungieImage';
 import { ElementIcon } from './ElementIcons';
+import { InventoryWishListRoll } from '../../lib/wishlist/types';
 
 interface DestinyItemTileProps {
     item: any; // TODO: Define specific Bungie Item Interface
@@ -11,9 +12,10 @@ interface DestinyItemTileProps {
     onContextMenu?: (e: React.MouseEvent) => void;
     className?: string;
     isNew?: boolean; // New prop for "New Item" glow
+    wishlistRoll?: InventoryWishListRoll; // Wishlist match result
 }
 
-export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, onContextMenu, className = '', isNew = false }) => {
+export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definition, onClick, onContextMenu, className = '', isNew = false, wishlistRoll }) => {
     if (!item || !definition) return <div className={`w-[48px] h-[48px] bg-[#1a1a1a]`} />;
 
     const { state } = item;
@@ -78,6 +80,17 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 {tag === 'junk' && <Ban size={10} className="text-red-500 drop-shadow-md" strokeWidth={3} />}
                 {note && <StickyNote size={10} className="text-blue-400 drop-shadow-md" strokeWidth={3} />}
             </div>
+
+            {/* Wishlist Indicator - Top Right (below watermark if present) */}
+            {wishlistRoll && (
+                <div className={`absolute ${definition.iconWatermark ? 'top-[14px]' : 'top-0'} right-0 p-[2px] z-30 pointer-events-none`}>
+                    {wishlistRoll.isUndesirable ? (
+                        <ThumbsDown size={10} className="text-red-500 fill-red-500/80 drop-shadow-md" />
+                    ) : (
+                        <ThumbsUp size={10} className="text-green-400 fill-green-400/80 drop-shadow-md" />
+                    )}
+                </div>
+            )}
 
             {/* Icon Tray (Element & Power) - Bottom Bar */}
             {(damageTypeHash || power) && (

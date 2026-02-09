@@ -1,14 +1,17 @@
 import React from 'react';
 import { RARITY_COLORS } from '../../data/constants';
 import { BungieImage } from '../ui/BungieImage';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { InventoryWishListRoll } from '../../lib/wishlist/types';
 
 interface InventoryItemProps {
     item: any;
     definition: any;
     onClick?: (event: React.MouseEvent) => void;
+    wishlistRoll?: InventoryWishListRoll;
 }
 
-export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
+export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick, wishlistRoll }) => {
     // Get icon from item or definition
     const icon = item?.icon || definition?.displayProperties?.icon;
 
@@ -32,6 +35,17 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
                 className="absolute inset-0 w-full h-full"
             />
 
+            {/* Wishlist Indicator - Top Right */}
+            {wishlistRoll && (
+                <div className="absolute top-0 right-0 p-0.5 z-10">
+                    {wishlistRoll.isUndesirable ? (
+                        <ThumbsDown size={10} className="text-red-500 fill-red-500/80 drop-shadow-md" />
+                    ) : (
+                        <ThumbsUp size={10} className="text-green-400 fill-green-400/80 drop-shadow-md" />
+                    )}
+                </div>
+            )}
+
             {/* Overlay: Power Level - white text per design audit */}
             {power && (
                 <div className="absolute bottom-0 right-0 left-0 bg-black/75 px-0.5 text-right pointer-events-none">
@@ -43,4 +57,3 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
         </div>
     );
 };
-

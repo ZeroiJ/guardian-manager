@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { InventoryItem } from './InventoryItem';
 import { groupItemsForDisplay, getSortedTypes, WEAPON_TYPE_ICONS } from '../../lib/destiny/sort-engine';
-
+import { useWishlistContext } from '../../contexts/WishlistContext';
 import { Shield, Shirt, Footprints, Component, Ghost, User } from 'lucide-react';
 
 interface VirtualVaultGridProps {
@@ -49,22 +49,30 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     );
 };
 
-// ============================================================================
-// ITEM TILE - Wrapped inventory item
-// ============================================================================
 const ItemTile: React.FC<{
     item: any;
     definition: any;
     onClick?: (item: any, definition: any, e: React.MouseEvent) => void;
-}> = ({ item, definition, onClick }) => (
-    <div className="w-16 h-16">
-        <InventoryItem
-            item={item}
-            definition={definition}
-            onClick={(e) => onClick && onClick(item, definition, e)}
-        />
-    </div>
-);
+    getWishlistRoll: (item: any, itemHash: number, categories: number[]) => any;
+}> = ({ item, definition, onClick, getWishlistRoll }) => {
+    // Get wishlist roll for this item
+    const wishlistRoll = useMemo(() => {
+        if (!definition) return undefined;
+        const categories = definition.itemCategoryHashes || [];
+        return getWishlistRoll(item, item.itemHash, categories);
+    }, [item, definition, getWishlistRoll]);
+
+    return (
+        <div className="w-16 h-16">
+            <InventoryItem
+                item={item}
+                definition={definition}
+                onClick={(e) => onClick && onClick(item, definition, e)}
+                wishlistRoll={wishlistRoll}
+            />
+        </div>
+    );
+};
 
 // ============================================================================
 // VAULT GROUP - Uses "display: contents" to be invisible to flex layout
@@ -76,7 +84,8 @@ const VaultGroup: React.FC<{
     definitions: Record<string, any>;
     onItemClick?: (item: any, definition: any, e: React.MouseEvent) => void;
     prefix: string;
-}> = ({ typeName, items, definitions, onItemClick, prefix }) => {
+    getWishlistRoll: (item: any, itemHash: number, categories: number[]) => any;
+}> = ({ typeName, items, definitions, onItemClick, prefix, getWishlistRoll }) => {
     // Sort items by power descending
     const sortedItems = useMemo(() => {
         return [...items].sort((a, b) => calculatePower(b, definitions) - calculatePower(a, definitions));
@@ -96,6 +105,7 @@ const VaultGroup: React.FC<{
                     item={item}
                     definition={definitions[item.itemHash]}
                     onClick={onItemClick}
+                    getWishlistRoll={getWishlistRoll}
                 />
             ))}
         </div>
@@ -113,6 +123,9 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     category,
     bucketHash
 }) => {
+
+    // Wishlist context
+    const { getItemWishlistRoll } = useWishlistContext();
 
     // Group Items using Engine
     const groupedInventory = useMemo(() => {
@@ -150,6 +163,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                             definitions={definitions}
                             onItemClick={onItemClick}
                             prefix="bucket-"
+                            getWishlistRoll={getItemWishlistRoll}
                         />
                     ))}
                 </div>
@@ -187,6 +201,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                             definitions={definitions}
                             onItemClick={onItemClick}
                             prefix="weapons-"
+                            getWishlistRoll={getItemWishlistRoll}
                         />
                     ))}
                 </div>
@@ -208,6 +223,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                             definitions={definitions}
                             onItemClick={onItemClick}
                             prefix="armor-"
+                            getWishlistRoll={getItemWishlistRoll}
                         />
                     ))}
                 </div>
@@ -229,6 +245,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                             definitions={definitions}
                             onItemClick={onItemClick}
                             prefix="general-"
+                            getWishlistRoll={getItemWishlistRoll}
                         />
                     ))}
                 </div>
@@ -261,6 +278,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                         definitions={definitions}
                         onItemClick={onItemClick}
                         prefix="w-"
+                        getWishlistRoll={getItemWishlistRoll}
                     />
                 ))}
 
@@ -273,6 +291,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                         definitions={definitions}
                         onItemClick={onItemClick}
                         prefix="a-"
+                        getWishlistRoll={getItemWishlistRoll}
                     />
                 ))}
 
@@ -285,6 +304,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                         definitions={definitions}
                         onItemClick={onItemClick}
                         prefix="g-"
+                        getWishlistRoll={getItemWishlistRoll}
                     />
                 ))}
             </div>
