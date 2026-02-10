@@ -19,7 +19,7 @@ export function DroppableZone({ id, children, className, data }: DroppableZonePr
         <div ref={setNodeRef} className={cn(className, "relative")}>
             {children}
             {isOver && (
-                <div className="absolute inset-0 bg-[#f5dc56]/10 pointer-events-none z-50 border-2 border-[#f5dc56]" />
+                <div className="absolute inset-0 bg-yellow-500/20 pointer-events-none z-50 border-2 border-yellow-500 animate-pulse" />
             )}
         </div>
     );

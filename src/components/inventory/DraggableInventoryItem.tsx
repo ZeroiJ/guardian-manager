@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import DestinyItemTile from '../destiny/DestinyItemTile';
-import { useWishlistContext } from '../../contexts/WishlistContext';
 
 interface DraggableInventoryItemProps {
     item: any;
@@ -18,13 +17,6 @@ export const DraggableInventoryItem: React.FC<DraggableInventoryItemProps> = ({ 
         data: { item, definition }
     });
 
-    // Wishlist matching
-    const { getItemWishlistRoll } = useWishlistContext();
-    const wishlistRoll = useMemo(() => {
-        if (!definition) return undefined;
-        const categories = definition.itemCategoryHashes || [];
-        return getItemWishlistRoll(item, item.itemHash, categories);
-    }, [item, definition, getItemWishlistRoll]);
 
     // When dragging, we dim the original item
     const style: React.CSSProperties | undefined = isDragging ? { opacity: 0.3 } : undefined;
@@ -36,7 +28,6 @@ export const DraggableInventoryItem: React.FC<DraggableInventoryItemProps> = ({ 
                 definition={definition}
                 className="w-full h-full"
                 onContextMenu={(e) => onContextMenu?.(e, item, definition)}
-                wishlistRoll={wishlistRoll}
             />
         </div>
     );

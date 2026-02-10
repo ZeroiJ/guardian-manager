@@ -1,8 +1,6 @@
 import React from 'react';
 import { RARITY_COLORS } from '../../data/constants';
 import { BungieImage } from '../ui/BungieImage';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { InventoryWishListRoll } from '../../lib/wishlist/types';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -10,10 +8,9 @@ interface InventoryItemProps {
     item: any;
     definition: any;
     onClick?: (event: React.MouseEvent) => void;
-    wishlistRoll?: InventoryWishListRoll;
 }
 
-export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick, wishlistRoll }) => {
+export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
     // Get icon from item or definition
     const icon = item?.icon || definition?.displayProperties?.icon;
 
@@ -39,7 +36,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     });
 
     const style = {
-        transform: CSS.Translate.toString(transform),
+        // transform: CSS.Translate.toString(transform), // Removed to prevent original item from moving and blocking drop targets
         borderColor: borderColor,
         opacity: isDragging ? 0.3 : 1,
         zIndex: isDragging ? 50 : undefined
@@ -62,15 +59,6 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             />
 
             {/* Wishlist Indicator - Top Right */}
-            {wishlistRoll && (
-                <div className="absolute top-0 right-0 p-0.5 z-10">
-                    {wishlistRoll.isUndesirable ? (
-                        <ThumbsDown size={10} className="text-red-500 fill-red-500/80 drop-shadow-md" />
-                    ) : (
-                        <ThumbsUp size={10} className="text-green-400 fill-green-400/80 drop-shadow-md" />
-                    )}
-                </div>
-            )}
 
             {/* Overlay: Power Level - white text per design audit */}
             {power && (
