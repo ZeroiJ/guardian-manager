@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor, pointerWithin } from '@dnd-kit/core';
 import { StoreHeader } from '@/components/inventory/StoreHeader';
 import { InventoryBucketLabel } from '@/components/inventory/InventoryBucketLabel';
 import { StoreBucket } from '@/components/inventory/StoreBucket';
@@ -260,7 +260,12 @@ export default function App() {
     };
 
     return (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
             <div className="h-screen bg-black text-white font-sans flex flex-col overflow-y-auto selection:bg-white selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                 {/* Top Bar */}
                 <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
