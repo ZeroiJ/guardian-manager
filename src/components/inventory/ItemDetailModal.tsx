@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Lock, Unlock, Tag, RefreshCw, Maximize2, Diamond } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
@@ -91,14 +91,22 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
 
     const itemOwner = item.owner || 'unknown';
+    const [isTransferring, setIsTransferring] = useState(false);
 
     // Move Handler
     const handleMove = (targetId: string, isVault: boolean) => {
-        if (targetId === itemOwner && !isVault) return; // Already on char (Equip logic would go here)
+        if (isTransferring) return;
+        if (targetId === itemOwner && !isVault) return; // Already on char
         if (itemOwner === 'vault' && isVault) return; // Already in vault
 
-        moveItem(item.itemInstanceId, item.itemHash, targetId, isVault);
-        // onClose(); // Keep open to see change? Or close? User said "Optimistic UI", implies seeing it happen. Maybe keep open.
+        // Instant Interaction
+        setIsTransferring(true);
+        onClose();
+
+        // Fire and forget (Optimistic UI will handle the visual feedback)
+        moveItem(item.itemInstanceId, item.itemHash, targetId, isVault).catch(err => {
+            console.error("Transfer failed after modal close:", err);
+        });
     };
 
     return (
@@ -161,7 +169,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                         <button
                                             key={char.characterId}
                                             onClick={() => handleMove(char.characterId, false)}
-                                            disabled={isCurrent}
+                                            disabled={isCurrent || isTransferring}
                                             className={clsx(
                                                 "px-3 py-1 text-xs font-bold uppercase tracking-wide rounded border transition-colors flex flex-col items-center",
                                                 isCurrent
@@ -177,15 +185,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {/* Vault */}
                                 <button
                                     onClick={() => handleMove('vault', true)}
-                                    disabled={itemOwner === 'vault'}
+                                    // Disable if: Already in vault OR Item is Equipped (cannot vault directly) OR Transferring
+                                    disabled={itemOwner === 'vault' || item.isEquipped || isTransferring}
                                     className={clsx(
                                         "px-3 py-1 text-xs font-bold uppercase tracking-wide rounded border transition-colors ml-auto",
-                                        itemOwner === 'vault'
+                                        (itemOwner === 'vault' || item.isEquipped)
                                             ? "bg-white/10 border-white/20 text-gray-500 cursor-default"
                                             : "bg-[#222] border-white/20 hover:bg-[#333] hover:border-white/40 text-gray-300"
                                     )}
                                 >
-                                    {itemOwner === 'vault' ? "In Vault" : "Store in Vault"}
+                                    {itemOwner === 'vault' ? "In Vault" : item.isEquipped ? "Equipped" : "Store in Vault"}
                                 </button>
                             </div>
 
