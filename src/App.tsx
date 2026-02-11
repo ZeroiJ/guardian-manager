@@ -68,7 +68,7 @@ export default function App() {
             isVault = false;
         } else if (targetId !== 'vault' && targetId.includes('_')) {
             const parts = targetId.split('_');
-            finalTargetId = parts[0];
+            finalTargetId = parts[1];
             isVault = false;
         }
 
