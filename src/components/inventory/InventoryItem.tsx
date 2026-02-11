@@ -21,7 +21,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
 
     return (
-        <DraggableInventoryItem item={item} definition={definition} className="w-full h-full">
+        <DraggableInventoryItem item={item} definition={definition} className="w-16 h-16">
             <div
                 className={`relative w-full h-full box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150`}
                 style={{ borderColor }}
