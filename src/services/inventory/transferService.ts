@@ -25,22 +25,32 @@ export class TransferService {
         try {
             console.log(`[TransferService] Moving ${itemInstanceId} from ${sourceId} to ${targetId}`);
 
-            // Case 1: Source is Vault -> Move to Char
-            if (sourceId === 'vault') {
+            // Validate IDs
+            if (sourceId === 'unknown' || targetId === 'unknown') {
+                throw new Error('Invalid transfer: Source or Target ID is unknown');
+            }
+
+            // Case A: To Vault (Character -> Vault)
+            if (targetId === 'vault') {
+                if (sourceId === 'vault') return; // No-op
+                // characterId must be the CURRENT owner (Source)
+                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true);
+            }
+            // Case B: From Vault (Vault -> Character)
+            else if (sourceId === 'vault') {
+                // characterId must be the RECEIVING character (Target)
                 await APIClient.transferItem(itemHash, itemInstanceId, targetId, false);
             }
-            // Case 2: Target is Vault -> Move from Char
-            else if (targetId === 'vault') {
-                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true);
-            }
-            // Case 3: Char to Char -> Multi-hop
+            // Case C: Character to Character (Char A -> Vault -> Char B)
             else {
                 console.log(`[TransferService] Multi-hop: ${sourceId} -> Vault -> ${targetId}`);
-                
-                // Step 1: Source Char -> Vault
+
+                // Step 1: Char A -> Vault
+                // transferToVault = true, characterId = sourceId
                 await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true);
-                
-                // Step 2: Vault -> Target Char
+
+                // Step 2: Vault -> Char B
+                // transferToVault = false, characterId = targetId
                 await APIClient.transferItem(itemHash, itemInstanceId, targetId, false);
             }
 

@@ -112,6 +112,10 @@ export class APIClient {
             membershipType: 3 // BungieMembershipType.TigerSteam (Hardcoded for now, should be dynamic)
         };
 
+        if (characterId === 'vault') {
+            throw new Error('[APIClient] Invalid characterId "vault". Must be a specific Character ID.');
+        }
+
         // TODO: Get membershipType from profile/auth context
         // For now, most PC players are 3. Consoles are 1/2.
         // We'll trust the API works or fix this later.
