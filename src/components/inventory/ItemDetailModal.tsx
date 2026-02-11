@@ -27,6 +27,8 @@ interface ItemDetailModalProps {
     definitions: Record<string, any>;
     referenceElement: HTMLElement | null;
     onClose: () => void;
+    moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
+    characters: any[];
 }
 
 const tierTypeToRarity: Record<number, string> = {
@@ -44,7 +46,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     definition,
     definitions: initialDefinitions,
     referenceElement,
-    onClose
+    onClose,
+    moveItem,
+    characters
 }) => {
     // --- Floating UI Setup ---
     const { refs, floatingStyles } = useFloating({
@@ -86,8 +90,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
 
-    // Wishlist matching
+    const itemOwner = item.owner || 'unknown';
 
+    // Move Handler
+    const handleMove = (targetId: string, isVault: boolean) => {
+        if (targetId === itemOwner && !isVault) return; // Already on char (Equip logic would go here)
+        if (itemOwner === 'vault' && isVault) return; // Already in vault
+
+        moveItem(item.itemInstanceId, item.itemHash, targetId, isVault);
+        // onClose(); // Keep open to see change? Or close? User said "Optimistic UI", implies seeing it happen. Maybe keep open.
+    };
 
     return (
         <FloatingPortal>
@@ -135,6 +147,47 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                         {/* CONTENT (Custom Tailwind for internal layout to fit DIM shell) */}
                         <div className="p-2 space-y-4 overflow-y-auto max-h-[60vh] bg-[#111] text-[#eee]">
+
+                            {/* MOVE LOCATIONS (Top Priority for "Click-to-Move") */}
+                            <div className="flex flex-wrap gap-2 pb-2 border-b border-white/10">
+                                {/* Characters */}
+                                {characters.map((char: any) => {
+                                    const isCurrent = itemOwner === char.characterId;
+                                    const classType = char.classType;
+                                    const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+                                    const className = classNames[classType] || 'Guardian';
+
+                                    return (
+                                        <button
+                                            key={char.characterId}
+                                            onClick={() => handleMove(char.characterId, false)}
+                                            disabled={isCurrent}
+                                            className={clsx(
+                                                "px-3 py-1 text-xs font-bold uppercase tracking-wide rounded border transition-colors flex flex-col items-center",
+                                                isCurrent
+                                                    ? "bg-white/10 border-white/20 text-gray-500 cursor-default"
+                                                    : "bg-[#222] border-white/20 hover:bg-[#333] hover:border-white/40 text-gray-300"
+                                            )}
+                                        >
+                                            {isCurrent ? "Equipped" : `Transfer to ${className}`}
+                                        </button>
+                                    );
+                                })}
+
+                                {/* Vault */}
+                                <button
+                                    onClick={() => handleMove('vault', true)}
+                                    disabled={itemOwner === 'vault'}
+                                    className={clsx(
+                                        "px-3 py-1 text-xs font-bold uppercase tracking-wide rounded border transition-colors ml-auto",
+                                        itemOwner === 'vault'
+                                            ? "bg-white/10 border-white/20 text-gray-500 cursor-default"
+                                            : "bg-[#222] border-white/20 hover:bg-[#333] hover:border-white/40 text-gray-300"
+                                    )}
+                                >
+                                    {itemOwner === 'vault' ? "In Vault" : "Store in Vault"}
+                                </button>
+                            </div>
 
                             {/* TABS Placeholder */}
                             <div className="flex border-b border-white/10 pb-0">
