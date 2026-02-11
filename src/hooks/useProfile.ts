@@ -135,35 +135,89 @@ export function useProfile() {
     }, [refresh]);
 
     const moveItem = useCallback(async (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => {
-        // Optimistic Update: Modify 'bungieProfile' state directly (harder, but doable)
-        // Actually, it's easier to modify the 'items' array in the zipper source if we normalize it first.
-        // For now, let's just trigger a re-fetch after move or try to patch the raw object?
-        // Patching the raw object is risky. 
-        // Let's modify the ZIPPER output? No, useMemo will overwrite it.
+        const targetId = isVault ? 'vault' : targetOwnerId;
 
-        // We will modify the 'bungieProfile' state deeply.
+        // 1. Optimistic Update
         setBungieProfile((prev: any) => {
             if (!prev) return null;
-            // Deep clone needed? Yes.
-            // const next = JSON.parse(JSON.stringify(prev));
 
-            // SIMPLIFICATION:
-            // Since we implemented 'VirtualVaultGrid' and 'CharacterColumn' based on 'profile.items',
-            // we really just need to patch 'profile.items' IF we weren't generating it from 'bungieProfile' every render.
+            // Deep clone to avoid mutation reference issues
+            const next = JSON.parse(JSON.stringify(prev));
+            let foundItem: any = null;
 
-            // Solution: We will rely on the "Background Sync" completing fast enough, OR we accept a quick flash.
-            // OR: We introduce a "Pending Moves" state that the Zipper applies on top.
-            return prev;
+            // Helper to remove item from list
+            const removeItem = (list: any[]) => {
+                const idx = list.findIndex((i: any) => i.itemInstanceId === itemInstanceId);
+                if (idx > -1) {
+                    foundItem = list[idx];
+                    list.splice(idx, 1);
+                    return true;
+                }
+                return false;
+            };
+
+            // A. Remove from Source
+            // Check Profile Inventory (Vault)
+            if (next.profileInventory?.data?.items) {
+                removeItem(next.profileInventory.data.items);
+            }
+
+            // Check Character Inventories
+            if (!foundItem && next.characterInventories?.data) {
+                Object.values(next.characterInventories.data).forEach((data: any) => {
+                    if (!foundItem) removeItem(data.items);
+                });
+            }
+
+            // Check Character Equipment
+            if (!foundItem && next.characterEquipment?.data) {
+                Object.values(next.characterEquipment.data).forEach((data: any) => {
+                    if (!foundItem) removeItem(data.items);
+                });
+            }
+
+            // B. Add to Target
+            if (foundItem) {
+                // If moving to Vault
+                if (isVault) {
+                    if (!next.profileInventory.data.items) next.profileInventory.data.items = [];
+                    // Ensure transferStatus is updated if needed (optional)
+                    next.profileInventory.data.items.push(foundItem);
+                }
+                // If moving to Character
+                else {
+                    const charInv = next.characterInventories.data[targetOwnerId];
+                    if (charInv) {
+                        // When moving to character, we always move to INVENTORY (bucket), not equipment
+                        // We rely on the definition bucket hash for display, so just pushing it here is enough 
+                        // for the 'owner' derivation in useMemo to work.
+                        charInv.items.push(foundItem);
+                    }
+                }
+            }
+
+            return next;
         });
 
-        // Background Sync
+        // 2. Background Sync
         try {
-            // Find source (from current profile)
+            // Find original owner for API call (we need it for the transfer request)
+            // We can't rely on 'profile' here because we just mutated it or it might be stale in the closure?
+            // Actually 'profile' in dependency array might be stale if we set state.
+            // But we need the sourceId. 
+            // We can find it from the item in the *current* profile before the optimistic update runs?
+            // Actually, moveItem is called with sourceId usually. But here we don't pass it.
+            // Wait, the previous implementation used `profile.items.find`.
+            // We should probably capture sourceId BEFORE setting state.
+
+            // ... Refetching item from profile *before* the setter runs
             const item = profile?.items.find(i => i.itemInstanceId === itemInstanceId);
-            if (!item) return;
+            if (!item) {
+                console.warn("Item not found for move, skipping API call");
+                return;
+            }
 
             const sourceId = item.owner;
-            const targetId = isVault ? 'vault' : targetOwnerId;
 
             await TransferService.moveItem({
                 itemInstanceId,
@@ -172,10 +226,15 @@ export function useProfile() {
                 targetId
             });
 
-            // Success -> Refresh to get true state
+            // 3. Confirm with Server
+            // We delay this slightly or just run it. 
+            // If we run it immediately, it might race with the optimistic update rendering.
+            // But React batches updates.
             refresh();
         } catch (err) {
             console.error('Failed to move item:', err);
+            // Revert by forcefully refreshing (fetching true state)
+            refresh();
         }
     }, [profile, refresh]);
 
