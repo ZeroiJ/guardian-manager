@@ -5,6 +5,7 @@ export interface TransferRequest {
     itemHash: number;
     sourceId: string; // characterId or 'vault'
     targetId: string; // characterId or 'vault'
+    membershipType: number;
 }
 
 export class TransferService {
@@ -15,7 +16,7 @@ export class TransferService {
      * Handles the multi-step Bungie API flow (e.g. Char -> Vault -> Char).
      */
     static async moveItem(request: TransferRequest): Promise<void> {
-        const { itemInstanceId, itemHash, sourceId, targetId } = request;
+        const { itemInstanceId, itemHash, sourceId, targetId, membershipType } = request;
 
         if (sourceId === targetId) return;
         if (this.inProgress.has(itemInstanceId)) throw new Error('Transfer already in progress for this item');
@@ -34,12 +35,12 @@ export class TransferService {
             if (targetId === 'vault') {
                 if (sourceId === 'vault') return; // No-op
                 // characterId must be the CURRENT owner (Source)
-                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true);
+                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true, membershipType);
             }
             // Case B: From Vault (Vault -> Character)
             else if (sourceId === 'vault') {
                 // characterId must be the RECEIVING character (Target)
-                await APIClient.transferItem(itemHash, itemInstanceId, targetId, false);
+                await APIClient.transferItem(itemHash, itemInstanceId, targetId, false, membershipType);
             }
             // Case C: Character to Character (Char A -> Vault -> Char B)
             else {
@@ -47,11 +48,11 @@ export class TransferService {
 
                 // Step 1: Char A -> Vault
                 // transferToVault = true, characterId = sourceId
-                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true);
+                await APIClient.transferItem(itemHash, itemInstanceId, sourceId, true, membershipType);
 
                 // Step 2: Vault -> Char B
                 // transferToVault = false, characterId = targetId
-                await APIClient.transferItem(itemHash, itemInstanceId, targetId, false);
+                await APIClient.transferItem(itemHash, itemInstanceId, targetId, false, membershipType);
             }
 
             console.log(`[TransferService] Transfer complete: ${itemInstanceId}`);

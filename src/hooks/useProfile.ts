@@ -224,11 +224,15 @@ export function useProfile() {
                 console.warn("[Optimistic Move] Could not determine source ID for API call");
             }
 
+            // Extract membershipType from profile
+            const membershipType = bungieProfile?.profile?.data?.userInfo?.membershipType || 3; // Fallback to Steam (3)
+
             await TransferService.moveItem({
                 itemInstanceId,
                 itemHash,
                 sourceId: sourceId || 'unknown',
-                targetId
+                targetId,
+                membershipType
             });
 
             // 3. Confirm with Server

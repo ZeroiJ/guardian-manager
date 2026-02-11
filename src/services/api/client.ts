@@ -100,6 +100,7 @@ export class APIClient {
         itemInstanceId: string,
         characterId: string,
         transferToVault: boolean,
+        membershipType: number,
         stackSize: number = 1
     ): Promise<void> {
         // Bungie API Body Format
@@ -109,7 +110,7 @@ export class APIClient {
             transferToVault: transferToVault,
             itemId: itemInstanceId,
             characterId: characterId,
-            membershipType: 3 // BungieMembershipType.TigerSteam (Hardcoded for now, should be dynamic)
+            membershipType: membershipType
         };
 
         if (characterId === 'vault') {
