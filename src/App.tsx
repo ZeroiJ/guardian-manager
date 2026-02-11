@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor, pointerWithin } from '@dnd-kit/core';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { StoreHeader } from '@/components/inventory/StoreHeader';
 import { InventoryBucketLabel } from '@/components/inventory/InventoryBucketLabel';
 import { StoreBucket } from '@/components/inventory/StoreBucket';
 import { BUCKETS } from '@/data/constants';
-import DestinyItemTile from '@/components/destiny/DestinyItemTile';
-import { DroppableZone } from '@/components/inventory/DroppableZone';
+import { DroppableBucket } from '@/components/inventory/DroppableBucket';
 import { VirtualVaultGrid } from '@/components/inventory/VirtualVaultGrid';
 import { ItemDetailModal } from '@/components/inventory/ItemDetailModal';
 import { ItemContextMenu } from '@/components/inventory/ItemContextMenu';
@@ -17,22 +17,13 @@ import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
 import { calculateMaxPower } from '@/lib/destiny/powerUtils';
 import { useToast } from '@/contexts/ToastContext';
+import { InventoryDragLayer } from '@/components/inventory/InventoryDragLayer';
 
 export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeDragItem, setActiveDragItem] = useState<{ item: any, definition: any } | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
     const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any, referenceElement: HTMLElement | null } | null>(null);
     const { showToast } = useToast();
-
-    // Dnd Kit Sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8, // 8px movement required to start drag
-            },
-        })
-    );
 
     // Use the new Zipper hook
     const { profile, loading: profileLoading, error: profileError, moveItem, refresh } = useProfile();
@@ -66,64 +57,38 @@ export default function App() {
 
     const loading = profileLoading || (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading));
 
-    const handleDragStart = (event: DragStartEvent) => {
-        if (event.active.data.current) {
-            setActiveDragItem(event.active.data.current as any);
-        }
-    };
-
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event;
-        setActiveDragItem(null);
-
-        if (!over) return;
-
-        const sourceItem = active.data.current?.item;
-        let targetContainerId = over.id as string; // 'vault' or characterId or 'header_characterId' or 'characterId_bucketHash'
-
-        if (!sourceItem) return;
+    const handleDrop = async (item: any, _sourceId: string, targetId: string) => {
+        const sourceOwner = item.owner;
+        let finalTargetId = targetId;
+        let isVault = targetId === 'vault';
 
         // Parse Target ID
-        let isVault = targetContainerId === 'vault';
-        let finalTargetId = targetContainerId;
-
-        // Handle Header Drop ("header_12345")
-        if (targetContainerId.startsWith('header_')) {
-            finalTargetId = targetContainerId.replace('header_', '');
+        if (targetId.startsWith('header_')) {
+            finalTargetId = targetId.replace('header_', '');
             isVault = false;
-        }
-        // Handle Bucket Drop ("12345_hash")
-        // We need to support character IDs that might have underscores? 
-        // Bungie Character IDs are usually numeric. 
-        // Safer approach: split by last underscore if we append suffix.
-        // But here we appended `_${row.hash}`.
-        else if (targetContainerId !== 'vault' && targetContainerId.includes('_')) {
-            // Extract character ID. Assuming ID doesn't have underscores or we split correctly.
-            // Destiny Character IDs are int64 strings.
-            const parts = targetContainerId.split('_');
-            // The last part is hash, the rest is ID.
-            // But actually, simple split is enough for now as char IDs are numeric.
+        } else if (targetId !== 'vault' && targetId.includes('_')) {
+            const parts = targetId.split('_');
             finalTargetId = parts[0];
             isVault = false;
         }
 
-        // If dropped on same owner, do nothing
-        if (sourceItem.owner === finalTargetId) return;
+        // Check if no move needed
+        if (sourceOwner === finalTargetId) return;
 
         // Execute Move
-        console.log(`Moving item ${sourceItem.itemInstanceId} from ${sourceItem.owner} to ${finalTargetId}`);
+        console.log(`Moving item ${item.itemInstanceId} from ${sourceOwner} to ${finalTargetId}`);
 
         try {
-            await moveItem(sourceItem.itemInstanceId, sourceItem.itemHash, finalTargetId, isVault);
+            await moveItem(item.itemInstanceId, item.itemHash, finalTargetId, isVault);
 
             // Get proper names for Toast
-            const targetName = isVault ? 'Vault' : 'Character'; // Todo: get class name
+            const targetName = isVault ? 'Vault' : 'Character';
 
             showToast({
                 title: 'Item Transferred',
-                message: `${active.data.current?.definition?.displayProperties?.name || 'Item'} moved to ${targetName}`,
+                message: `${definitions[item.itemHash]?.displayProperties?.name || 'Item'} moved to ${targetName}`,
                 type: 'success',
-                duration: 10000 // 10s as requested
+                duration: 5000
             });
         } catch (error) {
             showToast({
@@ -260,12 +225,7 @@ export default function App() {
     };
 
     return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={pointerWithin}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-        >
+        <DndProvider backend={HTML5Backend}>
             <div className="h-screen bg-black text-white font-sans flex flex-col overflow-y-auto selection:bg-white selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                 {/* Top Bar */}
                 <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
@@ -311,16 +271,21 @@ export default function App() {
                     {/* Floor 1: HEADERS (Emblems + Stats) */}
                     <div className="flex gap-2 min-w-max h-[160px] items-start"> {/* Fixed height for alignment */}
                         {characters.map((char: any) => (
-                            <DroppableZone key={char.characterId} id={`header_${char.characterId}`} className="flex-shrink-0">
+                            <DroppableBucket
+                                key={char.characterId}
+                                id={`header_${char.characterId}`}
+                                className="flex-shrink-0"
+                                onDrop={handleDrop}
+                            >
                                 <StoreHeader
                                     storeId={char.characterId}
                                     character={char}
                                 />
-                            </DroppableZone>
+                            </DroppableBucket>
                         ))}
-                        <DroppableZone id="vault" className="flex-1 min-w-[300px] flex flex-col">
+                        <DroppableBucket id="vault" className="flex-1 min-w-[300px] flex flex-col" onDrop={handleDrop}>
                             <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
-                        </DroppableZone>
+                        </DroppableBucket>
                     </div>
 
                     {/* DYNAMIC ROWS Loop */}
@@ -341,7 +306,12 @@ export default function App() {
                                 {characters.map((char: any) => {
                                     const { equipment, inventory } = getItemsForCharacter(char.characterId);
                                     return (
-                                        <DroppableZone key={char.characterId} id={`${char.characterId}_${row.hash}`} className="w-[290px] flex-shrink-0">
+                                        <DroppableBucket
+                                            key={char.characterId}
+                                            id={`char_${char.characterId}_${row.hash}`}
+                                            className="w-[290px] flex-shrink-0"
+                                            onDrop={handleDrop}
+                                        >
                                             <StoreBucket
                                                 bucketHash={row.hash}
                                                 equipment={equipment}
@@ -349,12 +319,12 @@ export default function App() {
                                                 definitions={definitions}
                                                 onItemClick={handleItemClick}
                                             />
-                                        </DroppableZone>
+                                        </DroppableBucket>
                                     );
                                 })}
 
                                 {/* Vault */}
-                                <DroppableZone id="vault" className="flex-1 min-w-[400px]">
+                                <DroppableBucket id="vault" className="flex-1 min-w-[400px]" onDrop={handleDrop}>
                                     <VirtualVaultGrid
                                         bucketHash={row.hash}
                                         items={vaultItems}
@@ -362,24 +332,14 @@ export default function App() {
                                         onItemContextMenu={handleContextMenu}
                                         onItemClick={handleItemClick}
                                     />
-                                </DroppableZone>
+                                </DroppableBucket>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                {/* Drag Overlay */}
-                <DragOverlay>
-                    {activeDragItem ? (
-                        <div className="w-[48px] h-[48px] shadow-2xl scale-110 pointer-events-none cursor-grabbing">
-                            <DestinyItemTile
-                                item={activeDragItem.item}
-                                definition={activeDragItem.definition}
-                                className="border-[#f5dc56] shadow-[0_0_15px_rgba(245,220,86,0.5)]"
-                            />
-                        </div>
-                    ) : null}
-                </DragOverlay>
+                {/* Global Custom Drag Preview */}
+                <InventoryDragLayer />
 
                 {/* Context Menu */}
                 {contextMenu && (
@@ -403,6 +363,8 @@ export default function App() {
                     />
                 )}
             </div>
-        </DndContext>
+        </DndProvider>
     );
 }
+
+// Re-export of App needs to handle default and named exports usually, but this file has `export default`.

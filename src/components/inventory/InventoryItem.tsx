@@ -1,8 +1,7 @@
 import React from 'react';
 import { RARITY_COLORS } from '../../data/constants';
 import { BungieImage } from '../ui/BungieImage';
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+import { DraggableInventoryItem } from './DraggableInventoryItem';
 
 interface InventoryItemProps {
     item: any;
@@ -21,53 +20,31 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     // Power Level
     const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
 
-    // Draggable Logic
-    // Only enable drag for items with an instance ID (actual inventory items)
-    const isDraggable = !!item?.itemInstanceId;
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: item?.itemInstanceId || 'placeholder',
-        data: {
-            // We pass a Ref to the current data so the event handler has access to it
-            // Using a ref is better performance-wise but data object works too if memoized.
-            // dnd-kit recommends passing data here.
-            current: { item, definition }
-        },
-        disabled: !isDraggable
-    });
-
-    const style = {
-        // transform: CSS.Translate.toString(transform), // Removed to prevent original item from moving and blocking drop targets
-        borderColor: borderColor,
-        opacity: isDragging ? 0.3 : 1,
-        zIndex: isDragging ? 50 : undefined
-    };
-
     return (
-        <div
-            ref={setNodeRef}
-            {...listeners}
-            {...attributes}
-            className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150 ${isDragging ? 'brightness-50' : ''}`}
-            style={style}
-            onClick={onClick}
-        >
-            {/* Image - using BungieImage for proper URL handling */}
-            <BungieImage
-                src={icon}
-                alt={definition?.displayProperties?.name || "Item"}
-                className="absolute inset-0 w-full h-full"
-            />
+        <DraggableInventoryItem item={item} definition={definition} className="w-full h-full">
+            <div
+                className={`relative w-full h-full box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150`}
+                style={{ borderColor }}
+                onClick={onClick}
+            >
+                {/* Image - using BungieImage for proper URL handling */}
+                <BungieImage
+                    src={icon}
+                    alt={definition?.displayProperties?.name || "Item"}
+                    className="absolute inset-0 w-full h-full"
+                />
 
-            {/* Wishlist Indicator - Top Right */}
+                {/* Wishlist Indicator - Top Right */}
 
-            {/* Overlay: Power Level - white text per design audit */}
-            {power && (
-                <div className="absolute bottom-0 right-0 left-0 bg-black/75 px-0.5 text-right pointer-events-none">
-                    <span className="text-[11px] font-medium text-dim-text font-mono leading-none font-tabular">
-                        {power}
-                    </span>
-                </div>
-            )}
-        </div>
+                {/* Overlay: Power Level - white text per design audit */}
+                {power && (
+                    <div className="absolute bottom-0 right-0 left-0 bg-black/75 px-0.5 text-right pointer-events-none">
+                        <span className="text-[11px] font-medium text-dim-text font-mono leading-none font-tabular">
+                            {power}
+                        </span>
+                    </div>
+                )}
+            </div>
+        </DraggableInventoryItem>
     );
 };
