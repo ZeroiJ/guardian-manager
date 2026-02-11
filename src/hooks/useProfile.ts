@@ -136,100 +136,102 @@ export function useProfile() {
 
     const moveItem = useCallback(async (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => {
         const targetId = isVault ? 'vault' : targetOwnerId;
+        console.log(`[Optimistic Move] Moving ${itemInstanceId} to ${targetId}`);
 
         // 1. Optimistic Update
         setBungieProfile((prev: any) => {
-            if (!prev) return null;
+            if (!prev) return prev;
 
-            // Deep clone to avoid mutation reference issues
-            const next = JSON.parse(JSON.stringify(prev));
+            // Deep clone to ensure React detects the change
+            const nextProfile = JSON.parse(JSON.stringify(prev));
             let foundItem: any = null;
 
-            // Helper to remove item from list
-            const removeItem = (list: any[]) => {
-                const idx = list.findIndex((i: any) => i.itemInstanceId === itemInstanceId);
-                if (idx > -1) {
-                    foundItem = list[idx];
-                    list.splice(idx, 1);
-                    return true;
-                }
-                return false;
-            };
-
-            // A. Remove from Source
-            // Check Profile Inventory (Vault)
-            if (next.profileInventory?.data?.items) {
-                removeItem(next.profileInventory.data.items);
-            }
-
+            // 2. REMOVE from Source (Scan all characters and vault)
             // Check Character Inventories
-            if (!foundItem && next.characterInventories?.data) {
-                Object.values(next.characterInventories.data).forEach((data: any) => {
-                    if (!foundItem) removeItem(data.items);
-                });
-            }
-
-            // Check Character Equipment
-            if (!foundItem && next.characterEquipment?.data) {
-                Object.values(next.characterEquipment.data).forEach((data: any) => {
-                    if (!foundItem) removeItem(data.items);
-                });
-            }
-
-            // B. Add to Target
-            if (foundItem) {
-                // If moving to Vault
-                if (isVault) {
-                    if (!next.profileInventory.data.items) next.profileInventory.data.items = [];
-                    // Ensure transferStatus is updated if needed (optional)
-                    next.profileInventory.data.items.push(foundItem);
-                }
-                // If moving to Character
-                else {
-                    const charInv = next.characterInventories.data[targetOwnerId];
-                    if (charInv) {
-                        // When moving to character, we always move to INVENTORY (bucket), not equipment
-                        // We rely on the definition bucket hash for display, so just pushing it here is enough 
-                        // for the 'owner' derivation in useMemo to work.
-                        charInv.items.push(foundItem);
+            if (nextProfile.characterInventories?.data) {
+                for (const charId in nextProfile.characterInventories.data) {
+                    const inventory = nextProfile.characterInventories.data[charId].items;
+                    const idx = inventory.findIndex((i: any) => i.itemInstanceId === itemInstanceId);
+                    if (idx !== -1) {
+                        foundItem = inventory[idx]; // Copy item ref
+                        inventory.splice(idx, 1); // Remove
+                        console.log(`[Optimistic Move] Removed from Character ${charId} inventory`);
+                        break;
                     }
                 }
             }
 
-            return next;
-        });
-
-        // 2. Background Sync
-        try {
-            // Find original owner for API call (we need it for the transfer request)
-            // We can't rely on 'profile' here because we just mutated it or it might be stale in the closure?
-            // Actually 'profile' in dependency array might be stale if we set state.
-            // But we need the sourceId. 
-            // We can find it from the item in the *current* profile before the optimistic update runs?
-            // Actually, moveItem is called with sourceId usually. But here we don't pass it.
-            // Wait, the previous implementation used `profile.items.find`.
-            // We should probably capture sourceId BEFORE setting state.
-
-            // ... Refetching item from profile *before* the setter runs
-            const item = profile?.items.find(i => i.itemInstanceId === itemInstanceId);
-            if (!item) {
-                console.warn("Item not found for move, skipping API call");
-                return;
+            // Check Character Equipment
+            if (!foundItem && nextProfile.characterEquipment?.data) {
+                for (const charId in nextProfile.characterEquipment.data) {
+                    const equipment = nextProfile.characterEquipment.data[charId].items;
+                    const idx = equipment.findIndex((i: any) => i.itemInstanceId === itemInstanceId);
+                    if (idx !== -1) {
+                        foundItem = equipment[idx];
+                        equipment.splice(idx, 1);
+                        console.log(`[Optimistic Move] Removed from Character ${charId} equipment`);
+                        break;
+                    }
+                }
             }
 
-            const sourceId = item.owner;
+            // Check Vault (profileInventory) if not found yet
+            if (!foundItem && nextProfile.profileInventory?.data?.items) {
+                const inventory = nextProfile.profileInventory.data.items;
+                const idx = inventory.findIndex((i: any) => i.itemInstanceId === itemInstanceId);
+                if (idx !== -1) {
+                    foundItem = inventory[idx];
+                    inventory.splice(idx, 1);
+                    console.log(`[Optimistic Move] Removed from Vault`);
+                }
+            }
+
+            // 3. ADD to Target
+            if (foundItem) {
+                // If target is Vault
+                if (isVault) {
+                    if (!nextProfile.profileInventory.data.items) nextProfile.profileInventory.data.items = [];
+                    nextProfile.profileInventory.data.items.push(foundItem);
+                    console.log(`[Optimistic Move] Success: Moved to Vault`);
+                } else {
+                    // Target is a Character
+                    // Always Add to INVENTORY bucket (not equipment)
+                    if (!nextProfile.characterInventories.data[targetOwnerId]) {
+                        console.error(`[Optimistic Error] Character ${targetOwnerId} not found`);
+                        return prev; // Abort
+                    }
+                    nextProfile.characterInventories.data[targetOwnerId].items.push(foundItem);
+                    console.log(`[Optimistic Move] Success: Moved to Character ${targetOwnerId}`);
+                }
+
+                return nextProfile;
+            }
+
+            console.warn(`[Optimistic Move] Item ${itemInstanceId} not found in source.`);
+            return prev;
+        });
+
+        // 4. TRIGGER API (Keep your existing API call logic here)
+        try {
+            // Find original owner for API call (we need it for the transfer request)
+            const item = profile?.items.find(i => i.itemInstanceId === itemInstanceId);
+
+            // Fallback for sourceId if not found in profile (optimistic update race condition)
+            // We can assume strict move flow, but API needs valid source.
+
+            const sourceId = item?.owner;
+            if (!sourceId) {
+                console.warn("[Optimistic Move] Could not determine source ID for API call");
+            }
 
             await TransferService.moveItem({
                 itemInstanceId,
                 itemHash,
-                sourceId,
+                sourceId: sourceId || 'unknown',
                 targetId
             });
 
             // 3. Confirm with Server
-            // We delay this slightly or just run it. 
-            // If we run it immediately, it might race with the optimistic update rendering.
-            // But React batches updates.
             refresh();
         } catch (err) {
             console.error('Failed to move item:', err);
