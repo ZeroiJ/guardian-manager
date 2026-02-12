@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { APIClient } from '../services/api/client';
-import { useInventoryEngine } from '../lib/core/InventoryEngine';
+import { useInventoryStore } from '../store/useInventoryStore';
 
 import { useShallow } from 'zustand/react/shallow';
 
@@ -9,16 +9,16 @@ export function useProfile() {
     const [error, setError] = useState<Error | null>(null);
 
     // Subscribe to Store with Shallow Comparison
-    const profile = useInventoryEngine(useShallow(state => ({
+    const profile = useInventoryStore(useShallow(state => ({
         characters: state.characters,
         items: state.items,
         currencies: [], // TODO: Add to store if needed
         artifactPower: state.profile?.profileProgression?.data?.seasonalArtifact?.powerBonus || 0
     })));
 
-    const updateItemMetadata = useInventoryEngine(state => state.updateMetadata);
-    const moveItem = useInventoryEngine(state => state.moveItem);
-    const hydrate = useInventoryEngine(state => state.hydrate);
+    const updateItemMetadata = useInventoryStore(state => state.updateMetadata);
+    const moveItem = useInventoryStore(state => state.moveItem);
+    const hydrate = useInventoryStore(state => state.hydrate);
 
     const refresh = useCallback(async () => {
         setLoading(true);

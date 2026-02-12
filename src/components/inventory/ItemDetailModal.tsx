@@ -21,7 +21,7 @@ import {
 import styles from './styles/ItemPopup.module.scss';
 import headerStyles from './styles/ItemPopupHeader.module.scss';
 
-import { useInventoryEngine } from '../../lib/core/InventoryEngine';
+import { useInventoryStore } from '../../store/useInventoryStore';
 
 interface ItemDetailModalProps {
     item: any;
@@ -64,7 +64,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         whileElementsMounted: autoUpdate
     });
 
-    const moveItem = useInventoryEngine(state => state.moveItem);
+    const moveItem = useInventoryStore(state => state.moveItem);
 
     if (!item || !definition || !referenceElement) return null;
 

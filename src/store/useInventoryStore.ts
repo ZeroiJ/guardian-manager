@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { GuardianItem } from '../../services/profile/types';
-import { TransferService } from '../../services/inventory/transferService';
-import { APIClient } from '../../services/api/client';
+import { GuardianItem } from '../services/profile/types';
+import { TransferService } from '../services/inventory/transferService';
+import { APIClient } from '../services/api/client';
 
 interface InventoryState {
     characters: Record<string, any>;
@@ -15,7 +15,7 @@ interface InventoryState {
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
 }
 
-export const useInventoryEngine = create<InventoryState>((set, get) => ({
+export const useInventoryStore = create<InventoryState>((set, get) => ({
     characters: {},
     items: [],
     profile: null,
@@ -24,7 +24,7 @@ export const useInventoryEngine = create<InventoryState>((set, get) => ({
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
 
-        console.log('[InventoryEngine] Hydrating...');
+        console.log('[InventoryStore] Hydrating...');
 
         // 1. Transform Characters
         const characters = bungieProfile.characters.data || {};
@@ -78,19 +78,19 @@ export const useInventoryEngine = create<InventoryState>((set, get) => ({
         });
 
         set({ characters, items, profile: bungieProfile, metadata });
-        console.log(`[InventoryEngine] Hydrated ${items.length} items`);
+        console.log(`[InventoryStore] Hydrated ${items.length} items`);
     },
 
     moveItem: async (itemInstanceId, itemHash, targetOwnerId, isVault) => {
         const targetId = isVault ? 'vault' : targetOwnerId;
-        console.log(`[InventoryEngine] Moving ${itemInstanceId} to ${targetId}`);
+        console.log(`[InventoryStore] Moving ${itemInstanceId} to ${targetId}`);
 
         // 1. Optimistic Update (Instant)
         const currentItems = get().items;
         const itemIndex = currentItems.findIndex(i => i.itemInstanceId === itemInstanceId);
 
         if (itemIndex === -1) {
-            console.warn(`[InventoryEngine] Item ${itemInstanceId} not found`);
+            console.warn(`[InventoryStore] Item ${itemInstanceId} not found`);
             return;
         }
 
@@ -126,9 +126,9 @@ export const useInventoryEngine = create<InventoryState>((set, get) => ({
                 targetId,
                 membershipType
             });
-            console.log(`[InventoryEngine] Move confirmed by API`);
+            console.log(`[InventoryStore] Move confirmed by API`);
         } catch (err) {
-            console.error('[InventoryEngine] Move failed, reverting:', err);
+            console.error('[InventoryStore] Move failed, reverting:', err);
             set({ items: previousItems }); // Rollback
         }
     },
@@ -167,7 +167,7 @@ export const useInventoryEngine = create<InventoryState>((set, get) => ({
         try {
             await APIClient.updateMetadata(itemInstanceId, type, value);
         } catch (err) {
-            console.error('[InventoryEngine] Metadata sync failed:', err);
+            console.error('[InventoryStore] Metadata sync failed:', err);
             // Revert logic could go here, but metadata is lower risk
         }
     }
