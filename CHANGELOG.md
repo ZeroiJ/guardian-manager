@@ -2,6 +2,29 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.18.0] - 2026-02-11
+
+### 🖱️ Click-to-Move & API Hardening
+
+Replaced the experimental Drag-and-Drop system with a robust, DIM-style "Click-to-Move" interface. This update focuses on speed, stability, and cross-platform compatibility.
+
+#### Interaction Overhaul: Click-to-Move
+
+- **Item Detail Transfers**: added "Transfer" buttons directly to the Item Detail Modal.
+  - **One-Click Vaulting**: "Store in Vault" button (disabled for equipped items).
+  - **Character-to-Character**: Direct "Transfer to [Class]" buttons that handle the Vault hop automatically.
+- **Instant UX**: Implemented "Fire-and-Forget" logic. The modal closes *instantly* upon clicking a transfer button, and the item moves visually in the background (Optimistic UI) while the API processes safely.
+- **Safety Locks**: Buttons are immediately disabled upon click to prevent race conditions (Error 1623) caused by double-submitting transfers.
+
+#### API Fixes
+
+- **Dynamic Platform Detection**: Fixed `DestinyCharacterNotFound` (Error 1620) by extracting the correct `membershipType` (Steam, Xbox, PSN) from the user's profile instead of hardcoding it to Steam.
+- **Strict ID Validation**: Added guards to `APIClient` to crash early if "vault" is accidentally passed as a Character ID, preventing malformed requests.
+
+### Changed
+
+- **Reverted DnD**: Removed `react-dnd` and `react-dnd-html5-backend` dependencies to reduce bundle size and complexity until a more stable implementation is ready.
+
 ## [0.17.1] - 2026-02-07
 
 ### 🏗️ Vault Refactor: Vertical Stacking

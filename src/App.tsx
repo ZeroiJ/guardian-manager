@@ -304,7 +304,6 @@ export default function App() {
                     definitions={definitions}
                     referenceElement={selectedItem.referenceElement}
                     onClose={() => setSelectedItem(null)}
-                    moveItem={moveItem}
                     characters={characters}
                 />
             )}

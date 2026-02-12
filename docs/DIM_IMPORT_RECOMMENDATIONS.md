@@ -8,7 +8,22 @@ Analysis of which DIM features to port to Guardian Nexus, prioritized by value a
 
 ## High Priority (Immediate Value)
 
-### 1. Wishlist System ✅
+## High Priority (Immediate Value)
+
+### 1. Interaction Model (Click-to-Move) ✅
+
+**Source:** `app/item-popup/`
+
+DIM's primary interaction model is clicking an item to open a detailed menu with transfer controls.
+
+**Status:** IMPLEMENTED — Replaced unstable Drag-and-Drop with robust Click-to-Move.
+
+- ✅ **Item Popup**: Detailed floating modal with stats, perks, and mods.
+- ✅ **Transfer Controls**: "Store in Vault", "Transfer to Character".
+- ✅ **Optimistic UI**: Instant visual feedback.
+- ❌ **Drag-and-Drop**: Reverted due to complexity/instability. (Future consideration)
+
+### 2. Wishlist System ✅
 
 **Source:** `app/wishlists/`
 

@@ -21,13 +21,15 @@ import {
 import styles from './styles/ItemPopup.module.scss';
 import headerStyles from './styles/ItemPopupHeader.module.scss';
 
+import { useInventoryEngine } from '../../lib/core/InventoryEngine';
+
 interface ItemDetailModalProps {
     item: any;
     definition: any;
     definitions: Record<string, any>;
     referenceElement: HTMLElement | null;
     onClose: () => void;
-    moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
+    // moveItem: removed (using store)
     characters: any[];
 }
 
@@ -47,7 +49,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     definitions: initialDefinitions,
     referenceElement,
     onClose,
-    moveItem,
+    // moveItem, // Removed
     characters
 }) => {
     // --- Floating UI Setup ---
@@ -61,6 +63,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         ],
         whileElementsMounted: autoUpdate
     });
+
+    const moveItem = useInventoryEngine(state => state.moveItem);
 
     if (!item || !definition || !referenceElement) return null;
 
