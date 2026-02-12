@@ -3,14 +3,30 @@ import { GuardianItem } from '../services/profile/types';
 import { TransferService } from '../services/inventory/transferService';
 import { APIClient } from '../services/api/client';
 
+// Subset of manifest data (names, icons, tierType)
+export interface ManifestDefinition {
+    displayProperties: {
+        name: string;
+        icon: string;
+        [key: string]: any;
+    };
+    inventory?: {
+        tierType: number;
+        [key: string]: any;
+    };
+    [key: string]: any;
+}
+
 interface InventoryState {
     characters: Record<string, any>;
     items: GuardianItem[];
     profile: any | null; // Raw Bungie Profile
     metadata: { tags: Record<string, string>, notes: Record<string, string> } | null;
+    manifest: Record<number, ManifestDefinition>;
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
+    setManifest: (manifest: Record<number, ManifestDefinition>) => void;
     moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
 }
@@ -20,6 +36,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     items: [],
     profile: null,
     metadata: null,
+    manifest: {},
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -81,9 +98,14 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         console.log(`[InventoryStore] Hydrated ${items.length} items`);
     },
 
+    setManifest: (manifest) => {
+        set({ manifest });
+    },
+
     moveItem: async (itemInstanceId, itemHash, targetOwnerId, isVault) => {
         const targetId = isVault ? 'vault' : targetOwnerId;
-        console.log(`[InventoryStore] Moving ${itemInstanceId} to ${targetId}`);
+        const itemName = get().manifest[itemHash]?.displayProperties?.name || 'Item';
+        console.log(`[InventoryStore] Moving ${itemName} (${itemInstanceId}) to ${targetId}`);
 
         // 1. Optimistic Update (Instant)
         const currentItems = get().items;
@@ -129,7 +151,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             console.log(`[InventoryStore] Move confirmed by API`);
         } catch (err) {
             console.error('[InventoryStore] Move failed, reverting:', err);
-            set({ items: previousItems }); // Rollback
+
+            // 3. Rollback
+            set({ items: previousItems });
+
+            // TODO: Toast Notification
+            // toast.error(`Failed to move ${itemName}: ${err.message}`);
         }
     },
 

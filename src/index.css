@@ -1,94 +1,10 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  /* === VOID MONOCHROME DESIGN TOKENS === */
-  /* "Sin City" aesthetic: Only loot has color */
-
-  /* Typography */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-
-  /* Backgrounds (Pure Black) */
-  --color-void-bg: #000000;
-  --color-void-surface: #0a0a0a;
-  --color-void-elevated: #111111;
-
-  /* Borders (Dark Gray) */
-  --color-void-border: #262626;
-  --color-void-border-light: #333333;
-
-  /* Text (Monochrome) */
-  --color-void-text: #ffffff;
-  --color-void-text-secondary: #888888;
-  --color-void-text-muted: #555555;
-  --color-void-header: #ededed;
-
-  /* Legacy aliases */
-  --color-dim-bg: #000000;
-  --color-dim-surface: #0a0a0a;
-  --color-dim-text: #ffffff;
-  --color-dim-text-muted: #888888;
-  --color-dim-header: #ededed;
-  --color-dim-border: #262626;
-  --color-dim-border-light: #333333;
-
-  /* Loot Colors (The ONLY color in the UI) */
-  --color-solar: #f97316;
-  --color-arc: #3b82f6;
-  --color-void: #a855f7;
-  --color-stasis: #60a5fa;
-  --color-strand: #22c55e;
-  --color-prismatic: #ec4899;
-
-  /* Rarity */
-  --color-rarity-legendary: #a855f7;
-  --color-rarity-exotic: #eab308;
-  --color-masterwork: #fbbf24;
-
-  /* Sizing */
-  --item-size: 64px;
-  --item-gap: 8px;
-}
-
-/* Global Styles - VOID MONOCHROME */
-body {
-  background-color: #000000;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
-}
-
-/* Typography Utilities */
-.text-header {
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #ededed;
-}
-
-/* Tabular Numbers for Power Levels */
-.font-tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-@layer utilities {
-
-  /* Custom Scrollbar - Monochrome */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: #000000;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #262626;
-    border: 1px solid #000000;
-    border-radius: 4px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #333333;
+/* Custom Void Styles */
+@layer base {
+  body {
+    @apply bg-void-bg text-void-text font-sans antialiased;
   }
 }

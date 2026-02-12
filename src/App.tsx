@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { StoreHeader } from '@/components/inventory/StoreHeader';
 import { InventoryBucketLabel } from '@/components/inventory/InventoryBucketLabel';
@@ -9,6 +9,7 @@ import { ItemDetailModal } from '@/components/inventory/ItemDetailModal';
 import { ItemContextMenu } from '@/components/inventory/ItemContextMenu';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useProfile } from '@/hooks/useProfile';
+import { useInventoryStore } from '@/store/useInventoryStore';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
@@ -48,6 +49,14 @@ export default function App() {
 
     // Merge Definitions
     const definitions = useMemo(() => ({ ...itemDefs, ...statGroupDefs }), [itemDefs, statGroupDefs]);
+
+    // Sync Manifest to Store for Headless Engine
+    const setManifest = useInventoryStore(state => state.setManifest);
+    useEffect(() => {
+        if (Object.keys(definitions).length > 0) {
+            setManifest(definitions);
+        }
+    }, [definitions, setManifest]);
 
     const loading = profileLoading || (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading));
 

@@ -3,10 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/GuardianManager/guardian-nexus.git"
-  },
   "scripts": {
     "dev": "vite",
     "backend": "wrangler pages dev . --kv=guardian_kv --d1=guardian_db",
@@ -30,22 +26,18 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260130.0",
     "@eslint/js": "^8.57.0",
-    "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^25.0.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.22",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "hono": "^4.11.7",
-    "postcss": "^8.5.6",
-    "sass": "^1.97.3",
-    "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "wrangler": "^4.56.0"
+    "wrangler": "^3.40.0"
   }
 }
