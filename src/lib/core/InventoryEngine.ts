@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GuardianItem, GuardianProfile } from '../../services/profile/types';
+import { GuardianItem } from '../../services/profile/types';
 import { TransferService } from '../../services/inventory/transferService';
 import { APIClient } from '../../services/api/client';
 

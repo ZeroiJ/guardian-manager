@@ -20,7 +20,7 @@ export default function App() {
     const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any, referenceElement: HTMLElement | null } | null>(null);
 
     // Use the new Zipper hook
-    const { profile, loading: profileLoading, error: profileError, moveItem, refresh } = useProfile();
+    const { profile, loading: profileLoading, error: profileError, refresh } = useProfile();
 
     // Auto-refresh system (30s polling with visibility check)
     const { lastUpdated, isRefreshing, triggerRefresh } = useAutoRefresh({
