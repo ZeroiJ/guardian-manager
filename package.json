@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "backend": "wrangler pages dev . --kv=guardian_kv --d1=guardian_db",
-    "build:wasm": "wasm-pack build guardian-engine --target web --out-dir src/wasm",
     "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -41,8 +40,6 @@
     "tailwindcss": "^3.4.13",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0",
     "wrangler": "^3.40.0"
   }
 }

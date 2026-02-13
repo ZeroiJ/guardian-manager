@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import init, { compare_stats } from '../wasm/guardian_engine';
 import { X } from 'lucide-react';
+import { compareStats, StatDelta } from '@/lib/inventory/statMath';
 
 interface CompareModalProps {
     itemA: any;
@@ -10,46 +10,13 @@ interface CompareModalProps {
 }
 
 export const CompareModal: React.FC<CompareModalProps> = ({ itemA, itemB, definitions, onClose }) => {
-    const [deltas, setDeltas] = useState<Record<string, number> | null>(null);
-    const [ready, setReady] = useState(false);
+    const [deltas, setDeltas] = useState<StatDelta[]>([]);
 
     useEffect(() => {
-        // Initialize WASM
-        init().then(() => {
-            setReady(true);
-        }).catch(err => {
-            console.error("Failed to load WASM:", err);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (!ready || !itemA || !itemB) return;
-
-        // Extract stats into simple objects for Rust
-        const extractStats = (item: any) => {
-            const stats: Record<string, number> = {};
-            // Item stats are keyed by Hash.
-            // We need to map them to meaningful keys or just use Hashes.
-            // For this demo, let's use the Stat Hashes directly as string keys.
-            const itemStats = item.stats || definitions[item.itemHash]?.stats?.stats || {};
-            
-            Object.entries(itemStats).forEach(([hash, stat]: [string, any]) => {
-                stats[hash] = stat.value || 0;
-            });
-            return stats;
-        };
-
-        const statsA = extractStats(itemA);
-        const statsB = extractStats(itemB);
-
-        try {
-            const result = compare_stats(statsA, statsB);
-            setDeltas(result as Record<string, number>);
-        } catch (e) {
-            console.error("Rust comparison failed:", e);
-        }
-
-    }, [ready, itemA, itemB, definitions]);
+        if (!itemA || !itemB) return;
+        const results = compareStats(itemA, itemB, definitions);
+        setDeltas(results);
+    }, [itemA, itemB, definitions]);
 
     if (!itemA || !itemB) return null;
 
@@ -71,40 +38,40 @@ export const CompareModal: React.FC<CompareModalProps> = ({ itemA, itemB, defini
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6">
                     <div className="grid grid-cols-3 gap-4">
-                        {/* Item A */}
+                        {/* Item A (Baseline) */}
                         <div className="flex flex-col items-center gap-2">
-                            <div className="text-lg font-bold text-gray-300">{defA?.displayProperties?.name}</div>
+                            <div className="text-lg font-bold text-gray-300 text-center">{defA?.displayProperties?.name}</div>
                             <img src={`https://www.bungie.net${defA?.displayProperties?.icon}`} className="w-16 h-16 rounded border border-white/20" />
-                            <div className="text-sm text-gray-500">Base Power: {itemA.instanceData?.primaryStat?.value}</div>
+                            <div className="text-sm text-gray-500">Power: {itemA.instanceData?.primaryStat?.value}</div>
                         </div>
 
                         {/* Deltas (Middle) */}
                         <div className="flex flex-col gap-2 py-4">
-                            <div className="text-center text-xs text-gray-500 uppercase tracking-widest mb-2">Stat Deltas</div>
-                            {deltas && Object.entries(deltas).map(([hash, val]) => {
-                                const statDef = definitions[hash]; // Need stat definitions passed in or fetched
-                                if (!statDef || val === 0) return null;
+                            <div className="text-center text-xs text-gray-500 uppercase tracking-widest mb-2">Stat Differences</div>
+                            {deltas.map((stat) => {
+                                const statDef = definitions[stat.statHash];
+                                if (!statDef || stat.delta === 0) return null;
                                 
-                                const isPositive = val > 0;
+                                const isPositive = stat.delta > 0;
                                 const color = isPositive ? "text-green-400" : "text-red-400";
                                 
                                 return (
-                                    <div key={hash} className="flex items-center justify-between text-sm bg-black/40 px-3 py-1 rounded">
+                                    <div key={stat.statHash} className="flex items-center justify-between text-sm bg-black/40 px-3 py-1 rounded">
                                         <span className="text-gray-400 truncate max-w-[100px]">{statDef.displayProperties.name}</span>
                                         <span className={`font-mono font-bold ${color}`}>
-                                            {isPositive ? '+' : ''}{val}
+                                            {isPositive ? '+' : ''}{stat.delta}
                                         </span>
                                     </div>
                                 );
                             })}
-                            {!deltas && <div className="text-center text-gray-600 italic">Calculating...</div>}
+                            {deltas.every(d => d.delta === 0) && <div className="text-center text-gray-600 italic">Identical Stats</div>}
                         </div>
 
-                        {/* Item B */}
+                        {/* Item B (Target) */}
                         <div className="flex flex-col items-center gap-2">
-                            <div className="text-lg font-bold text-gray-300">{defB?.displayProperties?.name}</div>
+                            <div className="text-lg font-bold text-gray-300 text-center">{defB?.displayProperties?.name}</div>
                             <img src={`https://www.bungie.net${defB?.displayProperties?.icon}`} className="w-16 h-16 rounded border border-white/20" />
-                            <div className="text-sm text-gray-500">Base Power: {itemB.instanceData?.primaryStat?.value}</div>
+                            <div className="text-sm text-gray-500">Power: {itemB.instanceData?.primaryStat?.value}</div>
                         </div>
                     </div>
                 </div>
