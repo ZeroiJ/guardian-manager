@@ -2,6 +2,32 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.19.0] - 2026-02-13
+
+### 🔍 Search & Discovery Overhaul
+
+A massive upgrade to how you find items in your inventory, moving from basic filtering to a power-user "Spotlight" experience.
+
+#### Advanced Search Syntax
+
+- **Duplicate Detection (`is:dupe`)**: Instantly find duplicate items. Implemented with an optimized O(1) lookup map calculated during hydration to ensure zero lag even with 600+ items.
+- **Perk Search (`perk:<name>`)**: Search for specific perks by name (e.g., `perk:firefly`, `perk:outlaw`). Matches against the full socket plug definition.
+- **Stat Filtering (`stat:<name>:<op><value>`)**: Filter items by specific stats.
+  - Supports standard stats (`mobility`, `resilience`, `recovery`, `discipline`, `intellect`, `strength`) and their abbreviations (`mob`, `res`, `rec`, `dis`, `int`, `str`).
+  - Supports comparison operators: `>`, `<`, `>=`, `<=`, `=`.
+  - Example: `stat:res:>=100` finds items with 100+ Resilience.
+
+#### Spotlight UI
+
+- **Dropdown Results**: Search results now appear in a floating "Spotlight" dropdown below the search bar instead of hiding your entire inventory.
+- **Top 10 Matches**: Shows the most relevant results instantly.
+- **Non-Destructive**: Your main inventory grid stays visible while you search, maintaining context.
+- **Quick Actions**: Clicking a result instantly opens the Item Detail Modal.
+
+### ✨ UI Polish
+
+- **Delayed Tooltips**: Added a "Long Hover" tooltip to inventory items. Hovering for 6 seconds reveals the Item Name and Type in a small popover, useful for identifying items without clicking.
+
 ## [0.18.0] - 2026-02-11
 
 ### 🖱️ Click-to-Move & API Hardening

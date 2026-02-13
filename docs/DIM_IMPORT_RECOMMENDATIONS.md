@@ -47,20 +47,20 @@ Side-by-side weapon/armor comparison with stat deltas. Core power-user feature.
 
 **Status:** Not implemented. No comparison view/modal found.
 
-### 3. Search Filter Language 🚧
+### 3. Search Filter Language ✅
 
 **Source:** `app/search/`
 
 `is:dupe`, `perk:outlaw`, `stat:recovery:>60` syntax. Makes the app 10x more useful.
 
-**Status:** PARTIAL — Basic `is:` filters implemented in `src/lib/search/itemFilter.ts`:
+**Status:** IMPLEMENTED — Advanced syntax engine operational in `src/lib/search/itemFilter.ts`.
 
 - ✅ `is:exotic`, `is:legendary`, `is:rare`, `is:common` (rarity)
 - ✅ `is:weapon`, `is:armor` (category)
 - ✅ `is:kinetic`, `is:arc`, `is:solar`, `is:void`, `is:stasis`, `is:strand` (element)
-- ❌ `is:dupe` (duplicate detection)
-- ❌ `perk:*` (perk filtering)
-- ❌ `stat:*:>N` (stat comparison)
+- ✅ `is:dupe` (duplicate detection via Set<InstanceId>)
+- ✅ `perk:*` (perk filtering via socket plugs)
+- ✅ `stat:*:>N` (stat comparison with aliases like `res`, `rec`)
 
 ---
 
