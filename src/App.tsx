@@ -60,6 +60,15 @@ export default function App() {
         }
     }, [definitions, setManifest]);
 
+    // Filter Items Logic
+    const allItems = profile?.items || [];
+    
+    // Dropdown (Live Search)
+    const dropdownItems = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        return filterItems(allItems, searchQuery, definitions, dupeInstanceIds).slice(0, 10);
+    }, [allItems, searchQuery, definitions, dupeInstanceIds]);
+
     const loading = profileLoading || (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading));
 
     const handleContextMenu = (e: React.MouseEvent, item: any, definition: any) => {
@@ -146,15 +155,6 @@ export default function App() {
             </div>
         );
     }
-
-    // Filter Items Logic
-    const allItems = profile?.items || [];
-    
-    // Dropdown (Live Search)
-    const dropdownItems = useMemo(() => {
-        if (!searchQuery.trim()) return [];
-        return filterItems(allItems, searchQuery, definitions, dupeInstanceIds).slice(0, 10);
-    }, [allItems, searchQuery, definitions, dupeInstanceIds]);
 
     // Main Grid (Always Show All)
     const filteredItems = allItems;
