@@ -17,6 +17,7 @@ import { calculateMaxPower } from '@/lib/destiny/powerUtils';
 
 export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: any, definition: any } | null>(null);
     const [selectedItem, setSelectedItem] = useState<{ item: any, definition: any, referenceElement: HTMLElement | null } | null>(null);
 
@@ -73,6 +74,7 @@ export default function App() {
 
     const handleItemClick = (item: any, definition: any, event: React.MouseEvent) => {
         setSelectedItem({ item, definition, referenceElement: event.currentTarget as HTMLElement });
+        setIsSearchFocused(false);
     };
 
     if (loading) {
@@ -147,7 +149,15 @@ export default function App() {
 
     // Filter Items Logic
     const allItems = profile?.items || [];
-    const filteredItems = filterItems(allItems, searchQuery, definitions, dupeInstanceIds);
+    
+    // Dropdown (Live Search)
+    const dropdownItems = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        return filterItems(allItems, searchQuery, definitions, dupeInstanceIds).slice(0, 10);
+    }, [allItems, searchQuery, definitions, dupeInstanceIds]);
+
+    // Main Grid (Always Show All)
+    const filteredItems = allItems;
 
     // Filter Items for Vault
     const vaultItems = filteredItems.filter(i => i.owner === 'vault');
@@ -210,7 +220,57 @@ export default function App() {
                             className="w-full bg-[#000]/30 border border-white/10 rounded-sm py-1.5 pl-9 pr-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#f5dc56]/50 transition-colors font-mono"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                         />
+
+                        {/* Spotlight Search Dropdown */}
+                        {isSearchFocused && dropdownItems.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-md shadow-2xl z-50 overflow-hidden max-h-[400px] overflow-y-auto">
+                                {dropdownItems.map(item => {
+                                    const def = definitions[item.itemHash];
+                                    const power = item.instanceData?.primaryStat?.value;
+                                    
+                                    return (
+                                        <button
+                                            key={item.itemInstanceId || item.itemHash}
+                                            className="w-full flex items-center gap-3 p-2 hover:bg-white/10 cursor-pointer transition-colors text-left group border-b border-white/5 last:border-0"
+                                            onClick={(e) => {
+                                                // Prevent blur from firing before click
+                                                e.preventDefault(); 
+                                                handleItemClick(item, def, e);
+                                            }}
+                                        >
+                                            {def?.displayProperties?.icon && (
+                                                <img 
+                                                    src={`https://www.bungie.net${def.displayProperties.icon}`} 
+                                                    className="w-10 h-10 rounded-sm bg-gray-800"
+                                                    alt=""
+                                                />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-bold text-gray-200 group-hover:text-white truncate">
+                                                    {def?.displayProperties?.name || 'Unknown Item'}
+                                                </div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-2">
+                                                    <span className="truncate">{def?.itemTypeDisplayName}</span>
+                                                    {power && (
+                                                        <>
+                                                            <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                            <span className="text-[#f5dc56]">{power}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {/* Tag/Owner indicator could go here */}
+                                            <div className="text-xs text-gray-600 font-mono uppercase">
+                                                {item.owner === 'vault' ? 'Vault' : 'Char'}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
