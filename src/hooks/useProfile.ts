@@ -4,6 +4,8 @@ import { useInventoryStore } from '../store/useInventoryStore';
 
 import { useShallow } from 'zustand/react/shallow';
 
+const EMPTY_CURRENCIES: any[] = [];
+
 export function useProfile() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
@@ -12,7 +14,7 @@ export function useProfile() {
     const profile = useInventoryStore(useShallow(state => ({
         characters: state.characters,
         items: state.items,
-        currencies: [], // TODO: Add to store if needed
+        currencies: EMPTY_CURRENCIES, // TODO: Add to store if needed
         artifactPower: state.profile?.profileProgression?.data?.seasonalArtifact?.powerBonus || 0
     })));
 
