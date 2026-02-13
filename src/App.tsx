@@ -14,6 +14,7 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { filterItems } from '@/lib/search/itemFilter';
 import { calculateMaxPower } from '@/lib/destiny/powerUtils';
+import { CompareModal } from '@/components/CompareModal';
 
 export default function App() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -54,11 +55,24 @@ export default function App() {
     // Sync Manifest to Store for Headless Engine
     const setManifest = useInventoryStore(state => state.setManifest);
     const dupeInstanceIds = useInventoryStore(state => state.dupeInstanceIds);
+    const compareIds = useInventoryStore(state => state.compareIds);
+    const clearCompare = useInventoryStore(state => state.clearCompare);
+
     useEffect(() => {
         if (Object.keys(definitions).length > 0) {
             setManifest(definitions);
         }
     }, [definitions, setManifest]);
+
+    // Comparison Logic
+    const comparisonData = useMemo(() => {
+        if (compareIds.length !== 2) return null;
+        const allItems = profile?.items || [];
+        const itemA = allItems.find(i => i.itemInstanceId === compareIds[0]);
+        const itemB = allItems.find(i => i.itemInstanceId === compareIds[1]);
+        if (!itemA || !itemB) return null;
+        return { itemA, itemB };
+    }, [compareIds, profile?.items]);
 
     // Filter Items Logic
     const allItems = profile?.items || [];
@@ -375,6 +389,16 @@ export default function App() {
                     referenceElement={selectedItem.referenceElement}
                     onClose={() => setSelectedItem(null)}
                     characters={characters}
+                />
+            )}
+
+            {/* Compare Modal */}
+            {comparisonData && (
+                <CompareModal
+                    itemA={comparisonData.itemA}
+                    itemB={comparisonData.itemB}
+                    definitions={definitions}
+                    onClose={clearCompare}
                 />
             )}
         </div>

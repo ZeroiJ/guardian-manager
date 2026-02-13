@@ -65,6 +65,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     });
 
     const moveItem = useInventoryStore(state => state.moveItem);
+    const toggleCompare = useInventoryStore(state => state.toggleCompare);
+    const compareIds = useInventoryStore(state => state.compareIds);
+    const isComparing = compareIds.includes(item.itemInstanceId || '');
 
     if (!item || !definition || !referenceElement) return null;
 
@@ -386,7 +389,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             </button>
 
                             {/* Compare */}
-                            <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded">
+                            <button
+                                onClick={() => toggleCompare(item.itemInstanceId)}
+                                className={clsx(
+                                    "w-10 h-10 flex items-center justify-center rounded transition-colors",
+                                    isComparing
+                                        ? "text-[#f5dc56] bg-white/10"
+                                        : "text-gray-400 hover:text-white hover:bg-white/10"
+                                )}
+                                title={isComparing ? "Stop Comparing" : "Compare"}
+                            >
                                 <Maximize2 size={20} />
                             </button>
 

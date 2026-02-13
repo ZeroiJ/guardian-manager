@@ -24,12 +24,15 @@ interface InventoryState {
     metadata: { tags: Record<string, string>, notes: Record<string, string> } | null;
     manifest: Record<number, ManifestDefinition>;
     dupeInstanceIds: Set<string>;
+    compareIds: string[];
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
     setManifest: (manifest: Record<number, ManifestDefinition>) => void;
     moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
+    toggleCompare: (itemInstanceId: string) => void;
+    clearCompare: () => void;
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
@@ -39,6 +42,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     metadata: null,
     manifest: {},
     dupeInstanceIds: new Set(),
+    compareIds: [],
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -215,5 +219,25 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             console.error('[InventoryStore] Metadata sync failed:', err);
             // Revert logic could go here, but metadata is lower risk
         }
+    },
+
+    toggleCompare: (itemInstanceId) => {
+        const current = get().compareIds;
+        if (current.includes(itemInstanceId)) {
+            // Remove
+            set({ compareIds: current.filter(id => id !== itemInstanceId) });
+        } else {
+            // Add (FIFO max 2)
+            if (current.length >= 2) {
+                // Remove first, add new to end
+                set({ compareIds: [current[1], itemInstanceId] });
+            } else {
+                set({ compareIds: [...current, itemInstanceId] });
+            }
+        }
+    },
+
+    clearCompare: () => {
+        set({ compareIds: [] });
     }
 }));
