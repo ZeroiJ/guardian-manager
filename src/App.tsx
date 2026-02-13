@@ -52,6 +52,7 @@ export default function App() {
 
     // Sync Manifest to Store for Headless Engine
     const setManifest = useInventoryStore(state => state.setManifest);
+    const dupeInstanceIds = useInventoryStore(state => state.dupeInstanceIds);
     useEffect(() => {
         if (Object.keys(definitions).length > 0) {
             setManifest(definitions);
@@ -146,7 +147,7 @@ export default function App() {
 
     // Filter Items Logic
     const allItems = profile?.items || [];
-    const filteredItems = filterItems(allItems, searchQuery, definitions);
+    const filteredItems = filterItems(allItems, searchQuery, definitions, dupeInstanceIds);
 
     // Filter Items for Vault
     const vaultItems = filteredItems.filter(i => i.owner === 'vault');

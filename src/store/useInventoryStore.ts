@@ -23,6 +23,7 @@ interface InventoryState {
     profile: any | null; // Raw Bungie Profile
     metadata: { tags: Record<string, string>, notes: Record<string, string> } | null;
     manifest: Record<number, ManifestDefinition>;
+    dupeInstanceIds: Set<string>;
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
@@ -37,6 +38,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     profile: null,
     metadata: null,
     manifest: {},
+    dupeInstanceIds: new Set(),
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -94,7 +96,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             };
         });
 
-        set({ characters, items, profile: bungieProfile, metadata });
+        // Calculate Duplicates (Optimized Set)
+        const dupeInstanceIds = new Set<string>();
+        const hashCounts: Record<number, string[]> = {};
+        
+        for (const item of items) {
+            if (!item.itemHash || !item.itemInstanceId) continue;
+            if (!hashCounts[item.itemHash]) hashCounts[item.itemHash] = [];
+            hashCounts[item.itemHash].push(item.itemInstanceId);
+        }
+
+        for (const ids of Object.values(hashCounts)) {
+            if (ids.length > 1) {
+                ids.forEach(id => dupeInstanceIds.add(id));
+            }
+        }
+
+        set({ characters, items, profile: bungieProfile, metadata, dupeInstanceIds });
         console.log(`[InventoryStore] Hydrated ${items.length} items`);
     },
 
