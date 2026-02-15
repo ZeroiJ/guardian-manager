@@ -1,12 +1,12 @@
 /**
- * CompareModal — DIM-style bottom sheet compare view.
+ * CompareModal — DIM-style compare view.
  * Ported from DIM: src/app/compare/Compare.tsx
  *
- * Shows ALL similar items (same bucket + name) as scrollable columns
- * with aligned stat rows. Single-click from item popup opens this.
+ * Shows similar items as scrollable columns with stat rows
+ * (numbers-only, no bars), archetype, perks, and mods.
  */
 import React, { useMemo, useState } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { X } from 'lucide-react';
 import { categorizeSockets } from '@/lib/destiny/socket-helper';
 import { ItemSocket } from '@/components/item/ItemSocket';
 import { BungieImage } from '@/components/ui/BungieImage';
@@ -29,19 +29,30 @@ interface CompareModalProps {
     onClose: () => void;
 }
 
-const RARITY_COLORS: Record<number, string> = {
-    6: 'border-rarity-exotic',
-    5: 'border-rarity-legendary',
-    4: 'border-rarity-rare',
-    3: 'border-rarity-uncommon',
-    2: 'border-rarity-common',
-};
+/** Internal stat shape used during calculation. */
+interface CompareStat {
+    statHash: number;
+    label: string;
+    value: number;
+    order: number;
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Column width for each item — kept narrow like DIM */
+const COL_W = 'min-w-[140px] max-w-[160px]';
+const LABEL_W = 'w-20 shrink-0';
 
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
 
-/** Single item column header — icon + name + power + remove button. */
+/**
+ * Item column header — icon + name + power + close button.
+ * Matches DIM's compact header style.
+ */
 function CompareItemHeader({
     item,
     def,
@@ -53,85 +64,124 @@ function CompareItemHeader({
     isInitial: boolean;
     onRemove: () => void;
 }) {
-    const tierType = def?.inventory?.tierType || 0;
-    const borderClass = isInitial ? 'border-[#f5dc56]' : (RARITY_COLORS[tierType] || 'border-white/20');
     const power = item.instanceData?.primaryStat?.value;
 
     return (
-        <div className="flex flex-col items-center gap-1.5 min-w-[120px] max-w-[120px] px-2 relative group">
-            {/* Remove button */}
+        <div className={`${COL_W} px-2 py-2 relative group`}>
+            {/* Close button — always top right */}
             <button
                 onClick={onRemove}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center
+                           text-gray-500 hover:text-white transition-colors z-10"
                 title="Remove from comparison"
             >
-                <X className="w-3 h-3 text-white" />
+                <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className={`w-14 h-14 rounded border-2 ${borderClass} overflow-hidden bg-void-surface shrink-0`}>
-                {def?.displayProperties?.icon && (
-                    <BungieImage
-                        src={def.displayProperties.icon}
-                        className="w-full h-full object-cover"
-                    />
-                )}
+            {/* Name (DIM blue link style) */}
+            <div className={`text-xs font-semibold truncate pr-5 mb-1.5 ${isInitial ? 'text-[#80b3ff]' : 'text-[#7da5d6]'
+                }`}>
+                {def?.displayProperties?.name || 'Unknown'}
             </div>
-            <div className="text-center min-w-0 w-full">
-                <div className="text-[11px] font-bold text-white truncate">
-                    {def?.displayProperties?.name || 'Unknown'}
+
+            {/* Icon + Power */}
+            <div className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded border border-white/20 overflow-hidden bg-[#1a1a2e] shrink-0">
+                    {def?.displayProperties?.icon && (
+                        <BungieImage
+                            src={def.displayProperties.icon}
+                            className="w-full h-full object-cover"
+                        />
+                    )}
+                    {power && (
+                        <div className="absolute bottom-[2px] right-[6px] text-[9px] font-bold text-[#f5dc56] bg-black/70 px-1 rounded">
+                            {power}
+                        </div>
+                    )}
                 </div>
-                {power && (
-                    <div className="text-[10px] font-mono text-[#f5dc56]">
-                        ✦ {power}
-                    </div>
-                )}
             </div>
         </div>
     );
 }
 
-/** A single stat row spanning all columns. */
+/**
+ * A single stat row — numbers only, no bars.
+ * Green = best, Red = worst, White = default. Matches DIM exactly.
+ */
 function StatRow({
     label,
     values,
-    maxValue,
 }: {
     label: string;
     values: number[];
-    maxValue: number;
 }) {
-    const best = Math.max(...values);
-    const worst = Math.min(...values.filter(v => v > 0));
+    const nonZero = values.filter(v => v > 0);
+    const best = nonZero.length > 0 ? Math.max(...nonZero) : 0;
+    const worst = nonZero.length > 0 ? Math.min(...nonZero) : 0;
     const allSame = values.every(v => v === values[0]);
 
     return (
-        <div className="flex items-center border-b border-white/5 last:border-0">
+        <div className="flex items-center">
             {/* Stat label */}
-            <div className="w-24 shrink-0 text-right pr-3 py-1.5 text-xs text-void-text-secondary truncate">
+            <div className={`${LABEL_W} text-right pr-3 py-[3px] text-[11px] text-gray-400`}>
                 {label}
             </div>
 
-            {/* Value cells */}
+            {/* Value cells — just numbers */}
             {values.map((value, i) => {
                 const isBest = !allSame && value === best && value > 0;
-                const isWorst = !allSame && value === worst && values.length > 1;
-                const pct = maxValue > 0 ? Math.min(100, (value / maxValue) * 100) : 0;
-                const colorClass = isBest ? 'text-green-400' : isWorst ? 'text-red-400' : 'text-white';
-                const barColor = isBest ? 'bg-green-400/60' : isWorst ? 'bg-red-400/40' : 'bg-white/30';
+                const isWorst = !allSame && value === worst && nonZero.length > 1;
+                const colorClass = isBest
+                    ? 'text-[#51b853]'   // DIM green
+                    : isWorst
+                        ? 'text-[#d14334]'   // DIM red
+                        : 'text-white';
 
                 return (
                     <div
                         key={i}
-                        className="min-w-[120px] max-w-[120px] px-2 py-1.5 flex items-center gap-2"
+                        className={`${COL_W} px-2 py-[3px] text-[13px] font-mono tabular-nums ${colorClass}`}
                     >
-                        <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all ${barColor}`}
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-                        <span className={`text-xs font-mono tabular-nums w-7 text-right ${colorClass}`}>
-                            {value || '—'}
+                        {value || '—'}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+/**
+ * Archetype row showing the intrinsic frame icon + name for each item.
+ * Matches DIM's "Archetype" row.
+ */
+function ArchetypeRow({
+    itemSockets,
+}: {
+    itemSockets: ReturnType<typeof categorizeSockets>[];
+}) {
+    const hasAny = itemSockets.some(s => s.intrinsic !== null);
+    if (!hasAny) return null;
+
+    return (
+        <div className="flex items-center border-t border-white/10">
+            <div className={`${LABEL_W} text-right pr-3 py-2 text-[11px] text-gray-400`}>
+                Archetype
+            </div>
+            {itemSockets.map((sockets, i) => {
+                const intrinsic = sockets.intrinsic;
+                if (!intrinsic?.plugDef) {
+                    return <div key={i} className={`${COL_W} px-2 py-2`} />;
+                }
+                const dp = (intrinsic.plugDef as Record<string, any>).displayProperties;
+                return (
+                    <div key={i} className={`${COL_W} px-2 py-2 flex items-center gap-1.5`}>
+                        {dp?.icon && (
+                            <div className="w-8 h-8 rounded-sm border border-[#e2bf36] overflow-hidden bg-[#222] shrink-0">
+                                <BungieImage src={dp.icon} className="w-full h-full" />
+                            </div>
+                        )}
+                        <span className="text-[11px] text-gray-300 leading-tight">
+                            {dp?.name || ''}
                         </span>
                     </div>
                 );
@@ -140,7 +190,10 @@ function StatRow({
     );
 }
 
-/** Perk row showing sockets across all item columns. */
+/**
+ * Perk/Mod row showing socket icons across all item columns.
+ * Perks = circular, Mods = rounded-square, matching DIM.
+ */
 function PerkRow({
     label,
     itemPerks,
@@ -151,14 +204,14 @@ function PerkRow({
     if (itemPerks.every(p => p.length === 0)) return null;
 
     return (
-        <div className="flex items-start border-b border-white/5 last:border-0">
-            <div className="w-24 shrink-0 text-right pr-3 py-2 text-xs text-void-text-secondary">
+        <div className="flex items-start">
+            <div className={`${LABEL_W} text-right pr-3 py-2 text-[11px] text-gray-400`}>
                 {label}
             </div>
             {itemPerks.map((perks, i) => (
                 <div
                     key={i}
-                    className="min-w-[120px] max-w-[120px] px-2 py-1.5 flex flex-wrap gap-1 justify-center"
+                    className={`${COL_W} px-1 py-1.5 flex flex-wrap gap-1`}
                 >
                     {perks.map((s, j) => (
                         <ItemSocket
@@ -189,7 +242,6 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     definitions,
     onClose,
 }) => {
-    // Track which items are hidden (removed from view, not from inventory)
     const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
     const [showPerks, setShowPerks] = useState(true);
 
@@ -209,19 +261,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         });
     }, [visibleItems, session.initialItemId]);
 
-    // Read per-instance live stats directly from the Bungie API data.
-    // This mirrors useHydratedItem's approach — item.stats comes from
-    // itemComponents.stats.data[instanceId].stats and contains unique
-    // per-roll values including perk/mod contributions.
-    // Ported from DIM: uses live instance stats, not definition base stats
-    interface CompareStat {
-        statHash: number;
-        label: string;
-        value: number;
-        maxValue: number;
-        order: number;
-    }
-
+    // ── STATS (per-instance live values from Bungie API) ──
     const allItemStats = useMemo(() => {
         return sortedItems.map(item => {
             const def = definitions[item.itemHash];
@@ -235,52 +275,34 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                     const info = STAT_WHITELIST[hash];
                     if (!info) return null;
 
-                    // Priority: live per-instance stat > definition investment stat
                     const liveEntry = liveStats[hashStr] || liveStats[hash];
                     let value = (liveEntry as Record<string, unknown>)?.value as number | undefined;
-
                     if (value === undefined) {
                         value = (defStat as Record<string, unknown>).value as number || 0;
                     }
-
                     if (typeof value !== 'number') return null;
 
-                    return {
-                        statHash: hash,
-                        label: info.label,
-                        value,
-                        maxValue: 100,
-                        order: info.sort,
-                    } as CompareStat;
+                    return { statHash: hash, label: info.label, value, order: info.sort } as CompareStat;
                 })
                 .filter((s): s is CompareStat => s !== null)
                 .sort((a, b) => a.order - b.order);
         });
     }, [sortedItems, definitions]);
 
-    // Build unified stat list (union of all stat hashes across items)
+    // Unified stat list (union of all stats)
     const statInfo = useMemo(() => {
-        const statMap = new Map<number, { label: string; maxValue: number; order: number }>();
+        const statMap = new Map<number, { label: string; order: number }>();
         for (const itemStats of allItemStats) {
             for (const s of itemStats) {
-                const existing = statMap.get(s.statHash);
-                if (!existing) {
-                    statMap.set(s.statHash, {
-                        label: s.label,
-                        maxValue: Math.max(s.maxValue, s.value),
-                        order: s.order,
-                    });
-                } else {
-                    existing.maxValue = Math.max(existing.maxValue, s.value);
-                    if (s.order < existing.order) existing.order = s.order;
+                if (!statMap.has(s.statHash)) {
+                    statMap.set(s.statHash, { label: s.label, order: s.order });
                 }
             }
         }
-        return Array.from(statMap.entries())
-            .sort(([, a], [, b]) => a.order - b.order);
+        return Array.from(statMap.entries()).sort(([, a], [, b]) => a.order - b.order);
     }, [allItemStats]);
 
-    // Build per-item stat value arrays aligned to statInfo order
+    // Per-item stat arrays aligned to statInfo
     const statValues = useMemo(() => {
         return statInfo.map(([statHash]) => {
             return allItemStats.map(itemStats => {
@@ -290,7 +312,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         });
     }, [statInfo, allItemStats]);
 
-    // Categorize sockets per item for perk rows
+    // ── SOCKETS ──
     const allItemSockets = useMemo(() => {
         return sortedItems.map(item => {
             const def = definitions[item.itemHash];
@@ -301,7 +323,6 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     const removeItem = (id: string) => {
         const newHidden = new Set(hiddenIds);
         newHidden.add(id);
-        // If all items would be hidden, close instead
         if (newHidden.size >= items.length) {
             onClose();
             return;
@@ -310,7 +331,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     };
 
     const firstDef = sortedItems[0] ? definitions[sortedItems[0].itemHash] : undefined;
-    const typeName = firstDef?.itemTypeDisplayName || 'Items';
+    const typeName = firstDef?.itemTypeDisplayName || firstDef?.displayProperties?.name || 'Items';
 
     if (sortedItems.length === 0) {
         onClose();
@@ -323,44 +344,42 @@ export const CompareModal: React.FC<CompareModalProps> = ({
             <div className="fixed inset-0 bg-black/60 -z-10" onClick={onClose} />
 
             {/* Sheet */}
-            <div className="bg-void-elevated border-t border-void-border rounded-t-xl shadow-2xl max-h-[70vh] flex flex-col">
+            <div className="bg-[#1a1a2e] border-t border-white/10 rounded-t-xl shadow-2xl max-h-[75vh] flex flex-col">
 
-                {/* ── HEADER ── */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-void-border bg-black/40 rounded-t-xl shrink-0">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-sm font-bold text-white tracking-tight">
-                            Compare {typeName}
+                {/* ── HEADER BAR ── */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-[#111122] rounded-t-xl shrink-0">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-[13px] font-bold text-white">
+                            {typeName}
                         </h2>
-                        <span className="text-xs text-void-text-muted bg-white/5 px-2 py-0.5 rounded">
-                            {sortedItems.length} items
+                        <span className="text-[11px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">
+                            {sortedItems.length}
                         </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={() => setShowPerks(!showPerks)}
-                            className={`text-xs px-2 py-1 rounded transition-colors ${showPerks
-                                ? 'bg-white/10 text-white'
-                                : 'text-void-text-muted hover:text-white'
+                            className={`text-[11px] px-2 py-0.5 rounded transition-colors ${showPerks ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'
                                 }`}
                         >
                             Perks
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                            className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-colors"
                         >
-                            <ChevronDown className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
-                {/* ── CONTENT (scrollable both ways) ── */}
+                {/* ── SCROLLABLE TABLE ── */}
                 <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                     <div className="min-w-max">
 
-                        {/* Item Headers Row */}
-                        <div className="flex items-end sticky top-0 bg-void-elevated z-10 border-b border-void-border pb-2 pt-3">
-                            <div className="w-24 shrink-0" /> {/* Spacer for label column */}
+                        {/* ── ITEM HEADERS ── */}
+                        <div className="flex items-start sticky top-0 bg-[#1a1a2e] z-10 border-b border-white/10">
+                            <div className={LABEL_W} /> {/* label spacer */}
                             {sortedItems.map(item => (
                                 <CompareItemHeader
                                     key={item.itemInstanceId}
@@ -372,49 +391,37 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                             ))}
                         </div>
 
-                        {/* Stat Rows */}
-                        <div className="py-1">
+                        {/* ── STAT ROWS (numbers only, no bars) ── */}
+                        <div className="py-0.5">
                             {statInfo.map(([statHash, info], rowIdx) => (
                                 <StatRow
                                     key={statHash}
                                     label={info.label}
                                     values={statValues[rowIdx]}
-                                    maxValue={info.maxValue}
                                 />
                             ))}
                         </div>
 
-                        {/* Perk Rows (toggleable) */}
+                        {/* ── ARCHETYPE + PERKS + MODS ── */}
                         {showPerks && allItemSockets.length > 0 && (
-                            <>
-                                <div className="flex items-center gap-2 px-4 py-1.5">
-                                    <div className="h-px flex-1 bg-white/10" />
-                                    <span className="text-[10px] uppercase tracking-widest text-void-text-muted font-bold">
-                                        Perks & Mods
-                                    </span>
-                                    <div className="h-px flex-1 bg-white/10" />
-                                </div>
+                            <div className="border-t border-white/10">
+                                {/* Archetype (Frame) */}
+                                <ArchetypeRow itemSockets={allItemSockets} />
 
-                                {/* Intrinsic */}
-                                <PerkRow
-                                    label="Frame"
-                                    itemPerks={allItemSockets.map(s =>
-                                        s.intrinsic ? [s.intrinsic] : [],
-                                    )}
-                                />
                                 {/* Perks */}
                                 <PerkRow
                                     label="Perks"
                                     itemPerks={allItemSockets.map(s => s.perks)}
                                 />
-                                {/* Weapon Mods */}
+
+                                {/* Mods */}
                                 <PerkRow
                                     label="Mods"
                                     itemPerks={allItemSockets.map(s =>
                                         s.weaponMods.length > 0 ? s.weaponMods : s.mods,
                                     )}
                                 />
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
