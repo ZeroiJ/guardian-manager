@@ -1,5 +1,5 @@
 import { cn } from '../../lib/utils';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 
 
@@ -17,6 +17,8 @@ interface BungieImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     src?: string;
     alt?: string;
     fallback?: React.ReactNode;
+    className?: string;
+    title?: string;
 }
 
 export const BungieImage = ({ src, className, alt = 'Destiny Item', fallback, ...props }: BungieImageProps) => {

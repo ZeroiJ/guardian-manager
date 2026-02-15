@@ -7,12 +7,12 @@
  */
 import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { categorizeSockets } from '@/lib/destiny/socket-helper';
-import { ItemSocket } from '@/components/item/ItemSocket';
-import { BungieImage } from '@/components/ui/BungieImage';
-import { CompareSession, ManifestDefinition } from '@/store/useInventoryStore';
-import { GuardianItem } from '@/services/profile/types';
-import { STAT_WHITELIST } from '@/utils/manifest-helper';
+import { categorizeSockets } from '../lib/destiny/socket-helper';
+import { ItemSocket } from './item/ItemSocket';
+import { BungieImage } from './ui/BungieImage';
+import { CompareSession, ManifestDefinition } from '../store/useInventoryStore';
+import { GuardianItem } from '../services/profile/types';
+import { STAT_WHITELIST } from '../utils/manifest-helper';
 
 // ============================================================================
 // TYPES
@@ -53,17 +53,16 @@ const LABEL_W = 'w-20 shrink-0';
  * Item column header — icon + name + power + close button.
  * Matches DIM's compact header style.
  */
-function CompareItemHeader({
-    item,
-    def,
-    isInitial,
-    onRemove,
-}: {
+/**
+ * Item column header — icon + name + power + close button.
+ * Matches DIM's compact header style.
+ */
+const CompareItemHeader: React.FC<{
     item: GuardianItem;
     def: ManifestDefinition | undefined;
     isInitial: boolean;
     onRemove: () => void;
-}) {
+}> = ({ item, def, isInitial, onRemove }) => {
     const power = item.instanceData?.primaryStat?.value;
 
     return (
@@ -102,19 +101,20 @@ function CompareItemHeader({
             </div>
         </div>
     );
-}
+};
 
 /**
  * A single stat row — numbers only, no bars.
  * Green = best, Red = worst, White = default. Matches DIM exactly.
  */
-function StatRow({
-    label,
-    values,
-}: {
+/**
+ * A single stat row — numbers only, no bars.
+ * Green = best, Red = worst, White = default. Matches DIM exactly.
+ */
+const StatRow: React.FC<{
     label: string;
     values: number[];
-}) {
+}> = ({ label, values }) => {
     const nonZero = values.filter(v => v > 0);
     const best = nonZero.length > 0 ? Math.max(...nonZero) : 0;
     const worst = nonZero.length > 0 ? Math.min(...nonZero) : 0;
@@ -148,17 +148,19 @@ function StatRow({
             })}
         </div>
     );
-}
+};
 
 /**
  * Archetype row showing the intrinsic frame icon + name for each item.
  * Matches DIM's "Archetype" row.
  */
-function ArchetypeRow({
-    itemSockets,
-}: {
+/**
+ * Archetype row showing the intrinsic frame icon + name for each item.
+ * Matches DIM's "Archetype" row.
+ */
+const ArchetypeRow: React.FC<{
     itemSockets: ReturnType<typeof categorizeSockets>[];
-}) {
+}> = ({ itemSockets }) => {
     const hasAny = itemSockets.some(s => s.intrinsic !== null);
     if (!hasAny) return null;
 
@@ -188,19 +190,20 @@ function ArchetypeRow({
             })}
         </div>
     );
-}
+};
 
 /**
  * Perk/Mod row showing socket icons across all item columns.
  * Perks = circular, Mods = rounded-square, matching DIM.
  */
-function PerkRow({
-    label,
-    itemPerks,
-}: {
+/**
+ * Perk/Mod row showing socket icons across all item columns.
+ * Perks = circular, Mods = rounded-square, matching DIM.
+ */
+const PerkRow: React.FC<{
     label: string;
     itemPerks: { plugDef: Record<string, unknown>; categoryHash: number; isEnabled: boolean }[][];
-}) {
+}> = ({ label, itemPerks }) => {
     if (itemPerks.every(p => p.length === 0)) return null;
 
     return (
@@ -226,7 +229,7 @@ function PerkRow({
             ))}
         </div>
     );
-}
+};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -344,10 +347,10 @@ export const CompareModal: React.FC<CompareModalProps> = ({
             <div className="fixed inset-0 bg-black/60 -z-10" onClick={onClose} />
 
             {/* Sheet */}
-            <div className="bg-[#1a1a2e] border-t border-white/10 rounded-t-xl shadow-2xl max-h-[75vh] flex flex-col">
+            <div className="bg-black/80 backdrop-blur-md border-t border-white/10 rounded-t-xl shadow-2xl max-h-[75vh] flex flex-col">
 
                 {/* ── HEADER BAR ── */}
-                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-[#111122] rounded-t-xl shrink-0">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5 rounded-t-xl shrink-0">
                     <div className="flex items-center gap-2">
                         <h2 className="text-[13px] font-bold text-white">
                             {typeName}

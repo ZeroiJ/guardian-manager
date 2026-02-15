@@ -10,7 +10,7 @@ interface InventoryItemProps {
 
 export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
     const [showTooltip, setShowTooltip] = useState(false);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Get icon from item or definition
     const icon = item?.icon || definition?.displayProperties?.icon;
@@ -38,7 +38,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
     return (
         <div
-            className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 active:scale-95 transition-all duration-150`}
+            className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200`}
             style={{ borderColor }}
             onClick={onClick}
             onMouseEnter={handleMouseEnter}

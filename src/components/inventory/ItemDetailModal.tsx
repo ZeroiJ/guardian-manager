@@ -139,7 +139,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <div className={styles.desktopPopup}>
 
                     {/* BODY */}
-                    <div className={clsx(styles.desktopPopupBody, styles.popupBackground)}>
+                    <div className={clsx(styles.desktopPopupBody, styles.popupBackground, "!bg-black/80 !backdrop-blur-md border border-white/10")}>
 
                         {/* HEADER using ItemPopupHeader styles */}
                         <div className={clsx(headerStyles.header, headerStyles[rarity])}>
@@ -153,13 +153,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 </div>
                                 <div className={headerStyles.details}>
                                     <ElementIcon damageTypeHash={damageTypeHash} size={16} className={headerStyles.elementIcon} />
-                                    <div className={headerStyles.power}>{power}</div>
+                                    <div className={`${headerStyles.power} font-mono`}>{power}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* CONTENT (Custom Tailwind for internal layout to fit DIM shell) */}
-                        <div className="p-2 space-y-4 overflow-y-auto max-h-[60vh] bg-[#111] text-[#eee]">
+                        <div className="p-2 space-y-4 overflow-y-auto max-h-[60vh] bg-transparent text-[#eee]">
 
                             {/* MOVE LOCATIONS (Top Priority for "Click-to-Move") */}
                             <div className="flex flex-wrap gap-2 pb-2 border-b border-white/10">
@@ -219,7 +219,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {calculatedStats.filter(stat => stat.displayValue > 0).length > 0 ? calculatedStats.filter(stat => stat.displayValue > 0).map(stat => (
                                     <div key={stat.statHash} className="flex items-center gap-2 mb-1 last:mb-0">
                                         <div className="w-24 text-right text-xs text-gray-400 truncate">{stat.label}</div>
-                                        <div className="w-6 text-right text-xs font-bold text-white tabular-nums">
+                                        <div className="w-6 text-right text-xs font-bold text-white tabular-nums font-mono">
                                             {stat.displayValue}
                                         </div>
                                         <div className="flex-1 h-3 bg-gray-700/30 rounded-full overflow-hidden flex items-center">
