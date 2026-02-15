@@ -63,11 +63,11 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
                 <div className="absolute inset-0 border-2 border-[#50c8ce] shadow-[0_0_8px_#50c8ce] opacity-80 animate-pulse z-20 pointer-events-none" />
             )}
 
-            {/* Top Right: Season / Watermark */}
-            {definition.iconWatermark && (
-                <div
-                    className="absolute top-[1px] right-[1px] w-[12px] h-[12px] z-20 pointer-events-none bg-contain bg-no-repeat opacity-90 drop-shadow-md"
-                    style={{ backgroundImage: `url(https://www.bungie.net${definition.iconWatermark})` }}
+            {/* Season / Expansion Watermark — Full overlay like DIM */}
+            {(definition.iconWatermark || definition.iconWatermarkShelved) && (
+                <BungieImage
+                    src={definition.iconWatermark || definition.iconWatermarkShelved}
+                    className="absolute inset-0 w-full h-full z-10 pointer-events-none object-cover opacity-80"
                 />
             )}
 
