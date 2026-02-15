@@ -62,6 +62,15 @@ export default {
                 'item': '64px',
                 'item-gap': '8px',
             },
+            keyframes: {
+                slideUp: {
+                    '0%': { transform: 'translateY(100%)' },
+                    '100%': { transform: 'translateY(0)' },
+                },
+            },
+            animation: {
+                slideUp: 'slideUp 0.25s ease-out',
+            },
         },
     },
     plugins: [],

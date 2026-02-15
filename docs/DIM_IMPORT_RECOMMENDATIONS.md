@@ -39,13 +39,23 @@ Tag rolls as "god roll" / "trash" based on community data. Instant engagement fe
 - ✅ Green border + badge on matching perks in popup
 - ✅ Settings UI for managing sources (`src/components/settings/WishlistSettings.tsx`)
 
-### 2. Item Comparisons ❌
+### 2. Item Comparisons ✅
 
 **Source:** `app/compare/`
 
 Side-by-side weapon/armor comparison with stat deltas. Core power-user feature.
 
-**Status:** Not implemented. No comparison view/modal found.
+**Status:** IMPLEMENTED — Full comparison modal with DIM-style layout:
+
+- ✅ **Stat Engine**: DIM-ported `calculateStats` with base stats, socket bonuses, interpolation (`src/lib/destiny/stat-manager.ts`)
+- ✅ **Delta Calculator**: `compareStats` with stat-by-stat difference (`src/lib/inventory/statMath.ts`)
+- ✅ **Stat Categorization**: `categorizeStatDeltas` groups stats into Weapon / Armor / Hidden
+- ✅ **Tier Break Info**: `getTierBreakInfo` shows T1–T10 breakpoints for armor stats
+- ✅ **Side-by-Side Item Cards**: Icon, name, power, rarity border with "VS" divider
+- ✅ **Socket Comparison Grid**: Intrinsic / Perks / Mods aligned horizontally using `ItemSocket`
+- ✅ **Dual-Layer Stat Bars**: Ghost bar (Item A) + solid bar (Item B) with green/red delta badges
+- ✅ **Recoil Direction**: Two SVG arcs rendered side-by-side via `RecoilStat`
+- ✅ **Zustand Integration**: `toggleCompare` / `clearCompare` actions in `useInventoryStore`
 
 ### 3. Search Filter Language ✅
 
@@ -115,8 +125,8 @@ Shows what items can infuse into what.
 | Feature | Status | Priority |
 |---------|--------|----------|
 | Wishlist System | ✅ | High |
-| Item Comparisons | ❌ | High |
-| Search Filters | 🚧 (basic `is:`) | High |
+| Item Comparisons | ✅ | High |
+| Search Filters | ✅ | High |
 | Loadout System | ❌ | Medium |
 | Organizer View | ❌ | Medium |
 | Infusion Finder | ❌ | Medium |
@@ -127,6 +137,6 @@ Shows what items can infuse into what.
 
 ## Recommended Next Steps
 
-1. **Complete Search Filters** — Add `is:dupe`, `perk:*`, `stat:*` syntax
-2. **Comparison Sheet** — Side-by-side weapon stats
-3. **Loadout System** — Save/restore equipment sets
+1. **Loadout System** — Save/restore full equipment sets with one click
+2. **Organizer View** — Sortable table for bulk vault management
+3. **Infusion Finder** — Show infusion paths between items

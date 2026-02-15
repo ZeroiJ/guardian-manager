@@ -55,8 +55,8 @@ export default function App() {
     // Sync Manifest to Store for Headless Engine
     const setManifest = useInventoryStore(state => state.setManifest);
     const dupeInstanceIds = useInventoryStore(state => state.dupeInstanceIds);
-    const compareIds = useInventoryStore(state => state.compareIds);
-    const clearCompare = useInventoryStore(state => state.clearCompare);
+    const compareSession = useInventoryStore(state => state.compareSession);
+    const endCompare = useInventoryStore(state => state.endCompare);
 
     useEffect(() => {
         if (Object.keys(definitions).length > 0) {
@@ -64,19 +64,29 @@ export default function App() {
         }
     }, [definitions, setManifest]);
 
-    // Comparison Logic
-    const comparisonData = useMemo(() => {
-        if (compareIds.length !== 2) return null;
+    // Compare: find all items matching the session filter
+    const compareItems = useMemo(() => {
+        if (!compareSession) return [];
         const allItems = profile?.items || [];
-        const itemA = allItems.find(i => i.itemInstanceId === compareIds[0]);
-        const itemB = allItems.find(i => i.itemInstanceId === compareIds[1]);
-        if (!itemA || !itemB) return null;
-        return { itemA, itemB };
-    }, [compareIds, profile?.items]);
+        return allItems.filter(item => {
+            if (!item.itemInstanceId) return false;
+            const def = definitions[item.itemHash];
+            if (!def) return false;
+            // Must be same bucket (e.g. Kinetic Weapons)
+            const itemBucket = item.bucketHash || def?.inventory?.bucketTypeHash || 0;
+            if (itemBucket !== compareSession.bucketHash) return false;
+            // Name match (stripped of Adept/Timelost)
+            const name = (def?.displayProperties?.name || '')
+                .replace(/\s*\((Adept|Timelost|Harrowed)\)/gi, '')
+                .trim()
+                .toLowerCase();
+            return name === compareSession.nameFilter;
+        });
+    }, [compareSession, profile?.items, definitions]);
 
     // Filter Items Logic
     const allItems = profile?.items || [];
-    
+
     // Dropdown (Live Search)
     const dropdownItems = useMemo(() => {
         if (!searchQuery.trim()) return [];
@@ -244,20 +254,20 @@ export default function App() {
                                 {dropdownItems.map(item => {
                                     const def = definitions[item.itemHash];
                                     const power = item.instanceData?.primaryStat?.value;
-                                    
+
                                     return (
                                         <button
                                             key={item.itemInstanceId || item.itemHash}
                                             className="w-full flex items-center gap-3 p-2 hover:bg-white/10 cursor-pointer transition-colors text-left group border-b border-white/5 last:border-0"
                                             onClick={(e) => {
                                                 // Prevent blur from firing before click
-                                                e.preventDefault(); 
+                                                e.preventDefault();
                                                 handleItemClick(item, def, e);
                                             }}
                                         >
                                             {def?.displayProperties?.icon && (
-                                                <img 
-                                                    src={`https://www.bungie.net${def.displayProperties.icon}`} 
+                                                <img
+                                                    src={`https://www.bungie.net${def.displayProperties.icon}`}
                                                     className="w-10 h-10 rounded-sm bg-gray-800"
                                                     alt=""
                                                 />
@@ -392,13 +402,13 @@ export default function App() {
                 />
             )}
 
-            {/* Compare Modal */}
-            {comparisonData && (
+            {/* Compare Sheet (DIM-style bottom drawer) */}
+            {compareSession && compareItems.length > 0 && (
                 <CompareModal
-                    itemA={comparisonData.itemA}
-                    itemB={comparisonData.itemB}
+                    session={compareSession}
+                    items={compareItems}
                     definitions={definitions}
-                    onClose={clearCompare}
+                    onClose={endCompare}
                 />
             )}
         </div>

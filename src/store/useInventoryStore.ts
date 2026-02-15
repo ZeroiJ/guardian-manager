@@ -17,6 +17,16 @@ export interface ManifestDefinition {
     [key: string]: any;
 }
 
+/** Compare session state — mirrors DIM's session-based model. */
+export interface CompareSession {
+    /** Instance ID of the item user clicked "Compare" on. */
+    initialItemId: string;
+    /** Bucket hash — only items in the same bucket are shown. */
+    bucketHash: number;
+    /** Lowercase name filter (Adept/Timelost stripped). */
+    nameFilter: string;
+}
+
 interface InventoryState {
     characters: Record<string, any>;
     items: GuardianItem[];
@@ -24,15 +34,15 @@ interface InventoryState {
     metadata: { tags: Record<string, string>, notes: Record<string, string> } | null;
     manifest: Record<number, ManifestDefinition>;
     dupeInstanceIds: Set<string>;
-    compareIds: string[];
+    compareSession: CompareSession | null;
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
     setManifest: (manifest: Record<number, ManifestDefinition>) => void;
     moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
-    toggleCompare: (itemInstanceId: string) => void;
-    clearCompare: () => void;
+    startCompare: (item: GuardianItem) => void;
+    endCompare: () => void;
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
@@ -42,7 +52,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     metadata: null,
     manifest: {},
     dupeInstanceIds: new Set(),
-    compareIds: [],
+    compareSession: null,
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -103,7 +113,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         // Calculate Duplicates (Optimized Set)
         const dupeInstanceIds = new Set<string>();
         const hashCounts: Record<number, string[]> = {};
-        
+
         for (const item of items) {
             if (!item.itemHash || !item.itemInstanceId) continue;
             if (!hashCounts[item.itemHash]) hashCounts[item.itemHash] = [];
@@ -221,23 +231,33 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         }
     },
 
-    toggleCompare: (itemInstanceId) => {
-        const current = get().compareIds;
-        if (current.includes(itemInstanceId)) {
-            // Remove
-            set({ compareIds: current.filter(id => id !== itemInstanceId) });
-        } else {
-            // Add (FIFO max 2)
-            if (current.length >= 2) {
-                // Remove first, add new to end
-                set({ compareIds: [current[1], itemInstanceId] });
-            } else {
-                set({ compareIds: [...current, itemInstanceId] });
-            }
-        }
+    /**
+     * Start a compare session. Auto-derives bucket + name filter from the item.
+     * Ported from DIM: src/app/compare/reducer.ts (addCompareItem)
+     */
+    startCompare: (item) => {
+        if (!item.itemInstanceId) return;
+        const manifest = get().manifest;
+        const def = manifest[item.itemHash];
+        const name = def?.displayProperties?.name || '';
+        // Strip (Adept) / (Timelost) / (Harrowed) suffixes for broader matching
+        const nameFilter = name
+            .replace(/\s*\((Adept|Timelost|Harrowed)\)/gi, '')
+            .trim()
+            .toLowerCase();
+        const bucketHash = item.bucketHash || def?.inventory?.bucketTypeHash || 0;
+
+        set({
+            compareSession: {
+                initialItemId: item.itemInstanceId,
+                bucketHash,
+                nameFilter,
+            },
+        });
     },
 
-    clearCompare: () => {
-        set({ compareIds: [] });
-    }
+    /** End the compare session (close the sheet). */
+    endCompare: () => {
+        set({ compareSession: null });
+    },
 }));
