@@ -7,7 +7,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
-import { getStatsWithLiveFallback } from '@/lib/destiny/stat-manager';
 import { categorizeSockets } from '@/lib/destiny/socket-helper';
 import { ItemSocket } from '@/components/item/ItemSocket';
 import { BungieImage } from '@/components/ui/BungieImage';
@@ -210,11 +209,52 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         });
     }, [visibleItems, session.initialItemId]);
 
-    // Calculate stats for all visible items
+    // Read per-instance live stats directly from the Bungie API data.
+    // This mirrors useHydratedItem's approach — item.stats comes from
+    // itemComponents.stats.data[instanceId].stats and contains unique
+    // per-roll values including perk/mod contributions.
+    // Ported from DIM: uses live instance stats, not definition base stats
+    interface CompareStat {
+        statHash: number;
+        label: string;
+        value: number;
+        maxValue: number;
+        order: number;
+    }
+
     const allItemStats = useMemo(() => {
         return sortedItems.map(item => {
             const def = definitions[item.itemHash];
-            return getStatsWithLiveFallback(item, def, definitions);
+            if (!def?.stats?.stats) return [] as CompareStat[];
+
+            const liveStats = item?.stats || {};
+
+            return (Object.entries(def.stats.stats) as [string, Record<string, unknown>][])
+                .map(([hashStr, defStat]) => {
+                    const hash = parseInt(hashStr, 10);
+                    const info = STAT_WHITELIST[hash];
+                    if (!info) return null;
+
+                    // Priority: live per-instance stat > definition investment stat
+                    const liveEntry = liveStats[hashStr] || liveStats[hash];
+                    let value = (liveEntry as Record<string, unknown>)?.value as number | undefined;
+
+                    if (value === undefined) {
+                        value = (defStat as Record<string, unknown>).value as number || 0;
+                    }
+
+                    if (typeof value !== 'number') return null;
+
+                    return {
+                        statHash: hash,
+                        label: info.label,
+                        value,
+                        maxValue: 100,
+                        order: info.sort,
+                    } as CompareStat;
+                })
+                .filter((s): s is CompareStat => s !== null)
+                .sort((a, b) => a.order - b.order);
         });
     }, [sortedItems, definitions]);
 
@@ -224,17 +264,15 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         for (const itemStats of allItemStats) {
             for (const s of itemStats) {
                 const existing = statMap.get(s.statHash);
-                const whitelistEntry = STAT_WHITELIST[s.statHash];
-                const order = whitelistEntry?.sort ?? 999;
                 if (!existing) {
                     statMap.set(s.statHash, {
                         label: s.label,
-                        maxValue: Math.max(s.maximumValue, s.displayValue),
-                        order,
+                        maxValue: Math.max(s.maxValue, s.value),
+                        order: s.order,
                     });
                 } else {
-                    existing.maxValue = Math.max(existing.maxValue, s.maximumValue, s.displayValue);
-                    if (order < existing.order) existing.order = order;
+                    existing.maxValue = Math.max(existing.maxValue, s.value);
+                    if (s.order < existing.order) existing.order = s.order;
                 }
             }
         }
@@ -247,7 +285,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         return statInfo.map(([statHash]) => {
             return allItemStats.map(itemStats => {
                 const found = itemStats.find(s => s.statHash === statHash);
-                return found?.displayValue || 0;
+                return found?.value || 0;
             });
         });
     }, [statInfo, allItemStats]);

@@ -9,9 +9,9 @@ export interface GuardianItem {
     transferStatus: number;
     lockable: boolean;
     state: number;
-    
+
     // Added by useProfile hook
-    owner: string; 
+    owner: string;
 
     // Instance Data (if applicable)
     instanceData?: {
@@ -31,6 +31,12 @@ export interface GuardianItem {
     // User Metadata (The "Zipper" Part)
     userTag?: string | null; // e.g., 'favorite', 'junk'
     userNote?: string | null;
+
+    // Instance components added during hydration
+    /** Per-instance stats from itemComponents.stats.data[instanceId].stats */
+    stats?: Record<string | number, { statHash: number; value: number }>;
+    /** Per-instance sockets from itemComponents.sockets.data[instanceId] */
+    sockets?: { sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }> };
 }
 
 export interface GuardianProfile {
