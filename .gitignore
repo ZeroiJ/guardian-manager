@@ -138,5 +138,9 @@ Thumbs.db
 # Local Secrets
 .dev.vars
 
+
 # Cloudflare / Vercel Build Output
 .vercel
+
+# Local Secrets (Non-Dotfile)
+dev.vars

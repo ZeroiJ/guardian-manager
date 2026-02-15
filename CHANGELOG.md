@@ -2,6 +2,26 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.20.0] - 2026-02-15
+
+### 🚀 Features
+
+- **Item Comparison:** Added side-by-side comparison modal (`CompareModal.tsx`).
+- **Stat Math:** Added pure TypeScript stat calculation engine (`statMath.ts`) with "Tier Break" logic.
+- **Search Engine:** Implemented `is:dupe` filter using cached Set lookups for O(1) performance.
+
+### 🛠 Tech Debt & Architecture
+
+- **Rust Removal:** Completely removed `guardian-engine` (Rust/WASM) in favor of lightweight TypeScript.
+- **Build System:** Switched strict usage to `vite build` (removed `tsc` bottleneck).
+- **Config:** Fixed `tsconfig.json` to exclude `node_modules` (Zombie Build fix).
+- **Styling:** Standardized on Tailwind v3 "Void" theme.
+
+### 🐛 Fixes
+
+- Fixed "1-hour hang" during build process.
+- Fixed conflict between Tailwind v3 and PostCSS v4.
+
 ## [0.19.0] - 2026-02-13
 
 ### 🔍 Search & Discovery Overhaul
