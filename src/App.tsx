@@ -32,8 +32,24 @@ export default function App() {
     });
 
     // Extract hashes for manifest lookup
-    // Only fetch for items we actually have
-    const itemHashes = profile?.items.map(i => i.itemHash) || [];
+    // Include both item hashes AND plug hashes from sockets (perks, mods, etc.)
+    const itemHashes = useMemo(() => {
+        if (!profile?.items) return [];
+        const hashes = new Set<number>();
+        for (const item of profile.items) {
+            hashes.add(item.itemHash);
+            // Collect all plug hashes from sockets so we can resolve perk/mod definitions
+            const sockets = item.sockets?.sockets;
+            if (sockets) {
+                for (const socket of sockets) {
+                    if (socket.plugHash) {
+                        hashes.add(socket.plugHash);
+                    }
+                }
+            }
+        }
+        return Array.from(hashes);
+    }, [profile?.items]);
     const { definitions: itemDefs, loading: itemDefsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
 
     // Fetch Stat Groups (Dependent on Item Definitions)
