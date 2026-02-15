@@ -21,8 +21,14 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
     const isLocked = (state & 1) !== 0; // Bitmask for Locked
     const icon = definition.displayProperties?.icon;
 
-    // DEBUG: Trace icon Data
-    if (!icon) console.warn('[DestinyItemTile] Missing Icon for:', definition.displayProperties?.name, definition);
+    // Watermark Logic: Match DIM's priority
+    // 1. Quality Version (for re-issued items)
+    // 2. Standard Watermark
+    // 3. Shelved/Sunset Watermark
+    const quality = definition.quality;
+    const watermark = (quality?.displayVersionWatermarkIcons && quality.currentVersion !== undefined)
+        ? quality.displayVersionWatermarkIcons[quality.currentVersion]
+        : (definition.iconWatermark || definition.iconWatermarkShelved);
 
     // Stats
     const power = item.instanceData?.primaryStat?.value;
@@ -64,9 +70,9 @@ export const DestinyItemTile: React.FC<DestinyItemTileProps> = ({ item, definiti
             )}
 
             {/* Season / Expansion Watermark — Full overlay like DIM */}
-            {(definition.iconWatermark || definition.iconWatermarkShelved) && (
+            {watermark && (
                 <BungieImage
-                    src={definition.iconWatermark || definition.iconWatermarkShelved}
+                    src={watermark}
                     className="absolute inset-0 w-full h-full z-10 pointer-events-none object-cover opacity-80"
                 />
             )}
