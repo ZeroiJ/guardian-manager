@@ -2,6 +2,32 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.21.0] - 2026-02-15
+
+### 🚀 DIM-Parity: Compare UI & Watermarks
+
+Achieved near 1:1 visual parity with DIM's Comparison feature and Item Tiles.
+
+#### Compare UI Redesign
+
+- **Stat Numbers Only**: Removed progress bars in favor of clean, color-coded numbers (`#51b853` green for best, `#d14334` red for worst).
+- **Archetype Row**: Added a dedicated row showing the item's frame archetype (icon + name).
+- **Compact Layout**: Significantly reduced padding and adopted DIM's information-dense table structure.
+- **Perk Alignment**: Perks and mods are now left-aligned and consistent with DIM's column layout.
+
+#### Season/Expansion Watermarks
+
+- **Full-Tile Overlay**: Replaced tiny corner badges with full-tile seasonal watermarks at 80% opacity.
+- **DIM Logic**: Implemented DIM's exact watermark priority system:
+  1. `quality.displayVersionWatermarkIcons` (Uses `currentVersion` index) - Critical for re-issued items like *Afterlight*.
+  2. `iconWatermark` - Standard fallback.
+  3. `iconWatermarkShelved` - For sunset/legacy items.
+
+### 🐛 Fixes
+
+- **Compare Stats**: Fixed a bug where comparing identical items showed definition-level stats instead of per-instance stats.
+- **Missing Perks**: Fixed an issue where perks/mods wouldn't render in comparison because their definitions weren't being fetched from the manifest.
+
 ## [0.20.0] - 2026-02-15
 
 ### 🚀 Features
