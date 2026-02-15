@@ -7,7 +7,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
-import { calculateStats } from '@/lib/destiny/stat-manager';
+import { getStatsWithLiveFallback } from '@/lib/destiny/stat-manager';
 import { categorizeSockets } from '@/lib/destiny/socket-helper';
 import { ItemSocket } from '@/components/item/ItemSocket';
 import { BungieImage } from '@/components/ui/BungieImage';
@@ -214,7 +214,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     const allItemStats = useMemo(() => {
         return sortedItems.map(item => {
             const def = definitions[item.itemHash];
-            return calculateStats(item, def, definitions);
+            return getStatsWithLiveFallback(item, def, definitions);
         });
     }, [sortedItems, definitions]);
 
