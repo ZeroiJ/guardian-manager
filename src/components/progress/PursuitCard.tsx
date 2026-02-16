@@ -1,31 +1,24 @@
 import React, { useState } from 'react';
-import { GuardianItem } from '@/services/profile/types';
+import { ProgressItem } from '@/services/profile/types';
 import { BungieImage } from '@/components/ui/BungieImage';
 import { cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
 
 interface PursuitCardProps {
-    item: GuardianItem;
-    definition: any; // DestinyInventoryItemDefinition
+    item: ProgressItem;
     onClick?: () => void;
 }
 
-export function PursuitCard({ item, definition, onClick }: PursuitCardProps) {
+export function PursuitCard({ item, onClick }: PursuitCardProps) {
     const [showTooltip, setShowTooltip] = useState(false);
-    const objectives = item.objectives?.objectives || [];
-    // Just grab the first objective for the progress bar for now
-    const firstObjective = objectives[0];
-    
-    const progress = firstObjective?.progress || 0;
-    const total = firstObjective?.completionValue || 100;
-    const percent = Math.min(100, (progress / total) * 100);
-    const isComplete = firstObjective?.complete;
     
     // Check if tracked
-    const isTracked = (item.state & 2) !== 0; // ItemState.Tracked = 2
-
+    const isTracked = item.isTracked;
+    const isComplete = item.isComplete;
+    const percent = item.percent;
+    const expirationDate = item.expirationDate;
+    
     // Expiration Logic
-    const expirationDate = item.expirationDate ? new Date(item.expirationDate) : null;
     const now = new Date();
     const isExpired = expirationDate && expirationDate < now;
     
@@ -60,7 +53,7 @@ export function PursuitCard({ item, definition, onClick }: PursuitCardProps) {
             onMouseLeave={() => setShowTooltip(false)}
         >
              <BungieImage 
-                src={definition?.displayProperties?.icon} 
+                src={item.icon} 
                 className={cn("w-full h-full object-cover", isComplete && "opacity-80")} 
             />
              
@@ -85,7 +78,7 @@ export function PursuitCard({ item, definition, onClick }: PursuitCardProps) {
              )}
 
              {/* Progress Bar (Bottom) */}
-             {!isComplete && objectives.length > 0 && (
+             {!isComplete && item.objectives.length > 0 && (
                  <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-800/80 z-10">
                      <div 
                         className="h-full bg-green-500" 
@@ -101,49 +94,45 @@ export function PursuitCard({ item, definition, onClick }: PursuitCardProps) {
                         {/* Header */}
                         <div className="flex items-start gap-3 mb-2 border-b border-gray-700 pb-2">
                             <div className="w-8 h-8 flex-shrink-0">
-                                <BungieImage src={definition?.displayProperties?.icon} className="w-full h-full" />
+                                <BungieImage src={item.icon} className="w-full h-full" />
                             </div>
                             <div>
                                 <div className="font-bold text-sm text-gray-100 leading-tight">
-                                    {definition?.displayProperties?.name}
+                                    {item.name}
                                 </div>
                                 <div className="text-xs text-gray-400 mt-0.5">
-                                    {definition?.itemTypeDisplayName}
+                                    {item.type}
                                 </div>
                             </div>
                         </div>
 
                         {/* Description */}
-                        {definition?.displayProperties?.description && (
+                        {item.description && (
                             <div className="text-xs text-gray-400 italic mb-3">
-                                {definition.displayProperties.description}
+                                {item.description}
                             </div>
                         )}
 
                         {/* Objectives */}
                         <div className="space-y-1.5">
-                            {objectives.map((obj: any, idx: number) => {
-                                const defObj = definition?.objectives?.objectiveHashes ? 
-                                    definition.objectives.objectiveHashes[idx] : null;
-                                // We'd need objective definitions to get the text description here properly, 
-                                // but for now let's use what we can or just show progress
-                                
-                                const progress = obj.progress || 0;
-                                const total = obj.completionValue || 100;
-                                const isObjComplete = obj.complete;
+                            {item.objectives.map((obj, idx) => {
+                                // Calculate objective specific progress
+                                const objPercent = obj.completionValue > 0 
+                                    ? Math.min(100, (obj.progress / obj.completionValue) * 100) 
+                                    : 0;
                                 
                                 return (
                                     <div key={idx} className="text-xs">
                                         <div className="flex justify-between text-gray-300 mb-0.5">
-                                            <span>Objective {idx + 1}</span>
-                                            <span className={isObjComplete ? "text-yellow-400" : "text-gray-400"}>
-                                                {progress} / {total}
+                                            <span>{obj.description || `Objective ${idx + 1}`}</span>
+                                            <span className={obj.complete ? "text-yellow-400" : "text-gray-400"}>
+                                                {obj.progress} / {obj.completionValue}
                                             </span>
                                         </div>
                                         <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                                             <div 
-                                                className={cn("h-full", isObjComplete ? "bg-yellow-500" : "bg-green-500")}
-                                                style={{ width: `${Math.min(100, (progress/total)*100)}%` }}
+                                                className={cn("h-full", obj.complete ? "bg-yellow-500" : "bg-green-500")}
+                                                style={{ width: `${objPercent}%` }}
                                             />
                                         </div>
                                     </div>

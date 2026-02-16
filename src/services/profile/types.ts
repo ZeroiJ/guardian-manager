@@ -48,3 +48,47 @@ export interface GuardianProfile {
     currencies: any[];
     artifactPower: number;
 }
+
+// --- Unified Progress Types ---
+
+export interface ProgressReward {
+    itemHash: number;
+    quantity: number;
+    icon?: string;
+    name?: string;
+}
+
+export interface ProgressObjective {
+    objectiveHash: number;
+    progress: number;
+    completionValue: number;
+    complete: boolean;
+    description?: string;
+    visible?: boolean;
+}
+
+/**
+ * A unified interface for displaying any progress-related item
+ * (Bounty, Quest, Milestone, Raid Challenge, Pathfinder Node)
+ */
+export interface ProgressItem {
+    hash: number;
+    instanceId?: string; // Optional (Milestones don't have one)
+    name: string;
+    icon: string;
+    description?: string;
+    
+    // Status
+    percent: number; // 0-100
+    isComplete: boolean;
+    isTracked?: boolean;
+    expirationDate?: Date;
+    
+    // Details
+    objectives: ProgressObjective[];
+    rewards: ProgressReward[];
+    
+    // Context
+    type: 'Bounty' | 'Quest' | 'Item' | 'Milestone' | 'Raid' | 'Pathfinder' | 'Challenge';
+    tierType?: number; // Rarity (0-6)
+}

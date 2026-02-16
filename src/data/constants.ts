@@ -85,3 +85,24 @@ export const RARITY_COLORS: Record<number, string> = {
 };
 
 export const MASTERWORK_GOLD = '#eade8b';
+
+// --- NEW PROGRESS CONSTANTS ---
+
+// Presentation Nodes
+export const RAID_NODE = 4025982223;
+export const PALE_HEART_PATHFINDER_NODE = 1062988660;
+
+// Activity Types
+export const RAID_ACTIVITY_TYPE = 2043403989;
+
+// Raid Milestones (Known hashes for manual filtering if needed)
+export const RAID_MILESTONE_HASHES = [
+  2712317338, // Garden of Salvation
+  // Add others if auto-detection fails
+];
+
+// Item Categories
+export const ITEM_CATEGORY_WEAPON = 1;
+export const ITEM_CATEGORY_ARMOR = 20;
+// ITEM_CATEGORY_QUEST_STEP is already defined as 16 above (DIM uses 12? Bungie docs say 16 is "Quest Step", 12 is "Quest")
+// Let's keep existing 16 but be aware.

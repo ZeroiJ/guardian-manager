@@ -4,18 +4,15 @@ import { useProfile } from '@/hooks/useProfile';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { RankSection } from '@/components/progress/RankSection';
 import { PursuitGrid } from '@/components/progress/PursuitGrid';
-import { BungieImage } from '@/components/ui/BungieImage';
-import { cn } from '@/lib/utils';
+import { CharacterSidebar } from '@/components/progress/CharacterSidebar';
+import { MilestoneSection } from '@/components/progress/MilestoneSection';
+import { PathfinderSection } from '@/components/progress/PathfinderSection';
+import { RaidSection } from '@/components/progress/RaidSection';
 import { ITEM_CATEGORY_QUEST_STEP } from '@/data/constants';
+import { ProgressItem, ProgressObjective } from '@/services/profile/types';
 
 // Bucket Hash for Quests (contains both Bounties and Quests)
 const BUCKET_QUESTS = 1345459588; 
-
-const CLASS_NAMES: Record<number, string> = {
-    0: 'Titan',
-    1: 'Hunter',
-    2: 'Warlock'
-};
 
 export default function Progress() {
     const { profile, loading: profileLoading, error: profileError } = useProfile();
@@ -26,8 +23,6 @@ export default function Progress() {
         if (!selectedCharacterId && profile?.characters) {
             const charIds = Object.keys(profile.characters);
             if (charIds.length > 0) {
-                // Try to find last played? Or just first.
-                // Profile characters are usually unsorted keys, but let's just pick one.
                 setSelectedCharacterId(charIds[0]);
             }
         }
@@ -50,12 +45,12 @@ export default function Progress() {
     // 3. Fetch Definitions
     const { definitions, loading: defsLoading } = useDefinitions('DestinyInventoryItemDefinition', itemHashes);
 
-    // 4. Categorize Items
+    // 4. Categorize Items & Map to ProgressItem
     const { bounties, quests, items } = useMemo(() => {
-        const result = { bounties: [], quests: [], items: [] };
+        const result = { bounties: [] as ProgressItem[], quests: [] as ProgressItem[], items: [] as ProgressItem[] };
         if (defsLoading || !definitions || characterItems.length === 0) return result;
 
-        const allItems = [];
+        const allItems: { item: any, def: any }[] = [];
 
         characterItems.forEach(item => {
             const def = definitions[item.itemHash];
@@ -98,46 +93,56 @@ export default function Progress() {
             return nameA.localeCompare(nameB);
         };
 
+        // Helper to Map
+        const toProgressItem = (item: any, def: any, type: 'Bounty' | 'Quest' | 'Item'): ProgressItem => {
+            const objectives: ProgressObjective[] = item.objectives?.objectives?.map((o: any, idx: number) => ({
+                 objectiveHash: o.objectiveHash,
+                 progress: o.progress || 0,
+                 completionValue: o.completionValue || 1,
+                 complete: o.complete,
+                 description: `Objective ${idx + 1}` // Simplification
+            })) || [];
+
+            const totalProgress = objectives.reduce((acc, o) => acc + (o.progress / o.completionValue), 0);
+            const percent = objectives.length > 0 ? (totalProgress / objectives.length) * 100 : 0;
+            const isComplete = objectives.length > 0 && objectives.every(o => o.complete);
+
+            return {
+                hash: item.itemHash,
+                instanceId: item.itemInstanceId,
+                name: def.displayProperties?.name,
+                icon: def.displayProperties?.icon,
+                description: def.displayProperties?.description,
+                type,
+                percent,
+                isComplete,
+                isTracked: (item.state & 2) !== 0,
+                expirationDate: item.expirationDate ? new Date(item.expirationDate) : undefined,
+                objectives,
+                rewards: []
+            };
+        };
+
         // Categorize
         allItems.sort(sortPursuits).forEach(({ item, def }) => {
-            // DIM Logic simplified
-            // Check for objectives
             const hasObjectives = item.objectives?.objectives?.length > 0;
             
-            // Check categorization
-            // Some "Items" are just quest steps with no objectives (rare) or weird items.
-            // DIM checks: if (!objectives || length==0 || sockets) => Items.
-            
-            // For now, if no objectives, put in Items.
             if (!hasObjectives) {
-                 result.items.push(item);
+                 result.items.push(toProgressItem(item, def, 'Item'));
                  return;
             }
 
-            // If it has objectives, check if it's a Quest Step or Bounty
-            // Check category hashes on definition
             const isQuestStep = def.itemCategoryHashes?.includes(ITEM_CATEGORY_QUEST_STEP);
             const isQuestLine = def.objectives?.questlineItemHash;
-            
-            // Also check Trait hashes if available?
-            // "InventoryFilteringQuest" = 1861210184
-            // "InventoryFilteringBounty" = 201433599
-            
             const isQuestTrait = def.traitHashes?.includes(1861210184);
             const isBountyTrait = def.traitHashes?.includes(201433599);
 
             if (isQuestStep || isQuestLine || isQuestTrait) {
-                result.quests.push(item);
+                result.quests.push(toProgressItem(item, def, 'Quest'));
             } else if (isBountyTrait) {
-                result.bounties.push(item);
+                result.bounties.push(toProgressItem(item, def, 'Bounty'));
             } else {
-                // Fallback: If it's in Quests bucket but not explicitly Quest/Bounty trait...
-                // Usually bounties have expiration.
-                // Bounties are usually green/blue rarity?
-                // Default to Bounty if it has objectives and isn't a Quest?
-                // Or maybe Quest if it's high value?
-                // Let's default to Bounty for now as they are more common.
-                result.bounties.push(item);
+                result.bounties.push(toProgressItem(item, def, 'Bounty'));
             }
         });
         
@@ -145,7 +150,6 @@ export default function Progress() {
     }, [characterItems, definitions, defsLoading]);
 
     const isLoading = profileLoading || (itemHashes.length > 0 && defsLoading);
-    const characters = profile?.characters || {};
 
     if (profileError) {
         return (
@@ -158,100 +162,89 @@ export default function Progress() {
         );
     }
     
-    // Character Tabs Render Helper
-    const renderCharacterTabs = () => (
-        <div className="flex gap-4 border-b border-gray-800 pb-4 overflow-x-auto">
-            {Object.entries(characters).map(([id, char]: [string, any]) => (
-                <button
-                    key={id}
-                    onClick={() => setSelectedCharacterId(id)}
-                    className={cn(
-                        "flex items-center gap-3 p-2 pr-4 rounded transition-colors border min-w-[160px]",
-                        selectedCharacterId === id 
-                            ? "bg-gray-800 border-gray-600" 
-                            : "bg-transparent border-transparent hover:bg-gray-900"
-                    )}
-                >
-                    <div className="w-10 h-10 relative bg-gray-700 rounded-sm overflow-hidden">
-                         {char.emblemPath && <BungieImage src={char.emblemPath} className="w-full h-full object-cover" />}
-                    </div>
-                    <div className="text-left flex flex-col">
-                        <span className="text-sm font-bold leading-tight text-gray-200">
-                            {CLASS_NAMES[char.classType] || 'Guardian'}
-                        </span>
-                        <span className="text-xs text-[#f5dc56] leading-tight font-rajdhani font-semibold">
-                            {char.light} Light
-                        </span>
-                    </div>
-                </button>
-            ))}
-        </div>
-    );
-
     return (
-        <div className="h-screen bg-black text-white font-sans flex flex-col overflow-y-auto selection:bg-white selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <div className="h-screen bg-black text-white font-sans flex flex-col overflow-hidden selection:bg-white selection:text-black">
             {/* Top Bar */}
-            <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
+            <div className="h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
                 <div className="flex items-center gap-4">
                     <span className="font-bold text-xl tracking-tight text-white">GuardianNexus</span>
                     <Navigation />
                 </div>
             </div>
 
-            <div className="p-8 max-w-7xl mx-auto w-full space-y-8 pb-20">
-                {/* Character Select */}
-                {Object.keys(characters).length > 0 && renderCharacterTabs()}
+            <div className="flex flex-1 overflow-hidden">
+                {/* Left Sidebar */}
+                <CharacterSidebar 
+                    selectedCharacterId={selectedCharacterId} 
+                    onSelect={setSelectedCharacterId} 
+                />
 
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                         <div className="animate-pulse text-[#f5dc56] font-rajdhani text-2xl font-bold tracking-widest">
-                             CONTACTING DESTINY SERVERS...
-                         </div>
-                         <div className="text-gray-500 text-sm">Synchronizing Progress Data</div>
-                    </div>
-                ) : (
-                    <>
-                        {selectedCharacterId && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <RankSection characterId={selectedCharacterId} />
-                            </div>
-                        )}
-                        
-                        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-                             {bounties.length > 0 && (
-                                 <PursuitGrid 
-                                    title="Bounties" 
-                                    items={bounties} 
-                                    definitions={definitions} 
-                                 />
-                             )}
-                             
-                             {quests.length > 0 && (
-                                 <PursuitGrid 
-                                    title="Quests" 
-                                    items={quests} 
-                                    definitions={definitions} 
-                                 />
-                             )}
-                             
-                             {items.length > 0 && (
-                                 <PursuitGrid 
-                                    title="Items" 
-                                    items={items} 
-                                    definitions={definitions} 
-                                 />
-                             )}
-                             
-                             {bounties.length === 0 && quests.length === 0 && items.length === 0 && (
-                                 <div className="text-gray-500 italic py-20 text-center border border-dashed border-gray-800 rounded-lg">
-                                     No active pursuits found for this character.
-                                     <br/>
-                                     <span className="text-xs">Go pick up some bounties, Guardian!</span>
+                {/* Main Content */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                    <div className="p-8 max-w-7xl mx-auto w-full space-y-12 pb-32">
+
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                                 <div className="animate-pulse text-[#f5dc56] font-rajdhani text-2xl font-bold tracking-widest">
+                                     CONTACTING DESTINY SERVERS...
                                  </div>
-                             )}
-                        </div>
-                    </>
-                )}
+                                 <div className="text-gray-500 text-sm">Synchronizing Progress Data</div>
+                            </div>
+                        ) : (
+                            <>
+                                {selectedCharacterId && selectedCharacterId !== 'account' && (
+                                    <>
+                                        {/* Ranks */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                            <RankSection characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Milestones & Pathfinder */}
+                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-600 delay-100">
+                                            <MilestoneSection characterId={selectedCharacterId} />
+                                            <PathfinderSection characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Raids */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-6 duration-600 delay-150">
+                                            <RaidSection characterId={selectedCharacterId} />
+                                        </div>
+                                    </>
+                                )}
+                                
+                                {/* Pursuits Grid */}
+                                <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+                                     {bounties.length > 0 && (
+                                         <PursuitGrid 
+                                            title="Bounties" 
+                                            items={bounties} 
+                                         />
+                                     )}
+                                     
+                                     {quests.length > 0 && (
+                                         <PursuitGrid 
+                                            title="Quests" 
+                                            items={quests} 
+                                         />
+                                     )}
+                                     
+                                     {items.length > 0 && (
+                                         <PursuitGrid 
+                                            title="Items" 
+                                            items={items} 
+                                         />
+                                     )}
+                                     
+                                     {bounties.length === 0 && quests.length === 0 && items.length === 0 && (
+                                         <div className="text-gray-500 italic py-20 text-center border border-dashed border-gray-800 rounded-lg">
+                                             No active pursuits found for this character.
+                                         </div>
+                                     )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );
