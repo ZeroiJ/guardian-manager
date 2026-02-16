@@ -9,6 +9,7 @@ export interface GuardianItem {
     transferStatus: number;
     lockable: boolean;
     state: number;
+    expirationDate?: string;
 
     // Added by useProfile hook
     owner: string;
@@ -37,6 +38,8 @@ export interface GuardianItem {
     stats?: Record<string | number, { statHash: number; value: number }>;
     /** Per-instance sockets from itemComponents.sockets.data[instanceId] */
     sockets?: { sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }> };
+    /** Per-instance objectives from itemComponents.objectives.data[instanceId] */
+    objectives?: { objectives: Array<{ objectiveHash: number; progress?: number; completionValue?: number; complete?: boolean; visible?: boolean }> };
 }
 
 export interface GuardianProfile {

@@ -67,6 +67,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         const instanceData = bungieProfile.itemComponents?.instances?.data || {};
         const statsData = bungieProfile.itemComponents?.stats?.data || {};
         const socketsData = bungieProfile.itemComponents?.sockets?.data || {};
+        const objectivesData = bungieProfile.itemComponents?.objectives?.data || {};
 
         // Profile Inventory (Vault)
         if (bungieProfile.profileInventory?.data?.items) {
@@ -91,6 +92,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             const inst = item.itemInstanceId ? instanceData[item.itemInstanceId] : undefined;
             const stats = item.itemInstanceId ? statsData[item.itemInstanceId] : undefined;
             const sockets = item.itemInstanceId ? socketsData[item.itemInstanceId] : undefined;
+            const objectives = item.itemInstanceId ? objectivesData[item.itemInstanceId] : undefined;
             const instanceId = item.itemInstanceId;
 
             const tag = instanceId ? (metadata.tags?.[instanceId]) : undefined;
@@ -104,6 +106,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
                 },
                 stats: stats?.stats || item.stats,
                 sockets: sockets || undefined,
+                objectives: objectives || undefined,
                 owner: item.owner,
                 userTag: tag || null,
                 userNote: note || null

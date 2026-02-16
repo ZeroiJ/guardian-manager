@@ -23,7 +23,38 @@ export const BUCKETS: Record<string, number> = {
     Finished: 2280235332, // Check this
     Consumables: 1469714392,
     Modifications: 3313201758,
+    // Progress
+    Bounties: 1784235469,
+    Quests: 1345459588,
 };
+
+// Item Category Hashes
+export const ITEM_CATEGORY_QUEST_STEP = 16;
+
+// Progression Hashes
+export const PROGRESSION_CRUCIBLE_REWARD = 2206541810; // Hidden rank affecting multipliers
+export const PROGRESSION_STRANGE_FAVOR = 527867935; // Dares of Eternity
+
+// Obsolete/Hidden Ranks (to filter out)
+export const HIDDEN_PROGRESSIONS = [
+    784742260,  // Engram Ensiders (Rahool)
+    2411069437, // Gunsmith Rank (Old)
+    1471185389, // Xûr Rank
+    // 527867935, // Strange Favor (Dares) - DIM hides this from main list usually but we might want it
+];
+
+// Common Faction Hashes (Fallback if CoreSettings unavailable)
+export const FACTION_HASHES = [
+    2000925172, // Crucible
+    2755675426, // Gambit
+    3008065600, // Vanguard
+    2105209711, // Gunsmith
+    350061650,  // Trials of Osiris
+    3696598664, // Competitive Division
+    599071390,  // Iron Banner
+    527867935,  // Strange Favor (Dares)
+    // Add seasonal ranks here if needed dynamically
+];
 
 export const STAT_HASHES: Record<string, number> = {
     Mobility: 2996146975,
