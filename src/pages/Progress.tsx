@@ -3,6 +3,7 @@ import { Navigation } from '@/components/Navigation';
 import { useProfile } from '@/hooks/useProfile';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { RankSection } from '@/components/progress/RankSection';
+import { FactionRanks } from '@/components/progress/FactionRanks';
 import { PursuitGrid } from '@/components/progress/PursuitGrid';
 import { CharacterSidebar } from '@/components/progress/CharacterSidebar';
 import { MilestoneSection } from '@/components/progress/MilestoneSection';
@@ -13,6 +14,7 @@ import { ProgressItem, ProgressObjective } from '@/services/profile/types';
 
 // Bucket Hash for Quests (contains both Bounties and Quests)
 const BUCKET_QUESTS = 1345459588; 
+const BUCKET_BOUNTIES = 1784235469;
 
 export default function Progress() {
     const { profile, loading: profileLoading, error: profileError } = useProfile();
@@ -33,7 +35,7 @@ export default function Progress() {
         if (!profile?.items || !selectedCharacterId) return [];
         return profile.items.filter(item => 
             item.owner === selectedCharacterId && 
-            item.bucketHash === BUCKET_QUESTS
+            (item.bucketHash === BUCKET_QUESTS || item.bucketHash === BUCKET_BOUNTIES)
         );
     }, [profile?.items, selectedCharacterId]);
 
@@ -132,17 +134,12 @@ export default function Progress() {
                  return;
             }
 
-            const isQuestStep = def.itemCategoryHashes?.includes(ITEM_CATEGORY_QUEST_STEP);
-            const isQuestLine = def.objectives?.questlineItemHash;
-            const isQuestTrait = def.traitHashes?.includes(1861210184);
-            const isBountyTrait = def.traitHashes?.includes(201433599);
-
-            if (isQuestStep || isQuestLine || isQuestTrait) {
+            if (item.bucketHash === BUCKET_BOUNTIES) {
+                result.bounties.push(toProgressItem(item, def, 'Bounty'));
+            } else if (item.bucketHash === BUCKET_QUESTS) {
                 result.quests.push(toProgressItem(item, def, 'Quest'));
-            } else if (isBountyTrait) {
-                result.bounties.push(toProgressItem(item, def, 'Bounty'));
             } else {
-                result.bounties.push(toProgressItem(item, def, 'Bounty'));
+                 result.items.push(toProgressItem(item, def, 'Item'));
             }
         });
         
@@ -194,7 +191,12 @@ export default function Progress() {
                             <>
                                 {selectedCharacterId && selectedCharacterId !== 'account' && (
                                     <>
-                                        {/* Ranks */}
+                                        {/* Faction Ranks (New) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                            <FactionRanks characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Ranks (Legacy/Other) - kept for completeness but below */}
                                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                             <RankSection characterId={selectedCharacterId} />
                                         </div>
@@ -216,7 +218,7 @@ export default function Progress() {
                                 <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                                      {bounties.length > 0 && (
                                          <PursuitGrid 
-                                            title="Bounties" 
+                                            title="Active Bounties" 
                                             items={bounties} 
                                          />
                                      )}
