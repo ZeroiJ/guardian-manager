@@ -240,7 +240,7 @@ app.get('/api/profile', async (c) => {
     const { membershipType, membershipId } = destinyMembership
     console.log(`[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`);
 
-    const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,302,304,305,1200`
+    const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,205,300,302,304,305,700,900,1100,1200`
 
     // 2. Fetch Profile (using potentially new access_token)
     const profileRes = await fetch(profileUrl, {

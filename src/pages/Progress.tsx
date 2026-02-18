@@ -6,6 +6,10 @@ import { RankSection } from '@/components/progress/RankSection';
 import { FactionRanks } from '@/components/progress/FactionRanks';
 import { PursuitGrid } from '@/components/progress/PursuitGrid';
 import { CharacterSidebar } from '@/components/progress/CharacterSidebar';
+import { SeasonalRank } from '@/components/progress/SeasonalRank';
+import { TrackedTriumphs } from '@/components/progress/TrackedTriumphs';
+import { EventCard } from '@/components/progress/EventCard';
+import { SeasonalChallenges } from '@/components/progress/SeasonalChallenges';
 import { MilestoneSection } from '@/components/progress/MilestoneSection';
 import { PathfinderSection } from '@/components/progress/PathfinderSection';
 import { RaidSection } from '@/components/progress/RaidSection';
@@ -13,7 +17,7 @@ import { ITEM_CATEGORY_QUEST_STEP } from '@/data/constants';
 import { ProgressItem, ProgressObjective } from '@/services/profile/types';
 
 // Bucket Hash for Quests (contains both Bounties and Quests)
-const BUCKET_QUESTS = 1345459588; 
+const BUCKET_QUESTS = 1345459588;
 const BUCKET_BOUNTIES = 1784235469;
 
 export default function Progress() {
@@ -33,8 +37,8 @@ export default function Progress() {
     // 1. Get Character Items
     const characterItems = useMemo(() => {
         if (!profile?.items || !selectedCharacterId) return [];
-        return profile.items.filter(item => 
-            item.owner === selectedCharacterId && 
+        return profile.items.filter(item =>
+            item.owner === selectedCharacterId &&
             (item.bucketHash === BUCKET_QUESTS || item.bucketHash === BUCKET_BOUNTIES)
         );
     }, [profile?.items, selectedCharacterId]);
@@ -98,11 +102,11 @@ export default function Progress() {
         // Helper to Map
         const toProgressItem = (item: any, def: any, type: 'Bounty' | 'Quest' | 'Item'): ProgressItem => {
             const objectives: ProgressObjective[] = item.objectives?.objectives?.map((o: any, idx: number) => ({
-                 objectiveHash: o.objectiveHash,
-                 progress: o.progress || 0,
-                 completionValue: o.completionValue || 1,
-                 complete: o.complete,
-                 description: `Objective ${idx + 1}` // Simplification
+                objectiveHash: o.objectiveHash,
+                progress: o.progress || 0,
+                completionValue: o.completionValue || 1,
+                complete: o.complete,
+                description: `Objective ${idx + 1}` // Simplification
             })) || [];
 
             const totalProgress = objectives.reduce((acc, o) => acc + (o.progress / o.completionValue), 0);
@@ -128,10 +132,10 @@ export default function Progress() {
         // Categorize
         allItems.sort(sortPursuits).forEach(({ item, def }) => {
             const hasObjectives = item.objectives?.objectives?.length > 0;
-            
+
             if (!hasObjectives) {
-                 result.items.push(toProgressItem(item, def, 'Item'));
-                 return;
+                result.items.push(toProgressItem(item, def, 'Item'));
+                return;
             }
 
             if (item.bucketHash === BUCKET_BOUNTIES) {
@@ -139,10 +143,10 @@ export default function Progress() {
             } else if (item.bucketHash === BUCKET_QUESTS) {
                 result.quests.push(toProgressItem(item, def, 'Quest'));
             } else {
-                 result.items.push(toProgressItem(item, def, 'Item'));
+                result.items.push(toProgressItem(item, def, 'Item'));
             }
         });
-        
+
         return result;
     }, [characterItems, definitions, defsLoading]);
 
@@ -158,7 +162,7 @@ export default function Progress() {
             </div>
         );
     }
-    
+
     return (
         <div className="h-screen bg-black text-white font-sans flex flex-col overflow-hidden selection:bg-white selection:text-black">
             {/* Top Bar */}
@@ -171,9 +175,9 @@ export default function Progress() {
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar */}
-                <CharacterSidebar 
-                    selectedCharacterId={selectedCharacterId} 
-                    onSelect={setSelectedCharacterId} 
+                <CharacterSidebar
+                    selectedCharacterId={selectedCharacterId}
+                    onSelect={setSelectedCharacterId}
                 />
 
                 {/* Main Content */}
@@ -182,10 +186,10 @@ export default function Progress() {
 
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                                 <div className="animate-pulse text-[#f5dc56] font-rajdhani text-2xl font-bold tracking-widest">
-                                     CONTACTING DESTINY SERVERS...
-                                 </div>
-                                 <div className="text-gray-500 text-sm">Synchronizing Progress Data</div>
+                                <div className="animate-pulse text-[#f5dc56] font-rajdhani text-2xl font-bold tracking-widest">
+                                    CONTACTING DESTINY SERVERS...
+                                </div>
+                                <div className="text-gray-500 text-sm">Synchronizing Progress Data</div>
                             </div>
                         ) : (
                             <>
@@ -194,6 +198,21 @@ export default function Progress() {
                                         {/* Faction Ranks (New) */}
                                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                             <FactionRanks characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Seasonal Rank (New) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
+                                            <SeasonalRank characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Tracked Triumphs (New) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                                            <TrackedTriumphs />
+                                        </div>
+
+                                        {/* Event Card (New - Conditional) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                                            <EventCard />
                                         </div>
 
                                         {/* Ranks (Legacy/Other) - kept for completeness but below */}
@@ -207,41 +226,51 @@ export default function Progress() {
                                             <PathfinderSection characterId={selectedCharacterId} />
                                         </div>
 
+                                        {/* Pathfinder (Pale Heart) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                                            <PathfinderSection characterId={selectedCharacterId} />
+                                        </div>
+
+                                        {/* Seasonal Challenges (New) */}
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+                                            <SeasonalChallenges />
+                                        </div>
+
                                         {/* Raids */}
                                         <div className="animate-in fade-in slide-in-from-bottom-6 duration-600 delay-150">
                                             <RaidSection characterId={selectedCharacterId} />
                                         </div>
                                     </>
                                 )}
-                                
+
                                 {/* Pursuits Grid */}
                                 <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                                     {bounties.length > 0 && (
-                                         <PursuitGrid 
-                                            title="Active Bounties" 
-                                            items={bounties} 
-                                         />
-                                     )}
-                                     
-                                     {quests.length > 0 && (
-                                         <PursuitGrid 
-                                            title="Quests" 
-                                            items={quests} 
-                                         />
-                                     )}
-                                     
-                                     {items.length > 0 && (
-                                         <PursuitGrid 
-                                            title="Items" 
-                                            items={items} 
-                                         />
-                                     )}
-                                     
-                                     {bounties.length === 0 && quests.length === 0 && items.length === 0 && (
-                                         <div className="text-gray-500 italic py-20 text-center border border-dashed border-gray-800 rounded-lg">
-                                             No active pursuits found for this character.
-                                         </div>
-                                     )}
+                                    {bounties.length > 0 && (
+                                        <PursuitGrid
+                                            title="Active Bounties"
+                                            items={bounties}
+                                        />
+                                    )}
+
+                                    {quests.length > 0 && (
+                                        <PursuitGrid
+                                            title="Quests"
+                                            items={quests}
+                                        />
+                                    )}
+
+                                    {items.length > 0 && (
+                                        <PursuitGrid
+                                            title="Items"
+                                            items={items}
+                                        />
+                                    )}
+
+                                    {bounties.length === 0 && quests.length === 0 && items.length === 0 && (
+                                        <div className="text-gray-500 italic py-20 text-center border border-dashed border-gray-800 rounded-lg">
+                                            No active pursuits found for this character.
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}

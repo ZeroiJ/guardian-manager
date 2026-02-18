@@ -34,6 +34,7 @@ export const ITEM_CATEGORY_QUEST_STEP = 16;
 // Progression Hashes
 export const PROGRESSION_CRUCIBLE_REWARD = 2206541810; // Hidden rank affecting multipliers
 export const PROGRESSION_STRANGE_FAVOR = 527867935; // Dares of Eternity
+export const WELL_RESTED_PERK_HASH = 2352765282;
 
 // Obsolete/Hidden Ranks (to filter out)
 export const HIDDEN_PROGRESSIONS = [
@@ -97,8 +98,8 @@ export const RAID_ACTIVITY_TYPE = 2043403989;
 
 // Raid Milestones (Known hashes for manual filtering if needed)
 export const RAID_MILESTONE_HASHES = [
-  2712317338, // Garden of Salvation
-  // Add others if auto-detection fails
+    2712317338, // Garden of Salvation
+    // Add others if auto-detection fails
 ];
 
 // Item Categories
