@@ -2,6 +2,29 @@
 
 All notable changes to the "Guardian Nexus" project will be documented in this file.
 
+## [0.22.0] - 2026-02-17
+
+### 🚀 Progress Dashboard & Sidebar Navigation
+
+Introduced a comprehensive **Progress Dashboard** (`/progress`) that mirrors DIM's functionality, unifying all character objectives into a single, organized view.
+
+#### New Features
+
+- **Character Sidebar**: Implemented a persistent left-hand sidebar for seamless character switching. It displays the character's emblem, light level, and class, replacing top-level tabs for better vertical rhythm.
+- **Unified Pursuit System**:
+  - **Universal Cards**: Created `PursuitCard.tsx`, a "smart" component that renders Bounties, Quests, Milestones, and Raid Challenges with consistent visual language (progress bars, expiration badges, tracked status).
+  - **Rich Tooltips**: Hovering over any pursuit reveals detailed objective data (e.g., "Precision Kills: 15/25").
+- **Section Breakdown**:
+  - **Milestones**: Automatically fetches and filters Weekly Powerful/Pinnacle challenges.
+  - **Bounties & Quests**: Features complex sorting logic (Completed > Tracked > Expiring > Rarity).
+  - **Raids**: Identifies the Weekly Featured Raid and displays its specific challenges.
+  - **Pathfinder**: Initial implementation for tracking the Pale Heart Pathfinder node.
+
+#### Architecture
+
+- **Data Modeling**: Defined a unified `ProgressItem` interface in `services/profile/types.ts` to normalize disparate Bungie API data sources (Progression vs. Objectives vs. Records).
+- **Component Reusability**: Extracted `PursuitGrid` for consistent grid layouts across all sections.
+
 ## [0.21.0] - 2026-02-15
 
 ### 🚀 DIM-Parity: Compare UI & Watermarks

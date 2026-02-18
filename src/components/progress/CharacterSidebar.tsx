@@ -25,9 +25,9 @@ export function CharacterSidebar({ selectedCharacterId, onSelect }: CharacterSid
     });
 
     return (
-        <div className="w-[240px] bg-gray-950 border-r border-gray-800 flex flex-col py-6 gap-2 h-full sticky top-0 overflow-y-auto shrink-0 px-4">
+        <div className="w-[200px] bg-gray-950 border-r border-gray-800 flex flex-col py-6 gap-2 h-full sticky top-0 overflow-y-auto shrink-0 px-3">
             {/* Account Scope (Optional - for Triumphs/Collections later) */}
-            <button 
+            <button
                 className={cn(
                     "w-full h-16 rounded-md bg-gray-800 border flex items-center justify-center transition-all hover:bg-gray-700 mb-4",
                     selectedCharacterId === 'account' ? "border-[#f5dc56] shadow-[0_0_10px_rgba(245,220,86,0.3)]" : "border-gray-600"
@@ -46,27 +46,27 @@ export function CharacterSidebar({ selectedCharacterId, onSelect }: CharacterSid
             {/* Characters */}
             {sortedCharacters.map((char: any) => {
                 const isSelected = selectedCharacterId === char.characterId;
-                
+
                 return (
                     <button
                         key={char.characterId}
                         onClick={() => onSelect(char.characterId)}
                         className={cn(
                             "relative group w-full h-16 rounded-md overflow-hidden border transition-all duration-200 text-left",
-                            isSelected 
-                                ? "border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)] z-10" 
+                            isSelected
+                                ? "border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)] z-10"
                                 : "border-gray-700 hover:border-gray-500 opacity-80 hover:opacity-100"
                         )}
                     >
                         {/* Background Image */}
-                        <div 
+                        <div
                             className="absolute inset-0 bg-cover bg-center"
                             style={{ backgroundImage: `url(https://www.bungie.net${char.emblemBackgroundPath})` }}
                         />
-                        
+
                         {/* Gradient Overlay for Text Readability */}
                         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                        
+
                         {/* Content */}
                         <div className="relative z-10 h-full flex flex-col justify-center px-4">
                             <span className={cn(
