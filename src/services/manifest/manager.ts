@@ -4,7 +4,7 @@ import { APIClient } from '../api/client';
 const MANIFEST_VERSION_KEY = 'manifest_version';
 const TABLE_PREFIX = 'def:';
 // CACHE_BUSTER: Increment this to force all users to re-download manifest data
-const CACHE_BUSTER_VERSION = 'v2';
+const CACHE_BUSTER_VERSION = 'v3';
 
 // In-memory cache for O(1) synchronous lookups after first load
 const memoryCache: Map<string, Record<string, any>> = new Map();
@@ -121,15 +121,21 @@ export class ManifestManager {
         }
 
         let foundCount = 0;
+        const missingHashes: string[] = [];
         for (const hash of hashes) {
             const hashStr = hash.toString();
             if (table[hashStr]) {
                 results[hashStr] = table[hashStr];
                 foundCount++;
+            } else {
+                missingHashes.push(hashStr);
             }
         }
 
-        console.log(`[ManifestManager] Found ${foundCount} / ${hashes.length} definitions.`);
+        console.log(`[ManifestManager] Found ${foundCount} / ${hashes.length} definitions from ${tableName}.`);
+        if (missingHashes.length > 0) {
+            console.warn(`[ManifestManager] MISSING definitions in ${tableName}:`, missingHashes.join(', '));
+        }
         return results;
     }
 }
