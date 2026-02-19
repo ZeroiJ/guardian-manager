@@ -74,9 +74,25 @@ Side-by-side weapon/armor comparison with stat deltas. Core power-user feature.
 
 ---
 
+### 4. Progress Page (v0.23.0) 🚧
+
+**Source:** `app/progress/`
+
+Comprehensive dashboard for Ranks, Challenges, and Triumphs.
+
+**Status:** BETA / MAINTENANCE MODE
+
+- ✅ **Seasonal Rank**: Full XP bar & prestige logic.
+- ✅ **Challenges**: Tree traversal for Seasonal Challenges.
+- ✅ **Event Cards**: Active event detection.
+- 🚧 **Faction Ranks**: Logic ported (`useProgressStore`), UI needs detailed "diamond" steps.
+- 🚧 **Milestones**: Logic exists, needs "Challenge" specific filtering.
+
+---
+
 ## Medium Priority (Quality of Life)
 
-### 4. Loadout System 🚧
+### 5. Loadout System 🚧
 
 **Source:** `app/loadout-drawer/`, `app/loadout/`
 
@@ -84,7 +100,7 @@ Save/restore full equipment sets with one click.
 
 **Status:** PARTIAL reference only — `powerUtils.ts` mentions loadout concept but no full implementation.
 
-### 5. Organizer View ❌
+### 6. Organizer View ❌
 
 **Source:** `app/organizer/`
 
@@ -92,7 +108,7 @@ Sortable table view with bulk actions for 500+ vault items.
 
 **Status:** Not implemented.
 
-### 6. Infusion Finder ❌
+### 7. Infusion Finder ❌
 
 **Source:** `app/infuse/`
 
@@ -127,6 +143,7 @@ Shows what items can infuse into what.
 | Wishlist System | ✅ | High |
 | Item Comparisons | ✅ | High |
 | Search Filters | ✅ | High |
+| Progress Page | 🚧 | High |
 | Loadout System | ❌ | Medium |
 | Organizer View | ❌ | Medium |
 | Infusion Finder | ❌ | Medium |
@@ -138,5 +155,5 @@ Shows what items can infuse into what.
 ## Recommended Next Steps
 
 1. **Loadout System** — Save/restore full equipment sets with one click
-2. **Organizer View** — Sortable table for bulk vault management
-3. **Infusion Finder** — Show infusion paths between items
+2. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
+3. **Organizer View** — Sortable table for bulk vault management

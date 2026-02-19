@@ -1,3 +1,24 @@
+/**
+ * PROGRESS PAGE (v0.23.0 - Maintenance Mode)
+ * Status: Beta / Partial Feature Parity with DIM
+ *
+ * ACTIVE FEATURES:
+ * - Seasonal Rank: Fully functional (Backend 202 + 100).
+ * - Tracked Triumphs: Working (Backend 900).
+ * - Seasonal Challenges: Working (Backend 1100).
+ * - Event Cards: Working (Backend 100 + 1100).
+ * - Quests/Bounties: Basic list working (Bucket Headers verified).
+ *
+ * TODO / MISSING:
+ * - Faction Reputation: Logic exists (useProgressStore) but UI needs detailed "diamond" progress bars.
+ * - Item Objectives: "Yellow Bar" overlay on inventory items is missing.
+ * - Milestones: Logic exists but needs precise "Challenge" filtering.
+ * - Pathfinder: Placeholder only.
+ *
+ * API DEPENDENCIES:
+ * - Components: 100, 102, 104, 200, 201, 202, 205, 300, 302, 304, 305, 700, 900, 1100, 1200
+ * - Manifest: DestinyProgressionDefinition, DestinySeasonDefinition, DestinyRecordDefinition
+ */
 import React, { useMemo, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { useProfile } from '@/hooks/useProfile';

@@ -11,7 +11,10 @@ export const useProgressStore = create<ProgressState>((set) => ({
     setSelectedCharacterId: (characterId) => set({ selectedCharacterId: characterId }),
 }));
 
-// Selectors to extract data from the main InventoryStore
+/**
+ * Extracts all character progressions (Ranks, Checklists, Seasonal data).
+ * @returns DestinyCharacterProgressionComponent | null
+ */
 export const selectProgressions = (profile: DestinyProfileResponse | null, characterId: string) => {
     if (!profile) return null;
     return profile.characterProgressions?.data?.[characterId] || null;
@@ -24,6 +27,12 @@ export const selectChecklists = (profile: DestinyProfileResponse | null, charact
     return profile.characterProgressions?.data?.[characterId]?.checklists || null;
 }
 
+/**
+ * Selects and maps the core playlist reputation ranks.
+ * Uses verified hashes from constants.ts (Vanguard, Crucible, Gambit).
+ * 
+ * Used by FactionRanks.tsx to display the main 3-6 reputation circles.
+ */
 export const selectFactionProgressions = (profile: DestinyProfileResponse | null, characterId: string) => {
     if (!profile?.characterProgressions?.data?.[characterId]?.progressions) return null;
 

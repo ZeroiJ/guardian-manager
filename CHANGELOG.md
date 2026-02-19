@@ -5,6 +5,16 @@ All notable changes to the "Guardian Nexus" project will be documented in this f
 
 ## [0.23.0] - 2026-02-19
 
+### 🚧 Progress Page: Maintenance Mode (Beta)
+
+After achieving core feature parity, the Progress Page has been shifted to **Maintenance Mode**. Development is paused to focus on other areas, but all current features remain active and functional.
+
+#### Active Features (Beta)
+- **Ranks**: Seasonal Rank & Prestige working. Faction Ranks logic exists but UI is simplified.
+- **Challenges**: Seasonal Challenges & Event Cards fully functional.
+- **Records**: Tracked Triumphs working.
+- **API**: Components `202, 700, 900, 1100` are active in the backend to support these features.
+
 ### 🚀 Progress Page: DIM Feature Parity
 
 Achieved near-complete feature parity with DIM's Progress page by implementing major missing sections and fixing underlying data pipelines.
