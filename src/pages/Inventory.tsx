@@ -379,10 +379,10 @@ export default function Inventory() {
           <button
             onClick={() => setIsLoadoutDrawerOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest font-rajdhani"
-            title="Loadouts"
+            title="Quick loadout panel"
           >
             <BookMarked size={13} />
-            Loadouts
+            Quick Loadout
           </button>
           <button className="hover:text-white">Settings</button>
           <div className="size-6 bg-gradient-to-tr from-[#f5dc56] to-[#f5dc56]/50 rounded-full border border-white/10" />

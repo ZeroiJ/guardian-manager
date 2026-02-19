@@ -13,6 +13,12 @@ export function Navigation() {
                 Inventory
             </Link>
             <Link
+                to="/loadouts"
+                className={`transition-colors ${isActive('/loadouts') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+            >
+                Loadouts
+            </Link>
+            <Link
                 to="/progress"
                 className={`transition-colors ${isActive('/progress') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
             >
