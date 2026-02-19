@@ -1,7 +1,41 @@
 # Changelog
 
 
-All notable changes to the "Guardian Nexus" project will be documented in this file.
+All notable changes to the **GM** project will be documented in this file.
+
+## [0.24.0] - 2026-02-19
+
+### 🗂️ Phase 6: Loadout Dashboard — "The Hub"
+
+Extracted the Loadout Card into a standalone component and rebuilt the `/loadouts` page as a clean, always-visible card hub. Inspired by DIM's `LoadoutView.tsx` separation of presentation vs. behavior, but in our own Void "Tactical Briefing" style.
+
+#### New Component: `LoadoutCard.tsx`
+
+- **Created `src/components/loadouts/LoadoutCard.tsx`** — Standalone "Tactical Briefing" card component.
+- **Always-Expanded Layout**: No more accordion — all gear is visible at a glance on every card.
+- **Header**: Thin class-colored accent bar (Titan=orange, Hunter=cyan, Warlock=purple), loadout name in `font-rajdhani uppercase`, class pill badge, item count, and timestamp. Equip result feedback renders inline ("EQUIPPED" / "FAILED").
+- **Body — Horizontal Gear Grid**:
+  - **Subclass**: Large 56×56px icon with name label.
+  - **Weapons Strip**: 3 tiles (KIN / ENE / PWR) at 44×44px with abbreviated bucket labels.
+  - **Armor Strip**: 5 tiles (HELM / ARMS / CHEST / LEGS / CLASS) at 44×44px.
+  - Sections separated by subtle `white/5` vertical dividers.
+  - Each tile has rarity-colored borders (exotic gold, legendary purple, rare blue) and floating power badges.
+  - Empty slots render as dashed `border-white/8` placeholders.
+- **Footer Actions**: Three buttons — `Equip` (with multi-character picker dropdown), `Edit` (placeholder for Phase 6 Step 2), `Delete` (with 4-second auto-dismiss confirmation).
+
+#### Refactored: `Loadouts.tsx`
+
+- **Stripped from ~1070 lines to ~200 lines** by extracting all inline sub-components (`ItemTile`, `EmptySlot`, `StatTierBar`, `TotalTierBadge`, `ClassBadge`, `SectionLabel`, `EquipResultBadge`, and the 500-line inline `LoadoutCard`) into the new standalone component.
+- **Page is now a pure hub**: `text-4xl` "LOADOUTS" Rajdhani header, `max-w-4xl` centered column, class filter pills, card list, empty state, and footer disclaimer.
+- **Imports `LoadoutCard` and `EquipState` type** from the new component file.
+
+### Files Added
+
+- `src/components/loadouts/LoadoutCard.tsx` — Standalone loadout card component
+
+### Files Modified
+
+- `src/pages/Loadouts.tsx` — Rewritten as a lean hub page
 
 ## [0.23.0] - 2026-02-19
 

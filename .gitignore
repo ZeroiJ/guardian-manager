@@ -144,3 +144,12 @@ Thumbs.db
 
 # Local Secrets (Non-Dotfile)
 dev.vars
+
+# Debug / temp files
+*.test.cjs
+fetch_test*
+git_status*
+
+# Next.js relics (project uses Vite)
+next-env.d.ts
+.next/
