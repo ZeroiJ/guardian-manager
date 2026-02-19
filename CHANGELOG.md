@@ -1,6 +1,43 @@
 # Changelog
 
+
 All notable changes to the "Guardian Nexus" project will be documented in this file.
+
+## [0.23.0] - 2026-02-19
+
+### 🚀 Progress Page: DIM Feature Parity
+
+Achieved near-complete feature parity with DIM's Progress page by implementing major missing sections and fixing underlying data pipelines.
+
+#### New Features
+
+- **Seasonal Rank**:
+  - Displays current Season Pass level, progress to next level (XP bar), and prestige rank.
+  - Shows the **Well-Rested** buff indicator ("2x XP") when active.
+  - Dynamic season background art.
+- **Tracked Triumphs**:
+  - Shows the player's in-game tracked triumph with detailed objective progress bars.
+- **Seasonal Challenges**:
+  - Full support for the Seasonal Challenge tree structure (Weeks -> Challenges).
+  - Automatically filters hidden/invalid challenges and visualizes completion status.
+- **Event Cards**:
+  - Added support for active seasonal events (Solstice, Dawning, Guardian Games).
+  - Renders the event card banner and description when an event is live.
+
+#### Architecture & Backend
+
+- **Expanded Profile Data**:
+  - Updated the Cloudflare Backend (`functions/api/[[route]].ts`) to request additional Bungie API components:
+    - `700` (CharacterRecords)
+    - `900` (ProfileRecords)
+    - `1100` (PresentationNodes)
+  - This enables full tracking of triumphs, challenges, and seals.
+
+### 🐛 Fixes
+
+- **Manifest Pipeline Repair**:
+  - **Cache Buster v3**: Forced a global manifest refresh to fix "Found 0 definitions" errors caused by stale IndexedDB data.
+  - **Debug Logging**: Added granular logging to `ManifestManager` to identify specific missing definition hashes in production.
 
 ## [0.22.0] - 2026-02-17
 

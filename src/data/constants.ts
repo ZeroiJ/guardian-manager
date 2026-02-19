@@ -44,6 +44,16 @@ export const HIDDEN_PROGRESSIONS = [
     // 527867935, // Strange Favor (Dares) - DIM hides this from main list usually but we might want it
 ];
 
+// Major Faction Progression Hashes (Verified)
+export const MAJOR_FACTION_PROGRESSIONS = {
+    Vanguard: 457612306,
+    Crucible: 2083746873,
+    Gambit: 2755675426,
+    Gunsmith: 3611615741,
+    IronBanner: 599071390,
+    Trials: 3696598664,
+};
+
 // Common Faction Hashes (Fallback if CoreSettings unavailable)
 export const FACTION_HASHES = [
     2000925172, // Crucible
