@@ -958,8 +958,8 @@ export default function Loadouts() {
             {/* ── Top Bar ────────────────────────────────────────── */}
             <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
                 <div className="flex items-center gap-4">
-                    <Link to="/" className="font-bold text-xl tracking-tight text-white hover:opacity-80 transition-opacity">
-                        GuardianNexus
+                    <Link to="/" className="font-bold text-xl tracking-[0.15em] text-white font-rajdhani uppercase hover:opacity-80 transition-opacity">
+                        GM
                     </Link>
                     <Navigation />
                 </div>

@@ -293,8 +293,8 @@ export default function Inventory() {
       {/* Top Bar */}
       <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-xl tracking-tight text-white">
-            GuardianNexus
+          <span className="font-bold text-xl tracking-[0.15em] text-white font-rajdhani uppercase">
+            GM
           </span>
           <Navigation />
         </div>
