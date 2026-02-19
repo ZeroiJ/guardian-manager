@@ -8,6 +8,7 @@ import { VirtualVaultGrid } from "@/components/inventory/VirtualVaultGrid";
 import { ItemDetailModal } from "@/components/inventory/ItemDetailModal";
 import { ItemContextMenu } from "@/components/inventory/ItemContextMenu";
 import { RefreshButton } from "@/components/ui/RefreshButton";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useProfile } from "@/hooks/useProfile";
 import { useInventoryStore } from "@/store/useInventoryStore";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -171,15 +172,10 @@ export default function Inventory() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#050505] text-white flex flex-col items-center justify-center font-mono space-y-4">
-        <div className="w-12 h-12 border-4 border-t-transparent border-[#f5dc56] rounded-full animate-spin" />
-        <div className="animate-pulse text-[#f5dc56]">
-          INITIALIZING GUARDIAN NEXUS...
-        </div>
-        <div className="text-xs text-gray-500">
-          Connecting to Neural Net (Cloudflare Worker)
-        </div>
-      </div>
+      <LoadingScreen
+        status="INITIALIZING GUARDIAN NEXUS"
+        detail="Connecting to Neural Net (Cloudflare Worker)"
+      />
     );
   }
 
