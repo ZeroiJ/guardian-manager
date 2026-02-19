@@ -7,6 +7,8 @@
  *   │  HEADER: Name · Class Badge · Timestamp         │
  *   ├─────────────────────────────────────────────────┤
  *   │  BODY:  [Subclass]  [Kin][Ene][Pow]  [H][A][C][L][Cl] │
+ *   │         [Aspects/Fragments row if subclass]     │
+ *   │         [Mods row if armor mods captured]       │
  *   ├─────────────────────────────────────────────────┤
  *   │  FOOTER:  [⚡ Equip]  [✏ Edit]  [🗑 Delete]     │
  *   └─────────────────────────────────────────────────┘
@@ -24,6 +26,10 @@ import {
     Package,
     Shield,
     X,
+    AlertTriangle,
+    ArrowRight,
+    FileText,
+    Save,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +39,8 @@ import {
     formatLoadoutDate,
 } from '@/store/loadoutStore';
 import { BUCKETS } from '@/data/constants';
+import { BucketHashes } from '@/lib/destiny-constants';
+import { useDefinitions } from '@/hooks/useDefinitions';
 import type { ApplyLoadoutResult } from '@/lib/bungie/equipManager';
 
 // ============================================================================
@@ -61,8 +69,6 @@ const ARMOR_LABELS: Record<number, string> = {
     [BUCKETS.Class]: 'CLASS',
 };
 
-const ALL_GEAR_BUCKETS = new Set([...WEAPON_BUCKETS, ...ARMOR_BUCKETS]);
-
 /** Class accent colors — the only non-loot color allowed. */
 const CLASS_COLORS: Record<number, { text: string; border: string; bg: string }> = {
     0: { text: 'text-orange-400', border: 'border-orange-400/30', bg: 'bg-orange-400/10' },
@@ -75,6 +81,18 @@ const DEFAULT_CLASS = { text: 'text-gray-400', border: 'border-gray-400/30', bg:
 // TYPES
 // ============================================================================
 
+/** Validation status for a single loadout item. */
+export type ItemValidation =
+    | { status: 'ok' }
+    | { status: 'missing' }           // Item no longer exists in inventory
+    | { status: 'remote'; owner: string }; // Item is on another character or vault
+
+/** Full loadout validation result. */
+export interface LoadoutValidation {
+    items: Record<string, ItemValidation>; // keyed by itemInstanceId
+    classMismatch: boolean;                // loadout class != target character class
+}
+
 export type EquipState =
     | { status: 'idle' }
     | { status: 'loading'; loadoutId: string }
@@ -86,9 +104,11 @@ export interface LoadoutCardProps {
     manifest: Record<number, any>;
     characters: Record<string, any>;
     equipState: EquipState;
+    validation?: LoadoutValidation;
     onEquip: (loadout: ILoadout, targetCharacterId: string) => void;
     onEdit: (loadout: ILoadout) => void;
     onDelete: (loadout: ILoadout) => void;
+    onUpdateNotes?: (loadout: ILoadout, notes: string) => void;
 }
 
 // ============================================================================
@@ -99,7 +119,8 @@ const ItemTile: React.FC<{
     item: ILoadoutItem;
     manifest: Record<number, any>;
     size?: 'sm' | 'lg';
-}> = ({ item, manifest, size = 'sm' }) => {
+    validation?: ItemValidation;
+}> = ({ item, manifest, size = 'sm', validation }) => {
     const def = manifest[item.itemHash];
     const icon = def?.displayProperties?.icon;
     const name = def?.displayProperties?.name || item.label || 'Unknown';
@@ -116,21 +137,25 @@ const ItemTile: React.FC<{
 
     const sizeClass = size === 'lg' ? 'w-14 h-14' : 'w-11 h-11';
 
+    // Validation overlay
+    const isMissing = validation?.status === 'missing';
+    const isRemote = validation?.status === 'remote';
+
     return (
-        <div className="group/tile relative" title={name}>
+        <div className="group/tile relative" title={isMissing ? `${name} — MISSING` : isRemote ? `${name} — on another character` : name}>
             <div
                 className={cn(
                     sizeClass,
                     'rounded border bg-void-surface overflow-hidden flex-shrink-0 transition-all',
                     'group-hover/tile:brightness-110',
-                    rarityBorder,
+                    isMissing ? 'border-red-500/60 opacity-50' : isRemote ? 'border-amber-500/40' : rarityBorder,
                 )}
             >
                 {icon ? (
                     <img
                         src={`https://www.bungie.net${icon}`}
                         alt={name}
-                        className="w-full h-full object-cover"
+                        className={cn('w-full h-full object-cover', isMissing && 'grayscale')}
                         loading="lazy"
                     />
                 ) : (
@@ -140,10 +165,22 @@ const ItemTile: React.FC<{
                 )}
             </div>
             {/* Power badge */}
-            {item.power && item.power > 0 && (
+            {item.power && item.power > 0 && !isMissing && (
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 py-px text-[7px] font-mono font-bold text-white/80 bg-black/90 border border-white/10 rounded-sm leading-none whitespace-nowrap">
                     {item.power}
                 </span>
+            )}
+            {/* Missing indicator */}
+            {isMissing && (
+                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500/90 rounded-full flex items-center justify-center">
+                    <AlertTriangle size={7} className="text-white" />
+                </div>
+            )}
+            {/* Remote indicator */}
+            {isRemote && (
+                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500/90 rounded-full flex items-center justify-center">
+                    <ArrowRight size={7} className="text-white" />
+                </div>
             )}
         </div>
     );
@@ -178,6 +215,62 @@ const SectionTag: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 // ============================================================================
+// PLUG ICON ROW — Shows a row of socket plug icons (Aspects, Fragments, Mods)
+// ============================================================================
+
+const PlugIconRow: React.FC<{
+    plugHashes: number[];
+    definitions: Record<string, any>;
+    label: string;
+    maxDisplay?: number;
+}> = ({ plugHashes, definitions, label, maxDisplay = 10 }) => {
+    if (plugHashes.length === 0) return null;
+
+    const displayHashes = plugHashes.slice(0, maxDisplay);
+    const overflow = plugHashes.length - maxDisplay;
+
+    return (
+        <div className="flex items-center gap-1.5">
+            <span className="text-[7px] text-gray-600 uppercase tracking-[0.2em] font-bold font-rajdhani w-14 flex-shrink-0 text-right">
+                {label}
+            </span>
+            <div className="flex items-center gap-1 flex-wrap">
+                {displayHashes.map((hash, idx) => {
+                    const def = definitions[hash.toString()];
+                    const icon = def?.displayProperties?.icon;
+                    const name = def?.displayProperties?.name || `Plug ${hash}`;
+                    return (
+                        <div
+                            key={`${hash}-${idx}`}
+                            className="w-6 h-6 rounded-sm border border-white/10 bg-void-surface overflow-hidden flex-shrink-0"
+                            title={name}
+                        >
+                            {icon ? (
+                                <img
+                                    src={`https://www.bungie.net${icon}`}
+                                    alt={name}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+                {overflow > 0 && (
+                    <span className="text-[8px] text-gray-600 font-mono">
+                        +{overflow}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ============================================================================
 // LOADOUT CARD
 // ============================================================================
 
@@ -186,13 +279,18 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
     manifest,
     characters,
     equipState,
+    validation,
     onEquip,
     onEdit,
     onDelete,
+    onUpdateNotes,
 }) => {
     const [showEquipPicker, setShowEquipPicker] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [editingNotes, setEditingNotes] = useState(false);
+    const [notesValue, setNotesValue] = useState(loadout.notes || '');
     const pickerRef = useRef<HTMLDivElement>(null);
+    const notesRef = useRef<HTMLTextAreaElement>(null);
 
     const isThisEquipping =
         equipState.status === 'loading' && equipState.loadoutId === loadout.id;
@@ -204,6 +302,55 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
 
     const classColors = CLASS_COLORS[loadout.characterClass] || DEFAULT_CLASS;
     const charList = useMemo(() => Object.values(characters) as any[], [characters]);
+
+    // ── Collect all plug hashes that need definition lookups ──
+    const subclassItem = useMemo(
+        () => loadout.items.find((i) => i.bucketHash === BucketHashes.Subclass) || null,
+        [loadout.items],
+    );
+
+    const subclassPlugHashes = useMemo(() => {
+        if (!subclassItem?.socketOverrides) return [];
+        return Object.values(subclassItem.socketOverrides);
+    }, [subclassItem]);
+
+    const modHashes = useMemo(() => {
+        if (!loadout.modsByBucket) return [];
+        return Object.values(loadout.modsByBucket).flat();
+    }, [loadout.modsByBucket]);
+
+    // Fashion plug hashes: socketOverrides on non-subclass items (ornaments, shaders)
+    const fashionHashes = useMemo(() => {
+        const hashes: number[] = [];
+        for (const item of loadout.items) {
+            if (item.bucketHash === BucketHashes.Subclass) continue;
+            if (!item.socketOverrides) continue;
+            for (const hash of Object.values(item.socketOverrides)) {
+                hashes.push(hash);
+            }
+        }
+        return hashes;
+    }, [loadout.items]);
+
+    // All unique plug hashes for JIT definition fetch
+    const allPlugHashes = useMemo(() => {
+        const set = new Set([...subclassPlugHashes, ...modHashes, ...fashionHashes]);
+        return Array.from(set);
+    }, [subclassPlugHashes, modHashes, fashionHashes]);
+
+    // Hydrate definitions for socket plugs (subclass aspects/fragments + mods)
+    const { definitions: plugDefs } = useDefinitions(
+        'DestinyInventoryItemDefinition',
+        allPlugHashes,
+    );
+
+    // ── Validation summary ──
+    const validationSummary = useMemo(() => {
+        if (!validation) return null;
+        const missingCount = Object.values(validation.items).filter(v => v.status === 'missing').length;
+        const remoteCount = Object.values(validation.items).filter(v => v.status === 'remote').length;
+        return { missingCount, remoteCount, classMismatch: validation.classMismatch };
+    }, [validation]);
 
     // Categorize items
     const weapons = useMemo(
@@ -226,11 +373,6 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
         [loadout.items],
     );
 
-    const subclassItem = useMemo(
-        () => loadout.items.find((i) => !ALL_GEAR_BUCKETS.has(i.bucketHash)) || null,
-        [loadout.items],
-    );
-
     // Close equip picker on outside click
     useEffect(() => {
         if (!showEquipPicker) return;
@@ -250,6 +392,14 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
         return () => clearTimeout(timer);
     }, [confirmDelete]);
 
+    // Focus notes textarea when editing starts
+    useEffect(() => {
+        if (editingNotes && notesRef.current) {
+            notesRef.current.focus();
+            notesRef.current.selectionStart = notesRef.current.value.length;
+        }
+    }, [editingNotes]);
+
     const handleEquipOnChar = useCallback(
         (charId: string) => {
             setShowEquipPicker(false);
@@ -257,6 +407,17 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
         },
         [loadout, onEquip],
     );
+
+    const handleSaveNotes = useCallback(() => {
+        const trimmed = notesValue.trim();
+        onUpdateNotes?.(loadout, trimmed);
+        setEditingNotes(false);
+    }, [loadout, notesValue, onUpdateNotes]);
+
+    const handleCancelNotes = useCallback(() => {
+        setNotesValue(loadout.notes || '');
+        setEditingNotes(false);
+    }, [loadout.notes]);
 
     // Resolve subclass name for display
     const subclassName = subclassItem
@@ -338,6 +499,30 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                 )}
             </div>
 
+            {/* ── VALIDATION WARNINGS ───────────────────────────── */}
+            {validationSummary && (validationSummary.missingCount > 0 || validationSummary.remoteCount > 0 || validationSummary.classMismatch) && (
+                <div className="px-4 py-2 border-b border-white/5 flex items-center gap-3 flex-wrap">
+                    {validationSummary.classMismatch && (
+                        <span className="flex items-center gap-1 text-[9px] text-red-400 font-mono font-bold">
+                            <AlertTriangle size={10} />
+                            Class mismatch
+                        </span>
+                    )}
+                    {validationSummary.missingCount > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-red-400 font-mono">
+                            <AlertTriangle size={10} />
+                            {validationSummary.missingCount} missing
+                        </span>
+                    )}
+                    {validationSummary.remoteCount > 0 && (
+                        <span className="flex items-center gap-1 text-[9px] text-amber-400 font-mono">
+                            <ArrowRight size={10} />
+                            {validationSummary.remoteCount} need transfer
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* ── BODY: Gear Grid ───────────────────────────────── */}
             <div className="px-4 py-4">
                 <div className="flex items-start gap-6">
@@ -350,6 +535,7 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                                     item={subclassItem}
                                     manifest={manifest}
                                     size="lg"
+                                    validation={validation?.items[subclassItem.itemInstanceId]}
                                 />
                                 <span className="text-[8px] text-gray-500 font-mono truncate max-w-[56px] text-center leading-tight">
                                     {subclassName}
@@ -370,7 +556,11 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                             {weapons.map(({ bucket, label, item }) => (
                                 <div key={bucket} className="flex flex-col items-center gap-1">
                                     {item ? (
-                                        <ItemTile item={item} manifest={manifest} />
+                                        <ItemTile
+                                            item={item}
+                                            manifest={manifest}
+                                            validation={validation?.items[item.itemInstanceId]}
+                                        />
                                     ) : (
                                         <EmptySlot />
                                     )}
@@ -392,7 +582,11 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                             {armor.map(({ bucket, label, item }) => (
                                 <div key={bucket} className="flex flex-col items-center gap-1">
                                     {item ? (
-                                        <ItemTile item={item} manifest={manifest} />
+                                        <ItemTile
+                                            item={item}
+                                            manifest={manifest}
+                                            validation={validation?.items[item.itemInstanceId]}
+                                        />
                                     ) : (
                                         <EmptySlot />
                                     )}
@@ -404,7 +598,92 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                         </div>
                     </div>
                 </div>
+
+                {/* ── Subclass Socket Overrides (Aspects / Fragments) ── */}
+                {subclassPlugHashes.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+                        <PlugIconRow
+                            plugHashes={subclassPlugHashes}
+                            definitions={plugDefs}
+                            label="Config"
+                        />
+                    </div>
+                )}
+
+                {/* ── Armor Mods ── */}
+                {modHashes.length > 0 && (
+                    <div className={cn('mt-3 pt-3 border-t border-white/5 space-y-1.5', !subclassPlugHashes.length && 'mt-3')}>
+                        <PlugIconRow
+                            plugHashes={modHashes}
+                            definitions={plugDefs}
+                            label="Mods"
+                        />
+                    </div>
+                )}
+
+                {/* ── Fashion (Ornaments + Shaders) ── */}
+                {fashionHashes.length > 0 && (
+                    <div className={cn('mt-3 pt-3 border-t border-white/5 space-y-1.5', !subclassPlugHashes.length && !modHashes.length && 'mt-3')}>
+                        <PlugIconRow
+                            plugHashes={fashionHashes}
+                            definitions={plugDefs}
+                            label="Fashion"
+                        />
+                    </div>
+                )}
             </div>
+
+            {/* ── NOTES ─────────────────────────────────────────── */}
+            {(loadout.notes || editingNotes) && (
+                <div className="px-4 pb-3">
+                    {editingNotes ? (
+                        <div className="space-y-2">
+                            <textarea
+                                ref={notesRef}
+                                value={notesValue}
+                                onChange={(e) => setNotesValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSaveNotes();
+                                    if (e.key === 'Escape') handleCancelNotes();
+                                }}
+                                placeholder="Add notes about this loadout..."
+                                maxLength={500}
+                                rows={3}
+                                className="w-full bg-white/5 border border-white/15 rounded-sm px-2.5 py-2 text-[11px] text-gray-300 placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors font-mono resize-none"
+                            />
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    onClick={handleSaveNotes}
+                                    className="flex items-center gap-1 px-2 py-1 text-[9px] font-bold text-emerald-400 border border-emerald-400/30 rounded-sm hover:bg-emerald-400/10 transition-colors uppercase tracking-wider font-rajdhani"
+                                >
+                                    <Save size={9} />
+                                    Save
+                                </button>
+                                <button
+                                    onClick={handleCancelNotes}
+                                    className="px-2 py-1 text-[9px] font-bold text-gray-500 border border-white/10 rounded-sm hover:text-white hover:bg-white/5 transition-colors uppercase tracking-wider font-rajdhani"
+                                >
+                                    Cancel
+                                </button>
+                                <span className="ml-auto text-[8px] text-gray-700 font-mono">
+                                    {notesValue.length}/500 · Ctrl+Enter to save
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            className="flex items-start gap-2 group/notes cursor-pointer"
+                            onClick={() => { setNotesValue(loadout.notes || ''); setEditingNotes(true); }}
+                            title="Click to edit notes"
+                        >
+                            <FileText size={10} className="text-gray-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-[10px] text-gray-500 font-mono leading-relaxed break-words group-hover/notes:text-gray-400 transition-colors">
+                                {loadout.notes}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ── FOOTER: Actions ───────────────────────────────── */}
             <div className="flex items-center gap-2 px-4 py-2.5 border-t border-white/5">
@@ -415,7 +694,8 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                             onClick={() =>
                                 charList[0] && handleEquipOnChar(charList[0].characterId)
                             }
-                            disabled={isThisEquipping || charList.length === 0}
+                            disabled={isThisEquipping || charList.length === 0 || !!validationSummary?.classMismatch}
+                            title={validationSummary?.classMismatch ? 'Cannot equip: class mismatch' : undefined}
                             className={cn(
                                 'flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all font-rajdhani',
                                 'border border-white/10 text-gray-300 bg-white/[0.03]',
@@ -453,31 +733,44 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
 
                             {showEquipPicker && (
                                 <div className="absolute bottom-full left-0 mb-1 bg-[#0a0a0a] border border-white/15 rounded-sm shadow-2xl overflow-hidden z-10 min-w-[170px]">
-                                    {charList.map((char: any) => (
-                                        <button
-                                            key={char.characterId}
-                                            onClick={() =>
-                                                handleEquipOnChar(char.characterId)
-                                            }
-                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-[10px] text-gray-400 hover:bg-white/5 hover:text-white transition-colors text-left"
-                                        >
-                                            {char.emblemPath ? (
-                                                <img
-                                                    src={`https://www.bungie.net${char.emblemPath}`}
-                                                    className="w-5 h-5 rounded-sm object-cover bg-gray-800"
-                                                    alt=""
-                                                />
-                                            ) : (
-                                                <Shield size={14} className="text-gray-600" />
-                                            )}
-                                            <span className="font-bold font-rajdhani tracking-wide uppercase">
-                                                {CLASS_NAMES[char.classType] ?? 'Guardian'}
-                                            </span>
-                                            <span className="ml-auto text-[9px] text-gray-600 font-mono">
-                                                {char.light}
-                                            </span>
-                                        </button>
-                                    ))}
+                                    {charList.map((char: any) => {
+                                        const isMismatch = loadout.characterClass >= 0 && char.classType !== loadout.characterClass;
+                                        return (
+                                            <button
+                                                key={char.characterId}
+                                                onClick={() =>
+                                                    handleEquipOnChar(char.characterId)
+                                                }
+                                                disabled={isMismatch}
+                                                className={cn(
+                                                    'w-full flex items-center gap-2.5 px-3 py-2 text-[10px] transition-colors text-left',
+                                                    isMismatch
+                                                        ? 'text-gray-600 cursor-not-allowed'
+                                                        : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                                                )}
+                                                title={isMismatch ? 'Class mismatch' : undefined}
+                                            >
+                                                {char.emblemPath ? (
+                                                    <img
+                                                        src={`https://www.bungie.net${char.emblemPath}`}
+                                                        className={cn('w-5 h-5 rounded-sm object-cover bg-gray-800', isMismatch && 'opacity-30')}
+                                                        alt=""
+                                                    />
+                                                ) : (
+                                                    <Shield size={14} className="text-gray-600" />
+                                                )}
+                                                <span className="font-bold font-rajdhani tracking-wide uppercase">
+                                                    {CLASS_NAMES[char.classType] ?? 'Guardian'}
+                                                </span>
+                                                {isMismatch && (
+                                                    <span className="text-[8px] text-red-400/60 font-mono ml-1">mismatch</span>
+                                                )}
+                                                <span className="ml-auto text-[9px] text-gray-600 font-mono">
+                                                    {char.light}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </>
@@ -496,6 +789,23 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                     <Pencil size={10} />
                     Edit
                 </button>
+
+                {/* Notes toggle */}
+                {onUpdateNotes && !editingNotes && (
+                    <button
+                        onClick={() => { setNotesValue(loadout.notes || ''); setEditingNotes(true); }}
+                        className={cn(
+                            'flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all font-rajdhani',
+                            'border border-white/10 text-gray-500',
+                            'hover:text-white hover:border-white/20 hover:bg-white/5',
+                            loadout.notes && 'text-gray-400',
+                        )}
+                        title={loadout.notes ? 'Edit notes' : 'Add notes'}
+                    >
+                        <FileText size={10} />
+                        Notes
+                    </button>
+                )}
 
                 {/* Spacer */}
                 <div className="flex-1" />

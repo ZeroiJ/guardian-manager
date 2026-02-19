@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useInventoryStore } from './useInventoryStore';
+import { BucketHashes, EMPTY_PLUG_HASHES, SocketCategoryHashes } from '@/lib/destiny-constants';
 
 // ============================================================================
 // TYPES
@@ -29,6 +30,13 @@ export interface ILoadoutItem {
     label?: string;
     /** Power level at time of snapshot. Cosmetic only. */
     power?: number;
+    /**
+     * Socket overrides: socketIndex -> plugItemHash.
+     * Used for subclass configuration (Aspects, Fragments, Super, Abilities)
+     * and cosmetic overrides (Ornaments, Shaders).
+     * Ported from DIM: dim-api-types/loadouts.ts -> LoadoutItem.socketOverrides
+     */
+    socketOverrides?: Record<number, number>;
 }
 
 /**
@@ -49,8 +57,123 @@ export interface ILoadout {
     createdAt: number;
     /** Unix timestamp (ms) of the last modification. */
     updatedAt: number;
-    /** Optional user notes. */
+    /** Optional user notes describing the loadout purpose. */
     notes?: string;
+    /**
+     * Mod hashes grouped by armor bucket hash.
+     * e.g. { 3448274439: [modHash1, modHash2], ... }
+     * Ported from DIM: app/loadout/loadout-types.ts -> Loadout.parameters.modsByBucket
+     */
+    modsByBucket?: Record<number, number[]>;
+}
+
+// ============================================================================
+// SOCKET CAPTURE HELPERS
+// ============================================================================
+
+/** Bucket hashes for armor pieces that can have mods. */
+const ARMOR_MOD_BUCKETS = new Set([
+    BucketHashes.Helmet,
+    BucketHashes.Gauntlets,
+    BucketHashes.ChestArmor,
+    BucketHashes.LegArmor,
+    BucketHashes.ClassArmor,
+]);
+
+/**
+ * Capture socket overrides from a subclass item's live socket data.
+ * Saves every non-empty plug (Super, Abilities, Aspects, Fragments).
+ *
+ * Ported from DIM: app/loadout-drawer/loadout-utils.ts -> createSocketOverridesFromEquipped
+ */
+function captureSubclassSocketOverrides(
+    item: { sockets?: { sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }> } }
+): Record<number, number> | undefined {
+    if (!item.sockets?.sockets) return undefined;
+
+    const overrides: Record<number, number> = {};
+    for (let i = 0; i < item.sockets.sockets.length; i++) {
+        const socket = item.sockets.sockets[i];
+        const plugHash = socket.plugHash;
+        // Save every non-empty, enabled plug
+        if (plugHash && !EMPTY_PLUG_HASHES.has(plugHash)) {
+            overrides[i] = plugHash;
+        }
+    }
+
+    return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+/**
+ * Extract mod plug hashes from an armor item's sockets.
+ * Filters to only "Modification" type sockets (ArmorMods category).
+ *
+ * Ported from DIM: app/loadout/loadout-types.ts -> modsByBucket concept
+ */
+function captureArmorMods(
+    item: { sockets?: { sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }> } },
+    definition: any
+): number[] {
+    if (!item.sockets?.sockets || !definition?.sockets?.socketCategories) return [];
+
+    // Find socket indices that belong to armor mod categories
+    const modSocketIndices = new Set<number>();
+    for (const cat of definition.sockets.socketCategories) {
+        if (
+            cat.socketCategoryHash === SocketCategoryHashes.ArmorMods ||
+            cat.socketCategoryHash === SocketCategoryHashes.ArmorPerks_Reusable
+        ) {
+            for (const idx of cat.socketIndexes) {
+                modSocketIndices.add(idx);
+            }
+        }
+    }
+
+    const mods: number[] = [];
+    for (const idx of modSocketIndices) {
+        const socket = item.sockets.sockets[idx];
+        if (socket?.plugHash && !EMPTY_PLUG_HASHES.has(socket.plugHash)) {
+            mods.push(socket.plugHash);
+        }
+    }
+
+    return mods;
+}
+
+/**
+ * Capture cosmetic socket overrides (Ornaments + Shaders) from a weapon or armor item.
+ * Uses the same socketOverrides format as subclass to avoid duplicate fields.
+ *
+ * Ported from DIM: app/loadout-drawer/loadout-item-conversion.ts
+ */
+function captureFashionOverrides(
+    item: { sockets?: { sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }> } },
+    definition: any
+): Record<number, number> | undefined {
+    if (!item.sockets?.sockets || !definition?.sockets?.socketCategories) return undefined;
+
+    // Find socket indices belonging to cosmetic categories
+    const cosmeticIndices = new Set<number>();
+    for (const cat of definition.sockets.socketCategories) {
+        if (
+            cat.socketCategoryHash === SocketCategoryHashes.ArmorCosmetics ||
+            cat.socketCategoryHash === SocketCategoryHashes.WeaponCosmetics
+        ) {
+            for (const idx of cat.socketIndexes) {
+                cosmeticIndices.add(idx);
+            }
+        }
+    }
+
+    const overrides: Record<number, number> = {};
+    for (const idx of cosmeticIndices) {
+        const socket = item.sockets.sockets[idx];
+        if (socket?.plugHash && !EMPTY_PLUG_HASHES.has(socket.plugHash)) {
+            overrides[idx] = socket.plugHash;
+        }
+    }
+
+    return Object.keys(overrides).length > 0 ? overrides : undefined;
 }
 
 // ============================================================================
@@ -155,18 +278,51 @@ export const useLoadoutStore = create<LoadoutState>()(
                 }
 
                 // 2. Map raw GuardianItems → strict ILoadoutItem shape.
+                //    Capture socket overrides for subclass + cosmetics, and mods for armor.
+                const modsByBucket: Record<number, number[]> = {};
                 const loadoutItems: ILoadoutItem[] = equippedItems.map((item) => {
                     const def = manifest[item.itemHash];
-                    return {
+                    const bucketHash =
+                        item.bucketHash ||
+                        (def?.inventory as any)?.bucketTypeHash ||
+                        0;
+
+                    const loadoutItem: ILoadoutItem = {
                         itemInstanceId: item.itemInstanceId!, // asserted non-null by filter above
                         itemHash: item.itemHash,
-                        bucketHash:
-                            item.bucketHash ||
-                            (def?.inventory as any)?.bucketTypeHash ||
-                            0,
+                        bucketHash,
                         label: def?.displayProperties?.name,
                         power: item.instanceData?.primaryStat?.value,
                     };
+
+                    // Capture subclass socket overrides (Aspects, Fragments, Super, Abilities)
+                    if (bucketHash === BucketHashes.Subclass) {
+                        const overrides = captureSubclassSocketOverrides(item);
+                        if (overrides) {
+                            loadoutItem.socketOverrides = overrides;
+                        }
+                    }
+
+                    // Capture armor mods
+                    if (ARMOR_MOD_BUCKETS.has(bucketHash) && def) {
+                        const mods = captureArmorMods(item, def);
+                        if (mods.length > 0) {
+                            modsByBucket[bucketHash] = mods;
+                        }
+                    }
+
+                    // Capture fashion overrides (Ornaments + Shaders) for weapons and armor
+                    if (bucketHash !== BucketHashes.Subclass && def) {
+                        const fashionOverrides = captureFashionOverrides(item, def);
+                        if (fashionOverrides) {
+                            loadoutItem.socketOverrides = {
+                                ...loadoutItem.socketOverrides,
+                                ...fashionOverrides,
+                            };
+                        }
+                    }
+
+                    return loadoutItem;
                 });
 
                 // 3. Resolve the character class type from the characters map.
@@ -186,6 +342,7 @@ export const useLoadoutStore = create<LoadoutState>()(
                     items: loadoutItems,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
+                    modsByBucket: Object.keys(modsByBucket).length > 0 ? modsByBucket : undefined,
                 };
 
                 set((state) => ({
@@ -193,9 +350,12 @@ export const useLoadoutStore = create<LoadoutState>()(
                     loadouts: [newLoadout, ...state.loadouts],
                 }));
 
+                const fashionCount = loadoutItems.filter(i => i.socketOverrides && i.bucketHash !== BucketHashes.Subclass).length;
                 console.log(
                     `[LoadoutStore] Snapshot saved: "${newLoadout.name}" ` +
-                    `(${loadoutItems.length} items, char ${characterId})`
+                    `(${loadoutItems.length} items, char ${characterId})` +
+                    (newLoadout.modsByBucket ? `, mods: ${Object.values(newLoadout.modsByBucket).flat().length}` : '') +
+                    (fashionCount > 0 ? `, fashion: ${fashionCount} items` : '')
                 );
 
                 return newLoadout;
@@ -248,7 +408,27 @@ export const useLoadoutStore = create<LoadoutState>()(
         }),
         {
             name: 'guardian-nexus-loadouts', // localStorage key
-            version: 1,
+            version: 2,
+            // Migrate from v1 (no socketOverrides/modsByBucket) to v2
+            migrate: (persisted: any, version: number) => {
+                if (version < 2) {
+                    // Old loadouts: items have no socketOverrides, loadout has no modsByBucket.
+                    // No data to add — just ensure the shape is valid.
+                    const state = persisted as Partial<LoadoutState>;
+                    return {
+                        ...state,
+                        loadouts: (state.loadouts || []).map((l: any) => ({
+                            ...l,
+                            modsByBucket: l.modsByBucket || undefined,
+                            items: (l.items || []).map((i: any) => ({
+                                ...i,
+                                socketOverrides: i.socketOverrides || undefined,
+                            })),
+                        })),
+                    };
+                }
+                return persisted as LoadoutState;
+            },
             // Merge strategy: on version mismatch, keep any valid loadouts
             // and discard unknown fields gracefully.
             merge: (persisted, current) => {
@@ -291,6 +471,63 @@ export const CLASS_NAMES: Record<number, string> = {
     1: 'Hunter',
     2: 'Warlock',
 };
+
+// ============================================================================
+// VALIDATION — Pre-equip checks
+// ============================================================================
+
+import type { ItemValidation, LoadoutValidation } from '@/components/loadouts/LoadoutCard';
+import type { GuardianItem } from '@/services/profile/types';
+
+/**
+ * Validates a loadout against the current inventory state.
+ * Checks whether each item exists, is on the target character, or needs transfer.
+ *
+ * Ported from DIM: app/loadout-drawer/loadout-utils.ts -> getUnequippableItems
+ *
+ * @param loadout        The loadout to validate
+ * @param allItems       All items from the inventory store
+ * @param targetCharId   The character to validate against (defaults to loadout's character)
+ */
+export function validateLoadout(
+    loadout: ILoadout,
+    allItems: GuardianItem[],
+    targetCharId?: string
+): LoadoutValidation {
+    const charId = targetCharId || loadout.characterId;
+    const items: Record<string, ItemValidation> = {};
+
+    for (const loadoutItem of loadout.items) {
+        const liveItem = allItems.find(
+            (i) => i.itemInstanceId === loadoutItem.itemInstanceId
+        );
+
+        if (!liveItem) {
+            // Item not found — may have been deleted or dismantled
+            items[loadoutItem.itemInstanceId] = { status: 'missing' };
+        } else if (liveItem.owner !== charId) {
+            // Item exists but on another character or in the vault
+            items[loadoutItem.itemInstanceId] = {
+                status: 'remote',
+                owner: liveItem.owner,
+            };
+        } else {
+            items[loadoutItem.itemInstanceId] = { status: 'ok' };
+        }
+    }
+
+    // Check class mismatch
+    const classMismatch =
+        loadout.characterClass >= 0 &&
+        (() => {
+            // Find the target character's class from inventory store
+            const { characters } = useInventoryStore.getState();
+            const targetChar = characters[charId];
+            return targetChar != null && targetChar.classType !== loadout.characterClass;
+        })();
+
+    return { items, classMismatch };
+}
 
 /** Returns a formatted date string for a loadout timestamp. */
 export const formatLoadoutDate = (timestamp: number): string => {

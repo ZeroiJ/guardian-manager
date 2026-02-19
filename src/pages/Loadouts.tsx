@@ -15,11 +15,12 @@ import {
     ILoadout,
     CLASS_NAMES,
     selectLoadoutsGroupedByClass,
+    validateLoadout,
 } from '@/store/loadoutStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { applyLoadout } from '@/lib/bungie/equipManager';
 import { Navigation } from '@/components/Navigation';
-import { LoadoutCard, type EquipState } from '@/components/loadouts/LoadoutCard';
+import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
 
 // ============================================================================
 // CLASS FILTER COLORS
@@ -61,9 +62,11 @@ export default function Loadouts() {
     // ── Store ──────────────────────────────────────────────
     const loadouts = useLoadoutStore((s) => s.loadouts);
     const deleteLoadout = useLoadoutStore((s) => s.deleteLoadout);
+    const updateNotes = useLoadoutStore((s) => s.updateNotes);
 
     const manifest = useInventoryStore((s) => s.manifest);
     const characters = useInventoryStore((s) => s.characters);
+    const allItems = useInventoryStore((s) => s.items);
 
     // ── Local state ────────────────────────────────────────
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });
@@ -93,6 +96,15 @@ export default function Loadouts() {
         return loadouts.filter((l) => l.characterClass === filterClass);
     }, [loadouts, filterClass]);
 
+    // Pre-compute validation for all visible loadouts
+    const validations = useMemo(() => {
+        const map: Record<string, LoadoutValidation> = {};
+        for (const loadout of filteredLoadouts) {
+            map[loadout.id] = validateLoadout(loadout, allItems);
+        }
+        return map;
+    }, [filteredLoadouts, allItems]);
+
     // ── Handlers ───────────────────────────────────────────
     const handleEquip = useCallback(
         async (loadout: ILoadout, targetCharacterId: string) => {
@@ -118,6 +130,13 @@ export default function Loadouts() {
             deleteLoadout(loadout.id);
         },
         [deleteLoadout],
+    );
+
+    const handleUpdateNotes = useCallback(
+        (loadout: ILoadout, notes: string) => {
+            updateNotes(loadout.id, notes);
+        },
+        [updateNotes],
     );
 
     // ── Render ─────────────────────────────────────────────
@@ -214,9 +233,11 @@ export default function Loadouts() {
                                 manifest={manifest}
                                 characters={characters}
                                 equipState={equipState}
+                                validation={validations[loadout.id]}
                                 onEquip={handleEquip}
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}
+                                onUpdateNotes={handleUpdateNotes}
                             />
                         ))}
                     </div>
