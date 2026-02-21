@@ -22,6 +22,7 @@ import { applyLoadout } from '@/lib/bungie/equipManager';
 import { Navigation } from '@/components/Navigation';
 import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
 import { LoadoutEditorDrawer } from '@/components/loadouts/LoadoutEditorDrawer';
+import { CreateLoadoutModal } from '@/components/loadouts/CreateLoadoutModal';
 
 // ============================================================================
 // CLASS FILTER COLORS
@@ -37,7 +38,7 @@ const CLASS_COLORS: Record<number, { text: string; border: string; bg: string }>
 // EMPTY STATE
 // ============================================================================
 
-const EmptyState: React.FC = () => (
+const EmptyState: React.FC<{ onCreateClick: () => void }> = ({ onCreateClick }) => (
     <div className="flex flex-col items-center justify-center py-24 px-4">
         <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
             <Swords size={28} className="text-gray-600" />
@@ -45,13 +46,19 @@ const EmptyState: React.FC = () => (
         <h2 className="text-xl font-bold text-gray-300 font-rajdhani tracking-wide uppercase mb-2">
             No Saved Loadouts
         </h2>
-        <p className="text-sm text-gray-600 text-center max-w-sm leading-relaxed">
+        <p className="text-sm text-gray-600 text-center max-w-sm leading-relaxed mb-8">
             Head to the{' '}
             <Link to="/" className="text-white underline underline-offset-2 hover:no-underline">
                 Inventory
             </Link>{' '}
             page, equip the gear you want, then open the Loadouts sidebar to snapshot your setup.
         </p>
+        <button
+            onClick={onCreateClick}
+            className="px-6 py-3 bg-white text-black font-rajdhani font-bold uppercase tracking-widest text-sm hover:bg-gray-200 transition-colors rounded-sm"
+        >
+            Create Loadout
+        </button>
     </div>
 );
 
@@ -64,6 +71,7 @@ export default function Loadouts() {
     const loadouts = useLoadoutStore((s) => s.loadouts);
     const deleteLoadout = useLoadoutStore((s) => s.deleteLoadout);
     const updateNotes = useLoadoutStore((s) => s.updateNotes);
+    const saveCurrentLoadout = useLoadoutStore((s) => s.saveCurrentLoadout);
 
     const manifest = useInventoryStore((s) => s.manifest);
     const characters = useInventoryStore((s) => s.characters);
@@ -73,6 +81,7 @@ export default function Loadouts() {
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });
     const [filterClass, setFilterClass] = useState<number | null>(null);
     const [editingLoadout, setEditingLoadout] = useState<ILoadout | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     // Reset equip feedback after 5s
     useEffect(() => {
@@ -140,6 +149,17 @@ export default function Loadouts() {
         [updateNotes],
     );
 
+    const handleCreateLoadout = useCallback(
+        (characterId: string) => {
+            const newLoadout = saveCurrentLoadout(characterId, 'New Loadout');
+            if (newLoadout) {
+                // Instantly open the editor so they can rename it / remove items
+                setEditingLoadout(newLoadout);
+            }
+        },
+        [saveCurrentLoadout],
+    );
+
     // ── Render ─────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-black text-white font-sans flex flex-col selection:bg-white selection:text-black">
@@ -167,9 +187,19 @@ export default function Loadouts() {
                         <h1 className="text-4xl font-bold uppercase tracking-[0.15em] text-white font-rajdhani leading-none">
                             Loadouts
                         </h1>
-                        <p className="text-[11px] text-gray-600 font-mono mt-2">
-                            {loadouts.length} saved build{loadouts.length !== 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                            <p className="text-[11px] text-gray-600 font-mono">
+                                {loadouts.length} saved build{loadouts.length !== 1 ? 's' : ''}
+                            </p>
+                            {loadouts.length > 0 && (
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="text-[10px] uppercase font-bold tracking-widest font-rajdhani text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30 px-2 py-0.5 rounded-sm"
+                                >
+                                    + Create New
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Class filter pills */}
@@ -211,7 +241,7 @@ export default function Loadouts() {
                 {/* Loadout Card List */}
                 {filteredLoadouts.length === 0 ? (
                     loadouts.length === 0 ? (
-                        <EmptyState />
+                        <EmptyState onCreateClick={() => setIsCreateModalOpen(true)} />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16">
                             <p className="text-sm text-gray-500 font-mono">
@@ -255,6 +285,12 @@ export default function Loadouts() {
             <LoadoutEditorDrawer
                 loadout={editingLoadout}
                 onClose={() => setEditingLoadout(null)}
+            />
+
+            <CreateLoadoutModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSelectCharacter={handleCreateLoadout}
             />
         </div>
     );
