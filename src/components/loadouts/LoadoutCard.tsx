@@ -39,8 +39,9 @@ import {
     formatLoadoutDate,
 } from '@/store/loadoutStore';
 import { BUCKETS } from '@/data/constants';
-import { BucketHashes } from '@/lib/destiny-constants';
+import { BucketHashes, StatHashes } from '@/lib/destiny-constants';
 import { useDefinitions } from '@/hooks/useDefinitions';
+import { useInventoryStore } from '@/store/useInventoryStore';
 import type { ApplyLoadoutResult } from '@/lib/bungie/equipManager';
 
 // ============================================================================
@@ -130,10 +131,10 @@ const ItemTile: React.FC<{
         tierType === 6
             ? 'border-rarity-exotic'
             : tierType === 5
-            ? 'border-rarity-legendary'
-            : tierType === 4
-            ? 'border-rarity-rare'
-            : 'border-white/15';
+                ? 'border-rarity-legendary'
+                : tierType === 4
+                    ? 'border-rarity-rare'
+                    : 'border-white/15';
 
     const sizeClass = size === 'lg' ? 'w-14 h-14' : 'w-11 h-11';
 
@@ -213,6 +214,82 @@ const SectionTag: React.FC<{ children: React.ReactNode }> = ({ children }) => (
         {children}
     </span>
 );
+
+// ============================================================================
+// LOADOUT STATS
+// ============================================================================
+
+const ARMOR_STATS = [
+    { hash: StatHashes.Mobility, name: 'Mobility' },
+    { hash: StatHashes.Resilience, name: 'Resilience' },
+    { hash: StatHashes.Recovery, name: 'Recovery' },
+    { hash: StatHashes.Discipline, name: 'Discipline' },
+    { hash: StatHashes.Intellect, name: 'Intellect' },
+    { hash: StatHashes.Strength, name: 'Strength' },
+];
+
+const LoadoutStats: React.FC<{ loadout: ILoadout; manifest: Record<number, any> }> = ({ loadout, manifest }) => {
+    const allItems = useInventoryStore(state => state.items);
+
+    // Calculate total stats
+    const statTotals = useMemo(() => {
+        const totals: Record<number, number> = {
+            [StatHashes.Mobility]: 0,
+            [StatHashes.Resilience]: 0,
+            [StatHashes.Recovery]: 0,
+            [StatHashes.Discipline]: 0,
+            [StatHashes.Intellect]: 0,
+            [StatHashes.Strength]: 0,
+        };
+
+        loadout.items.forEach(loadoutItem => {
+            // Only care about armor
+            if (!ARMOR_BUCKETS.includes(loadoutItem.bucketHash)) return;
+
+            const liveItem = allItems.find(i => i.itemInstanceId === loadoutItem.itemInstanceId);
+            if (liveItem?.stats && Object.keys(liveItem.stats).length > 0) {
+                // Live stats found
+                Object.values(liveItem.stats).forEach((s: any) => {
+                    if (s.statHash !== undefined && totals[s.statHash] !== undefined) {
+                        totals[s.statHash] += s.value;
+                    }
+                });
+            } else {
+                // Fallback to manifest investment stats
+                const def = manifest[loadoutItem.itemHash];
+                if (def?.investmentStats) {
+                    def.investmentStats.forEach((s: any) => {
+                        if (s.statTypeHash !== undefined && totals[s.statTypeHash] !== undefined) {
+                            totals[s.statTypeHash] += s.value;
+                        }
+                    });
+                }
+            }
+        });
+
+        return totals;
+    }, [loadout.items, allItems, manifest]);
+
+    return (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 w-full max-w-[200px]">
+            {ARMOR_STATS.map(stat => {
+                const value = statTotals[stat.hash] || 0;
+                // Cap visual tier at 100 max (10 tiers)
+                const tier = Math.min(Math.floor(value / 10), 10);
+
+                return (
+                    <div key={stat.hash} className="flex items-center justify-between text-[9px] font-mono">
+                        <span className="text-gray-500 uppercase tracking-widest font-rajdhani font-bold">{stat.name.substring(0, 3)}</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-white font-rajdhani font-bold text-[11px]">T{tier}</span>
+                            <span className="text-[8px] text-gray-600 w-4 text-right">{value}</span>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
 
 // ============================================================================
 // PLUG ICON ROW — Shows a row of socket plug icons (Aspects, Fragments, Mods)
@@ -296,7 +373,7 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
         equipState.status === 'loading' && equipState.loadoutId === loadout.id;
     const thisResult =
         (equipState.status === 'success' || equipState.status === 'error') &&
-        equipState.loadoutId === loadout.id
+            equipState.loadoutId === loadout.id
             ? equipState
             : null;
 
@@ -432,8 +509,8 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                 thisResult?.status === 'success'
                     ? 'border-emerald-500/30 bg-emerald-500/[0.03]'
                     : thisResult?.status === 'error'
-                    ? 'border-red-500/30 bg-red-500/[0.03]'
-                    : 'border-white/10 bg-void-surface hover:border-white/15',
+                        ? 'border-red-500/30 bg-red-500/[0.03]'
+                        : 'border-white/10 bg-void-surface hover:border-white/15',
             )}
         >
             {/* ── HEADER ────────────────────────────────────────── */}
@@ -449,10 +526,10 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                             loadout.characterClass === 0
                                 ? 'rgba(251,146,60,0.4)'
                                 : loadout.characterClass === 1
-                                ? 'rgba(34,211,238,0.4)'
-                                : loadout.characterClass === 2
-                                ? 'rgba(192,132,252,0.4)'
-                                : 'rgba(156,163,175,0.3)',
+                                    ? 'rgba(34,211,238,0.4)'
+                                    : loadout.characterClass === 2
+                                        ? 'rgba(192,132,252,0.4)'
+                                        : 'rgba(156,163,175,0.3)',
                     }}
                 />
 
@@ -525,36 +602,49 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
 
             {/* ── BODY: Gear Grid ───────────────────────────────── */}
             <div className="px-4 py-4">
-                <div className="flex items-start gap-6">
-                    {/* Subclass — large icon */}
-                    <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                        <SectionTag>Subclass</SectionTag>
-                        {subclassItem ? (
-                            <>
-                                <ItemTile
-                                    item={subclassItem}
-                                    manifest={manifest}
-                                    size="lg"
-                                    validation={validation?.items[subclassItem.itemInstanceId]}
-                                />
-                                <span className="text-[8px] text-gray-500 font-mono truncate max-w-[56px] text-center leading-tight">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4">
+                    {/* Column 1: Subclass & Stats */}
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-4">
+                            {subclassItem ? (
+                                <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                                    <ItemTile
+                                        item={subclassItem}
+                                        manifest={manifest}
+                                        size="lg"
+                                        validation={validation?.items[subclassItem.itemInstanceId]}
+                                    />
+                                </div>
+                            ) : (
+                                <EmptySlot size="lg" />
+                            )}
+                            <div className="flex-1 min-w-0 pt-0.5">
+                                <SectionTag>Subclass</SectionTag>
+                                <div className="text-[11px] text-gray-300 font-mono truncate leading-tight mt-1 mb-3">
                                     {subclassName}
-                                </span>
-                            </>
-                        ) : (
-                            <EmptySlot size="lg" />
+                                </div>
+                                <LoadoutStats loadout={loadout} manifest={manifest} />
+                            </div>
+                        </div>
+
+                        {/* Subclass Socket Overrides (Aspects / Fragments) */}
+                        {subclassPlugHashes.length > 0 && (
+                            <div className="pt-3 border-t border-white/5 space-y-1.5">
+                                <PlugIconRow
+                                    plugHashes={subclassPlugHashes}
+                                    definitions={plugDefs}
+                                    label="Config"
+                                />
+                            </div>
                         )}
                     </div>
 
-                    {/* Divider */}
-                    <div className="w-px self-stretch bg-white/5 flex-shrink-0 mt-4" />
-
-                    {/* Weapons strip */}
-                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                    {/* Column 2: Weapons */}
+                    <div className="flex flex-col gap-3 relative md:border-l md:border-white/5 md:pl-4">
                         <SectionTag>Weapons</SectionTag>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col gap-3">
                             {weapons.map(({ bucket, label, item }) => (
-                                <div key={bucket} className="flex flex-col items-center gap-1">
+                                <div key={bucket} className="flex items-center gap-3">
                                     {item ? (
                                         <ItemTile
                                             item={item}
@@ -564,23 +654,27 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                                     ) : (
                                         <EmptySlot />
                                     )}
-                                    <span className="text-[7px] text-gray-700 font-mono">
-                                        {label}
-                                    </span>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-[10px] text-gray-500 font-rajdhani uppercase tracking-widest leading-none">
+                                            {label}
+                                        </span>
+                                        {item && (
+                                            <span className="text-[11px] text-gray-300 font-mono truncate max-w-[140px] mt-1">
+                                                {manifest[item.itemHash]?.displayProperties?.name || item.label || 'Unknown'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Divider */}
-                    <div className="w-px self-stretch bg-white/5 flex-shrink-0 mt-4" />
-
-                    {/* Armor strip */}
-                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                    {/* Column 3: Armor */}
+                    <div className="flex flex-col gap-3 relative md:border-l md:border-white/5 md:pl-4">
                         <SectionTag>Armor</SectionTag>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col gap-3">
                             {armor.map(({ bucket, label, item }) => (
-                                <div key={bucket} className="flex flex-col items-center gap-1">
+                                <div key={bucket} className="flex items-center gap-3">
                                     {item ? (
                                         <ItemTile
                                             item={item}
@@ -590,45 +684,43 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                                     ) : (
                                         <EmptySlot />
                                     )}
-                                    <span className="text-[7px] text-gray-700 font-mono">
-                                        {label}
-                                    </span>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-[10px] text-gray-500 font-rajdhani uppercase tracking-widest leading-none">
+                                            {label}
+                                        </span>
+                                        {item && (
+                                            <span className="text-[11px] text-gray-300 font-mono truncate max-w-[140px] mt-1">
+                                                {manifest[item.itemHash]?.displayProperties?.name || item.label || 'Unknown'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* ── Subclass Socket Overrides (Aspects / Fragments) ── */}
-                {subclassPlugHashes.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
-                        <PlugIconRow
-                            plugHashes={subclassPlugHashes}
-                            definitions={plugDefs}
-                            label="Config"
-                        />
-                    </div>
-                )}
-
-                {/* ── Armor Mods ── */}
-                {modHashes.length > 0 && (
-                    <div className={cn('mt-3 pt-3 border-t border-white/5 space-y-1.5', !subclassPlugHashes.length && 'mt-3')}>
-                        <PlugIconRow
-                            plugHashes={modHashes}
-                            definitions={plugDefs}
-                            label="Mods"
-                        />
-                    </div>
-                )}
-
-                {/* ── Fashion (Ornaments + Shaders) ── */}
-                {fashionHashes.length > 0 && (
-                    <div className={cn('mt-3 pt-3 border-t border-white/5 space-y-1.5', !subclassPlugHashes.length && !modHashes.length && 'mt-3')}>
-                        <PlugIconRow
-                            plugHashes={fashionHashes}
-                            definitions={plugDefs}
-                            label="Fashion"
-                        />
+                {/* ── Mods & Fashion (Span across bottom) ── */}
+                {(modHashes.length > 0 || fashionHashes.length > 0) && (
+                    <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {modHashes.length > 0 && (
+                            <div className="space-y-1.5">
+                                <PlugIconRow
+                                    plugHashes={modHashes}
+                                    definitions={plugDefs}
+                                    label="Mods"
+                                />
+                            </div>
+                        )}
+                        {fashionHashes.length > 0 && (
+                            <div className="space-y-1.5">
+                                <PlugIconRow
+                                    plugHashes={fashionHashes}
+                                    definitions={plugDefs}
+                                    label="Fashion"
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -708,7 +800,7 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                             ) : (
                                 <Zap size={11} />
                             )}
-                            {isThisEquipping ? 'Equipping...' : 'Equip'}
+                            {isThisEquipping ? 'Transmatting...' : 'Equip'}
                         </button>
                     ) : (
                         <>
@@ -727,7 +819,7 @@ export const LoadoutCard: React.FC<LoadoutCardProps> = ({
                                 ) : (
                                     <Zap size={11} />
                                 )}
-                                {isThisEquipping ? 'Equipping...' : 'Equip'}
+                                {isThisEquipping ? 'Transmatting...' : 'Equip'}
                                 {!isThisEquipping && <ChevronDown size={9} />}
                             </button>
 
