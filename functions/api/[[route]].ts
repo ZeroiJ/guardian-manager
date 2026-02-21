@@ -9,7 +9,7 @@ export const runtime = "edge";
 const app = new Hono<{ Bindings: Env }>();
 
 // Middleware to inject Enviroment Bindings
-app.use("*", async (c, next) => {
+app.use("*", async (c: any, next: any) => {
   // In Cloudflare Pages, c.env is already populated by the adapter
   await next();
 });
@@ -18,17 +18,17 @@ app.use("*", async (c, next) => {
 // Credentials are now loaded from Env via getBungieConfig
 
 // DEBUG: Log all requests
-app.use("*", async (c, next) => {
+app.use("*", async (c: any, next: any) => {
   console.log(`[Hono] Request: ${c.req.method} ${c.req.path}`);
   await next();
 });
 
 // Explicitly use /api prefix instead of basePath to avoid ambiguity
-app.get("/api", (c) => {
+app.get("/api", (c: any) => {
   return c.text("Guardian Nexus API is running on Pages (Root)!");
 });
 
-app.get("/api/debug", (c) => {
+app.get("/api/debug", (c: any) => {
   return c.json({
     message: "Debug endpoint",
     path: c.req.path,
@@ -38,7 +38,7 @@ app.get("/api/debug", (c) => {
   });
 });
 
-app.get("/api/auth/login", (c) => {
+app.get("/api/auth/login", (c: any) => {
   const config = getBungieConfig(c.env);
   const state = crypto.randomUUID();
 
@@ -65,7 +65,7 @@ app.get("/api/auth/login", (c) => {
   return c.redirect(`${config.authUrl}?${params.toString()}`);
 });
 
-app.get("/api/auth/callback", async (c) => {
+app.get("/api/auth/callback", async (c: any) => {
   console.log("[OAuth Callback] Starting callback handler...");
 
   const config = getBungieConfig(c.env);
@@ -146,7 +146,7 @@ app.get("/api/auth/callback", async (c) => {
   return c.redirect("/dashboard");
 });
 
-app.get("/api/profile", async (c) => {
+app.get("/api/profile", async (c: any) => {
   console.log("[Profile API] Starting profile fetch...");
 
   const config = getBungieConfig(c.env);
@@ -297,7 +297,7 @@ app.get("/api/profile", async (c) => {
   return c.json(profileData.Response);
 });
 
-app.get("/api/manifest/version", async (c) => {
+app.get("/api/manifest/version", async (c: any) => {
   const config = getBungieConfig(c.env);
   const cacheKey = "manifest_version";
   const cached = await c.env.guardian_kv.get(cacheKey);
@@ -317,7 +317,7 @@ app.get("/api/manifest/version", async (c) => {
   }
 });
 
-app.get("/api/manifest/definitions/:table", async (c) => {
+app.get("/api/manifest/definitions/:table", async (c: any) => {
   const config = getBungieConfig(c.env);
   const table = c.req.param("table");
   const path = await getManifestTablePath(table, config.apiKey);
@@ -339,7 +339,7 @@ app.get("/api/manifest/definitions/:table", async (c) => {
 });
 
 // Image Proxy to bypass Bungie CDN issues
-app.get("/api/image", async (c) => {
+app.get("/api/image", async (c: any) => {
   const path = c.req.query("path");
   if (!path) return c.text("Missing path", 400);
 
@@ -358,7 +358,7 @@ app.get("/api/image", async (c) => {
   });
 });
 
-app.post("/api/actions/transfer", async (c) => {
+app.post("/api/actions/transfer", async (c: any) => {
   const config = getBungieConfig(c.env);
   const authCookie = getCookie(c, "bungie_auth");
   if (!authCookie) return c.text("Unauthorized", 401);
@@ -391,7 +391,7 @@ app.post("/api/actions/transfer", async (c) => {
   return c.json(data);
 });
 
-app.get("/api/metadata", async (c) => {
+app.get("/api/metadata", async (c: any) => {
   const authCookie = getCookie(c, "bungie_auth");
   if (!authCookie) return c.json({ tags: {}, notes: {} });
 
@@ -415,7 +415,7 @@ app.get("/api/metadata", async (c) => {
   });
 });
 
-app.post("/api/metadata", async (c) => {
+app.post("/api/metadata", async (c: any) => {
   const authCookie = getCookie(c, "bungie_auth");
   if (!authCookie) return c.text("Unauthorized", 401);
 
@@ -463,7 +463,50 @@ app.post("/api/metadata", async (c) => {
   return c.json({ success: true });
 });
 
-app.post("/api/actions/equip", async (c) => {
+app.post("/api/actions/insertPlugFree", async (c: any) => {
+  const config = getBungieConfig(c.env);
+  const authCookie = getCookie(c, "bungie_auth");
+  if (!authCookie) return c.text("Unauthorized", 401);
+
+  let session;
+  try {
+    session = JSON.parse(authCookie);
+  } catch {
+    return c.text("Invalid auth cookie", 401);
+  }
+
+  const access_token = session.t || session.access_token;
+
+  const body = (await c.req.json()) as any;
+
+  if (!body.itemId || !body.plug || !body.characterId || body.membershipType === undefined) {
+    return c.text("Missing required fields for insertPlugFree", 400);
+  }
+
+  const response = await fetch(
+    "https://www.bungie.net/Platform/Destiny2/Actions/Items/InsertSocketPlugFree/",
+    {
+      method: "POST",
+      headers: {
+        "X-API-Key": config.apiKey,
+        Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[InsertPlugFree] Bungie API error ${response.status}: ${errorText}`);
+    return c.text(errorText, response.status as any);
+  }
+
+  const data = await response.json();
+  return c.json(data);
+});
+
+app.post("/api/actions/equip", async (c: any) => {
   const config = getBungieConfig(c.env);
   const authCookie = getCookie(c, "bungie_auth");
   if (!authCookie) return c.text("Unauthorized", 401);
@@ -529,7 +572,7 @@ app.post("/api/actions/equip", async (c) => {
 });
 
 // Catch-all 404 handler
-app.all("*", (c) => {
+app.all("*", (c: any) => {
   return c.json(
     {
       error: "Not Found (Hono Catch-All)",

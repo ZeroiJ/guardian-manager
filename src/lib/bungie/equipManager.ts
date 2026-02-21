@@ -72,13 +72,13 @@ export interface EquipProgress {
 
 const EQUIP_FAILURE_LABELS: Array<[number, string]> = [
     [128, 'Not allowed in current activity'],
-    [64,  'Item is blocklisted'],
-    [32,  'Item is not loaded yet'],
-    [16,  'Item must be unwrapped first'],
-    [8,   'Character level too low'],
-    [4,   'Class or quest requirement not met'],
-    [2,   'Exotic conflict — another Exotic is already equipped'],
-    [1,   'Item cannot be equipped'],
+    [64, 'Item is blocklisted'],
+    [32, 'Item is not loaded yet'],
+    [16, 'Item must be unwrapped first'],
+    [8, 'Character level too low'],
+    [4, 'Class or quest requirement not met'],
+    [2, 'Exotic conflict — another Exotic is already equipped'],
+    [1, 'Item cannot be equipped'],
 ];
 
 /**
@@ -182,6 +182,26 @@ interface BungieEquipItemsResponse {
     Message?: string;
 }
 
+interface TransferItemBody {
+    itemReferenceHash: number;
+    stackSize: number;
+    transferToVault: boolean;
+    itemId: string;
+    characterId: string;
+    membershipType: number;
+}
+
+interface InsertPlugFreeBody {
+    itemId: string;
+    plug: {
+        socketIndex: number;
+        socketArrayType: number;
+        plugItemHash: number;
+    };
+    characterId: string;
+    membershipType: number;
+}
+
 /**
  * Calls the `/api/actions/equip` Cloudflare Worker proxy which forwards to
  * `POST /Platform/Destiny2/Actions/Items/EquipItems/`.
@@ -213,6 +233,64 @@ async function callEquipItemsEndpoint(
     }
 
     return data?.Response?.equipResults ?? [];
+}
+
+/**
+ * Calls the `/api/actions/transfer` Cloudflare Worker proxy.
+ */
+async function callTransferItemEndpoint(
+    body: TransferItemBody
+): Promise<any> {
+    const response = await fetch('/api/actions/transfer', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => response.statusText);
+        throw new Error(`TransferItem API Error ${response.status}: ${text}`);
+    }
+
+    const data = await response.json();
+
+    if (data.ErrorCode && data.ErrorCode !== 1) {
+        throw new Error(
+            `Bungie API Error ${data.ErrorCode} (${data.ErrorStatus}): ${data.Message}`
+        );
+    }
+
+    return data?.Response;
+}
+
+/**
+ * Calls the `/api/actions/insertPlugFree` Cloudflare Worker proxy.
+ */
+async function callInsertPlugFreeEndpoint(
+    body: InsertPlugFreeBody
+): Promise<any> {
+    const response = await fetch('/api/actions/insertPlugFree', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => response.statusText);
+        throw new Error(`InsertPlugFree API Error ${response.status}: ${text}`);
+    }
+
+    const data = await response.json();
+
+    if (data.ErrorCode && data.ErrorCode !== 1) {
+        throw new Error(
+            `Bungie API Error ${data.ErrorCode} (${data.ErrorStatus}): ${data.Message}`
+        );
+    }
+
+    return data?.Response;
 }
 
 // ============================================================================
@@ -248,8 +326,9 @@ export async function applyLoadout(
     loadout: ILoadout
 ): Promise<ApplyLoadoutResult> {
     const membershipType = getMembershipType();
+    const inventoryStore = useInventoryStore.getState();
+    const allItems = inventoryStore.items;
 
-    // Only items with a valid instance ID can be equipped via the API
     const equippableItems: ILoadoutItem[] = loadout.items.filter(
         (item): item is ILoadoutItem & { itemInstanceId: string } =>
             typeof item.itemInstanceId === 'string' && item.itemInstanceId.length > 0
@@ -265,9 +344,57 @@ export async function applyLoadout(
         `(${equippableItems.length} items) on character ${characterId}`
     );
 
-    // Split into batches to respect Bungie's undocumented per-request limit
+    const equipped: string[] = [];
+    const failed: FailedEquip[] = [];
+
+    // --- PHASE 1: TRANSFERS ---
+    for (const loadoutItem of equippableItems) {
+        const liveItem = allItems.find((i) => i.itemInstanceId === loadoutItem.itemInstanceId);
+        if (!liveItem) {
+            console.warn(`[EquipManager] Item ${loadoutItem.itemInstanceId} not found in inventory.`);
+            continue;
+        }
+
+        if (liveItem.owner !== characterId) {
+            console.log(`[EquipManager] Transferring item ${liveItem.name} from ${liveItem.owner} to ${characterId}`);
+            try {
+                // If on another character, must go to vault first
+                if (liveItem.owner !== 'vault') {
+                    await callTransferItemEndpoint({
+                        itemReferenceHash: liveItem.itemHash,
+                        stackSize: 1,
+                        transferToVault: true,
+                        itemId: liveItem.itemInstanceId,
+                        characterId: liveItem.owner,
+                        membershipType,
+                    });
+                }
+                // Vault to target character
+                await callTransferItemEndpoint({
+                    itemReferenceHash: liveItem.itemHash,
+                    stackSize: 1,
+                    transferToVault: false,
+                    itemId: liveItem.itemInstanceId,
+                    characterId,
+                    membershipType,
+                });
+            } catch (err: any) {
+                console.error(`[EquipManager] Transfer failed for ${liveItem.name}:`, err.message);
+                failed.push({
+                    itemInstanceId: liveItem.itemInstanceId!,
+                    reason: `Transfer failed: ${err.message}`,
+                    cannotEquipReason: 0,
+                });
+            }
+        }
+    }
+
+    // Filter equippable items to only those that successfully transferred (or were already there)
+    const itemsToEquip = equippableItems.filter((i: any) => !failed.some(f => f.itemInstanceId === i.itemInstanceId));
+
+    // --- PHASE 2: EQUIP ---
     const itemIdBatches = chunkArray(
-        equippableItems.map((i) => i.itemInstanceId),
+        itemsToEquip.map((i) => i.itemInstanceId),
         EQUIP_BATCH_SIZE
     );
 
@@ -275,22 +402,27 @@ export async function applyLoadout(
 
     for (const batch of itemIdBatches) {
         console.log(`[EquipManager] Equipping batch of ${batch.length} items...`);
-        const batchResults = await callEquipItemsEndpoint({
-            itemIds: batch,
-            characterId,
-            membershipType,
-        });
-        allResults.push(...batchResults);
+        try {
+            const batchResults = await callEquipItemsEndpoint({
+                itemIds: batch,
+                characterId,
+                membershipType,
+            });
+            allResults.push(...batchResults);
+        } catch (err: any) {
+            console.error(`[EquipManager] Equip batch failed:`, err.message);
+            // Let's assume the whole batch failed
+            for (const id of batch) {
+                failed.push({
+                    itemInstanceId: id,
+                    reason: `Equip batch failed: ${err.message}`,
+                    cannotEquipReason: 0
+                });
+            }
+        }
     }
 
-    // -------------------------------------------------------------------------
-    // Classify results
-    // -------------------------------------------------------------------------
-    const equipped: string[] = [];
-    const failed: FailedEquip[] = [];
-
     for (const result of allResults) {
-        // Bungie uses equipStatus=1 for success, 0 for failure
         if (result.equipStatus === 1 || result.cannotEquipReason === 0) {
             equipped.push(result.itemInstanceId);
         } else {
@@ -306,13 +438,50 @@ export async function applyLoadout(
         }
     }
 
+    // --- PHASE 3: SOCKET OVERRIDES (Subclass, Fashion) ---
+    for (const loadoutItem of itemsToEquip) {
+        if (loadoutItem.socketOverrides) {
+            console.log(`[EquipManager] Applying socket overrides for item ${loadoutItem.itemInstanceId}`);
+            for (const [socketIndexStr, plugItemHash] of Object.entries(loadoutItem.socketOverrides)) {
+                const socketIndex = parseInt(socketIndexStr, 10);
+                try {
+                    await callInsertPlugFreeEndpoint({
+                        itemId: loadoutItem.itemInstanceId,
+                        plug: {
+                            socketIndex,
+                            socketArrayType: 0, // Default array
+                            plugItemHash,
+                        },
+                        characterId,
+                        membershipType
+                    });
+                } catch (err: any) {
+                    console.error(`[EquipManager] Failed to insert plug ${plugItemHash} at index ${socketIndex}:`, err.message);
+                }
+            }
+        }
+    }
+
+    // --- PHASE 4: ARMOR MODS ---
+    if (loadout.modsByBucket) {
+        for (const loadoutItem of itemsToEquip) {
+            const mods = loadout.modsByBucket[loadoutItem.bucketHash];
+            if (mods && mods.length > 0) {
+                // To properly apply mods, we'd need to know the correct socket indices. 
+                // Without a complex matching logic (like DIM's mod-assignment-utils), this is best effort.
+                // For now, we note that it's partially implemented. 
+                // A full implementation requires tracking which mod goes into which socket.
+                console.log(`[EquipManager] Mods insertion for bucket ${loadoutItem.bucketHash} is noted but needs specific socket index mapping.`);
+            }
+        }
+    }
+
     const success = failed.length === 0 && equipped.length > 0;
 
     console.log(
         `[EquipManager] Done: ${equipped.length} equipped, ${failed.length} failed`
     );
 
-    // Surface actionable warnings to help the caller render useful UI
     const hasActivityRestriction = failed.some((f) => isActivityRestriction(f.cannotEquipReason));
     const hasExoticConflict = failed.some((f) => isExoticConflict(f.cannotEquipReason));
 

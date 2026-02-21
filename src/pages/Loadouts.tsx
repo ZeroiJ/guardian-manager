@@ -21,6 +21,7 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { applyLoadout } from '@/lib/bungie/equipManager';
 import { Navigation } from '@/components/Navigation';
 import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
+import { LoadoutEditorDrawer } from '@/components/loadouts/LoadoutEditorDrawer';
 
 // ============================================================================
 // CLASS FILTER COLORS
@@ -71,6 +72,7 @@ export default function Loadouts() {
     // ── Local state ────────────────────────────────────────
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });
     const [filterClass, setFilterClass] = useState<number | null>(null);
+    const [editingLoadout, setEditingLoadout] = useState<ILoadout | null>(null);
 
     // Reset equip feedback after 5s
     useEffect(() => {
@@ -120,9 +122,8 @@ export default function Loadouts() {
         [],
     );
 
-    const handleEdit = useCallback((_loadout: ILoadout) => {
-        // Phase 6 Step 2 — will open an edit drawer / modal
-        // For now, no-op placeholder
+    const handleEdit = useCallback((loadout: ILoadout) => {
+        setEditingLoadout(loadout);
     }, []);
 
     const handleDelete = useCallback(
@@ -250,6 +251,11 @@ export default function Loadouts() {
                     </p>
                 </div>
             </div>
+
+            <LoadoutEditorDrawer
+                loadout={editingLoadout}
+                onClose={() => setEditingLoadout(null)}
+            />
         </div>
     );
 }
