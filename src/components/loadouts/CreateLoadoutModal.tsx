@@ -37,7 +37,7 @@ export function CreateLoadoutModal({ isOpen, onClose, onSelectCharacter }: Creat
                     </p>
 
                     <div className="space-y-3">
-                        {characters.map((char: any) => {
+                        {Object.values(characters).map((char: any) => {
                             const className = CLASS_NAMES[char.classType] || 'Unknown';
                             return (
                                 <button
