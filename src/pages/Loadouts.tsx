@@ -195,14 +195,12 @@ export default function Loadouts() {
                             <p className="text-[11px] text-gray-600 font-mono">
                                 {loadouts.length} saved build{loadouts.length !== 1 ? 's' : ''}
                             </p>
-                            {loadouts.length > 0 && (
-                                <button
-                                    onClick={() => setIsCreateModalOpen(true)}
-                                    className="text-[10px] uppercase font-bold tracking-widest font-rajdhani text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30 px-2 py-0.5 rounded-sm"
-                                >
-                                    + Create New
-                                </button>
-                            )}
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="text-[10px] uppercase font-bold tracking-widest font-rajdhani text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30 px-2 py-0.5 rounded-sm"
+                            >
+                                + Create New
+                            </button>
                         </div>
                     </div>
 
