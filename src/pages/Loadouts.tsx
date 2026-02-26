@@ -162,6 +162,7 @@ export default function Loadouts() {
             updatedAt: Date.now(),
         };
         setEditingLoadout(emptyLoadout);
+        setIsCreateModalOpen(true);
     }, []);
 
     // ── Render ─────────────────────────────────────────────
@@ -196,7 +197,7 @@ export default function Loadouts() {
                                 {loadouts.length} saved build{loadouts.length !== 1 ? 's' : ''}
                             </p>
                             <button
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={handleCreateNew}
                                 className="text-[10px] uppercase font-bold tracking-widest font-rajdhani text-gray-400 hover:text-white transition-colors border border-white/10 hover:border-white/30 px-2 py-0.5 rounded-sm"
                             >
                                 + Create New
@@ -284,14 +285,16 @@ export default function Loadouts() {
                 </div>
             </div>
 
-            <LoadoutEditorDrawer
-                loadout={editingLoadout}
-                isNew={isCreateModalOpen}
-                onClose={() => {
-                    setEditingLoadout(null);
-                    setIsCreateModalOpen(false);
-                }}
-            />
+            {editingLoadout && (
+                <LoadoutEditorDrawer
+                    loadout={editingLoadout}
+                    isNew={isCreateModalOpen}
+                    onClose={() => {
+                        setEditingLoadout(null);
+                        setIsCreateModalOpen(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
