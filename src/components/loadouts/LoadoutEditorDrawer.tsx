@@ -11,7 +11,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Save, Trash2, Plus, Zap, Package, Shield, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ILoadout, ILoadoutItem, useLoadoutStore } from '@/store/loadoutStore';
+import { ILoadout, ILoadoutItem, useLoadoutStore, CLASS_NAMES } from '@/store/loadoutStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { GuardianItem } from '@/services/profile/types';
 import { BucketHashes } from '@/lib/destiny-constants';
@@ -739,8 +739,5 @@ function BucketSlot({
         </div>
     );
 }
-
-// Need to import CLASS_NAMES
-import { CLASS_NAMES } from '@/store/loadoutStore';
 
 export default LoadoutEditorDrawer;

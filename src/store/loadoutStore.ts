@@ -10,6 +10,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useInventoryStore } from './useInventoryStore';
 import { BucketHashes, EMPTY_PLUG_HASHES, SocketCategoryHashes } from '@/lib/destiny-constants';
+import { STAT_HASHES } from '@/data/constants';
+import type { ItemValidation, LoadoutValidation } from '@/components/loadouts/LoadoutCard';
+import type { GuardianItem } from '@/services/profile/types';
 
 // ============================================================================
 // TYPES
@@ -491,9 +494,6 @@ export const CLASS_NAMES: Record<number, string> = {
 // VALIDATION — Pre-equip checks
 // ============================================================================
 
-import type { ItemValidation, LoadoutValidation } from '@/components/loadouts/LoadoutCard';
-import type { GuardianItem } from '@/services/profile/types';
-
 /**
  * Validates a loadout against the current inventory state.
  * Checks whether each item exists, is on the target character, or needs transfer.
@@ -556,8 +556,6 @@ export const formatLoadoutDate = (timestamp: number): string => {
 // ============================================================================
 // STAT CALCULATOR — Predicted tiers from loadout armor
 // ============================================================================
-
-import { STAT_HASHES } from '@/data/constants';
 
 /** Armor bucket hashes — only these contribute to character stats. */
 const ARMOR_BUCKET_HASHES = new Set([
