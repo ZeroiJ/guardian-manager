@@ -167,6 +167,9 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setOpenDropdown(null);
     }, []);
 
+    // For new loadouts, we need a character to be selected first
+    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
+
     // Get available items for a bucket from all inventory
     const getAvailableItemsForBucket = useCallback((bucketHash: number) => {
         const isArmorBucket = ARMOR_BUCKETS.includes(bucketHash);
@@ -265,9 +268,6 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         }
         return 'Select an item';
     }, [pickerTargetBucket]);
-
-    // For new loadouts, we need a character to be selected first
-    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
 
     const handleCharSelect = useCallback((charId: string) => {
         setSelectedCharId(charId);
