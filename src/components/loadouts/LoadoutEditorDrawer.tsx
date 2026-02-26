@@ -72,6 +72,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const [items, setItems] = useState<ILoadoutItem[]>(loadout.items);
     const [showItemPicker, setShowItemPicker] = useState(false);
     const [pickerTargetBucket, setPickerTargetBucket] = useState<number | null>(null);
+    // Dropdown state - which bucket slot has the dropdown open
+    const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
     // Helper: convert GuardianItem to ILoadoutItem
     const convertToLoadoutItem = useCallback((item: GuardianItem): ILoadoutItem => {
@@ -148,6 +150,35 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setPickerTargetBucket(bucketHash);
         setShowItemPicker(true);
     }, []);
+
+    // Open dropdown for specific bucket
+    const handleOpenDropdown = useCallback((bucketHash: number) => {
+        setOpenDropdown(bucketHash);
+    }, []);
+
+    // Close dropdown
+    const handleCloseDropdown = useCallback(() => {
+        setOpenDropdown(null);
+    }, []);
+
+    // Get available items for a bucket from all inventory
+    const getAvailableItemsForBucket = useCallback((bucketHash: number) => {
+        return allItems.filter((item) => 
+            item.bucketHash === bucketHash && 
+            item.itemInstanceId != null
+        ).sort((a, b) => {
+            // Sort by power descending
+            const powerA = a.instanceData?.primaryStat?.value || 0;
+            const powerB = b.instanceData?.primaryStat?.value || 0;
+            return powerB - powerA;
+        }).slice(0, 10); // Show top 10
+    }, [allItems]);
+
+    // Select item from dropdown
+    const handleSelectFromDropdown = useCallback((item: GuardianItem) => {
+        handleAddItem(item);
+        handleCloseDropdown();
+    }, [handleAddItem, handleCloseDropdown]);
 
     // Get items by bucket
     const itemsByBucket = useMemo(() => {
@@ -338,8 +369,12 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                                     label={BUCKET_LABELS[bucket]}
                                     item={itemsByBucket[bucket]}
                                     manifest={manifest}
-                                    onAdd={() => handleOpenPicker(bucket)}
+                                    isOpen={openDropdown === bucket}
+                                    onAdd={() => handleOpenDropdown(bucket)}
                                     onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                    availableItems={getAvailableItemsForBucket(bucket)}
+                                    onSelectItem={handleSelectFromDropdown}
+                                    onClose={handleCloseDropdown}
                                 />
                             ))}
                         </div>
@@ -359,8 +394,12 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                                     item={itemsByBucket[bucket]}
                                     manifest={manifest}
                                     compact
-                                    onAdd={() => handleOpenPicker(bucket)}
+                                    isOpen={openDropdown === bucket}
+                                    onAdd={() => handleOpenDropdown(bucket)}
                                     onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                    availableItems={getAvailableItemsForBucket(bucket)}
+                                    onSelectItem={handleSelectFromDropdown}
+                                    onClose={handleCloseDropdown}
                                 />
                             ))}
                         </div>
@@ -379,8 +418,12 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                                     label={BUCKET_LABELS[bucket]}
                                     item={itemsByBucket[bucket]}
                                     manifest={manifest}
-                                    onAdd={() => handleOpenPicker(bucket)}
+                                    isOpen={openDropdown === bucket}
+                                    onAdd={() => handleOpenDropdown(bucket)}
                                     onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                    availableItems={getAvailableItemsForBucket(bucket)}
+                                    onSelectItem={handleSelectFromDropdown}
+                                    onClose={handleCloseDropdown}
                                 />
                             ))}
                         </div>
@@ -501,6 +544,10 @@ function BucketSlot({
     compact,
     onAdd,
     onRemove,
+    isOpen,
+    availableItems,
+    onSelectItem,
+    onClose,
 }: {
     bucketHash: number;
     label: string;
@@ -509,75 +556,165 @@ function BucketSlot({
     compact?: boolean;
     onAdd: () => void;
     onRemove: () => void;
+    isOpen?: boolean;
+    availableItems?: GuardianItem[];
+    onSelectItem?: (item: GuardianItem) => void;
+    onClose?: () => void;
 }) {
     const def = item ? manifest[item.itemHash] : null;
     const icon = def?.displayProperties?.icon;
     const name = def?.displayProperties?.name || '';
 
     if (compact) {
-        return item ? (
-            <div className="group relative">
-                <div className="w-full aspect-square rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50">
-                    {icon ? (
-                        <img src={`https://www.bungie.net${icon}`} alt={name} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600">
-                            <Package size={16} />
+        return (
+            <div className="relative">
+                {item ? (
+                    <div className="group relative">
+                        <div className="w-full aspect-square rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50">
+                            {icon ? (
+                                <img src={`https://www.bungie.net${icon}`} alt={name} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                    <Package size={16} />
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-                <button
-                    onClick={onRemove}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                    <X size={8} className="text-white" />
-                </button>
-                <p className="text-[6px] text-center text-gray-500 font-mono mt-0.5 truncate">{label}</p>
+                        <button
+                            onClick={onRemove}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <X size={8} className="text-white" />
+                        </button>
+                        <p className="text-[6px] text-center text-gray-500 font-mono mt-0.5 truncate">{label}</p>
+                    </div>
+                ) : (
+                    <button
+                        onClick={onAdd}
+                        className="w-full aspect-square rounded-sm border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-1 hover:border-white/20 hover:bg-white/[0.05] transition-colors group"
+                    >
+                        <Plus size={12} className="text-gray-600 group-hover:text-white" />
+                        <span className="text-[6px] text-gray-600 font-mono uppercase">{label}</span>
+                    </button>
+                )}
+                
+                {/* Dropdown */}
+                {isOpen && availableItems && availableItems.length > 0 && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-[#0a0a0a] border border-white/20 rounded-sm shadow-xl z-50 max-h-64 overflow-y-auto">
+                        <div className="p-2 text-[8px] text-gray-500 font-mono border-b border-white/10">
+                            Select {label}
+                        </div>
+                        {availableItems.map((availItem) => {
+                            const availDef = manifest[availItem.itemHash];
+                            const availIcon = availDef?.displayProperties?.icon;
+                            const availName = availDef?.displayProperties?.name || 'Unknown';
+                            const availPower = availItem.instanceData?.primaryStat?.value;
+                            const isEquipped = availItem.instanceData?.isEquipped;
+                            
+                            return (
+                                <button
+                                    key={availItem.itemInstanceId}
+                                    onClick={() => onSelectItem?.(availItem)}
+                                    className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
+                                >
+                                    <div className="w-8 h-8 rounded-sm border border-white/10 overflow-hidden bg-black/50 flex-shrink-0">
+                                        {availIcon ? (
+                                            <img src={`https://www.bungie.net${availIcon}`} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[9px] font-bold font-rajdhani truncate">{availName}</p>
+                                        <p className="text-[7px] text-gray-500 font-mono">
+                                            {availPower && `⚡ ${availPower}`}
+                                            {isEquipped && ' • Equipped'}
+                                        </p>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
-        ) : (
-            <button
-                onClick={onAdd}
-                className="w-full aspect-square rounded-sm border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-1 hover:border-white/20 hover:bg-white/[0.05] transition-colors group"
-            >
-                <Plus size={12} className="text-gray-600 group-hover:text-white" />
-                <span className="text-[6px] text-gray-600 font-mono uppercase">{label}</span>
-            </button>
         );
     }
 
     // Non-compact slot
-    return item ? (
-        <div className="flex items-center gap-2 p-2 rounded-sm border border-white/5 bg-white/[0.02]">
-            <div className="w-10 h-10 rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50 flex-shrink-0">
-                {icon ? (
-                    <img src={`https://www.bungie.net${icon}`} alt={name} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-600">
-                        <Package size={16} />
+    return (
+        <div className="relative">
+            {item ? (
+                <div className="flex items-center gap-2 p-2 rounded-sm border border-white/5 bg-white/[0.02]">
+                    <div className="w-10 h-10 rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50 flex-shrink-0">
+                        {icon ? (
+                            <img src={`https://www.bungie.net${icon}`} alt={name} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                <Package size={16} />
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold font-rajdhani truncate">{label}</p>
-                <p className="text-[8px] text-gray-500 font-mono truncate">{name}</p>
-            </div>
-            <button
-                onClick={onRemove}
-                className="p-1 text-gray-500 hover:text-red-400 transition-colors"
-            >
-                <Trash2 size={12} />
-            </button>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold font-rajdhani truncate">{label}</p>
+                        <p className="text-[8px] text-gray-500 font-mono truncate">{name}</p>
+                    </div>
+                    <button
+                        onClick={onRemove}
+                        className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                        <Trash2 size={12} />
+                    </button>
+                </div>
+            ) : (
+                <button
+                    onClick={onAdd}
+                    className="flex items-center gap-2 p-2 rounded-sm border border-dashed border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] transition-colors"
+                >
+                    <div className="w-10 h-10 rounded-sm border border-white/10 bg-white/[0.02] flex items-center justify-center">
+                        <Plus size={14} className="text-gray-600" />
+                    </div>
+                    <span className="text-[10px] font-bold font-rajdhani text-gray-500 uppercase">+ {label}</span>
+                </button>
+            )}
+            
+            {/* Dropdown for non-compact */}
+            {isOpen && availableItems && availableItems.length > 0 && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-[#0a0a0a] border border-white/20 rounded-sm shadow-xl z-50 max-h-64 overflow-y-auto">
+                    <div className="p-2 text-[8px] text-gray-500 font-mono border-b border-white/10">
+                        Select {label}
+                    </div>
+                    {availableItems.map((availItem) => {
+                        const availDef = manifest[availItem.itemHash];
+                        const availIcon = availDef?.displayProperties?.icon;
+                        const availName = availDef?.displayProperties?.name || 'Unknown';
+                        const availPower = availItem.instanceData?.primaryStat?.value;
+                        const isEquipped = availItem.instanceData?.isEquipped;
+                        
+                        return (
+                            <button
+                                key={availItem.itemInstanceId}
+                                onClick={() => onSelectItem?.(availItem)}
+                                className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
+                            >
+                                <div className="w-10 h-10 rounded-sm border border-white/10 overflow-hidden bg-black/50 flex-shrink-0">
+                                    {availIcon ? (
+                                        <img src={`https://www.bungie.net${availIcon}`} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full" />
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold font-rajdhani truncate">{availName}</p>
+                                    <p className="text-[8px] text-gray-500 font-mono">
+                                        {availPower && `⚡ ${availPower}`}
+                                        {isEquipped && ' • Equipped'}
+                                    </p>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-    ) : (
-        <button
-            onClick={onAdd}
-            className="flex items-center gap-2 p-2 rounded-sm border border-dashed border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] transition-colors"
-        >
-            <div className="w-10 h-10 rounded-sm border border-white/10 bg-white/[0.02] flex items-center justify-center">
-                <Plus size={14} className="text-gray-600" />
-            </div>
-            <span className="text-[10px] font-bold font-rajdhani text-gray-500 uppercase">+ {label}</span>
-        </button>
     );
 }
 
