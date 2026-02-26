@@ -188,19 +188,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setPickerTargetBucket(null);
     }, [handleAddItem]);
 
-    // Filter for item picker - only show items from the loadout's character
+    // Filter for item picker - show items from ALL characters + vault (not just selected)
     const pickerFilter = useCallback((item: GuardianItem) => {
-        // Only show items from the same character
-        if (item.owner !== loadout.characterId) return false;
-        
         // If target bucket is set, only show items from that bucket
         if (pickerTargetBucket != null) {
             return item.bucketHash === pickerTargetBucket;
         }
         
-        // Show all items from character
+        // Show all items from all characters + vault
         return true;
-    }, [loadout.characterId, pickerTargetBucket]);
+    }, [pickerTargetBucket]);
 
     const getPickerPrompt = useCallback(() => {
         if (pickerTargetBucket != null) {
@@ -425,7 +422,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                 onItemSelected={handlePickerSelect}
                 filter={pickerFilter}
                 prompt={getPickerPrompt()}
-                ownerId={loadout.characterId}
+                // No ownerId - show all items from all characters + vault
             />
         </div>,
         document.body

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { GuardianItem } from '@/services/profile/types';
 import { filterItems } from '@/lib/search/itemFilter';
 import { useInventoryStore } from '@/store/useInventoryStore';
+import { CLASS_NAMES } from '@/store/loadoutStore';
 import { createPortal } from 'react-dom';
 
 interface ItemPickerProps {
@@ -44,6 +45,7 @@ export function ItemPicker({
     
     const items = useInventoryStore((s) => s.items);
     const manifest = useInventoryStore((s) => s.manifest);
+    const characters = useInventoryStore((s) => s.characters);
 
     // Filter items by owner and optional filter function
     const filteredItems = useMemo(() => {
@@ -170,6 +172,10 @@ export function ItemPicker({
                                 const rarity = def?.inventory?.tierType;
                                 const power = item.instanceData?.primaryStat?.value;
                                 const damageType = item.instanceData?.damageType;
+                                
+                                // Get owner name (character or vault)
+                                const isVault = item.owner === 'vault';
+                                const ownerLabel = isVault ? 'Vault' : (characters[item.owner]?.classType !== undefined ? CLASS_NAMES[characters[item.owner].classType] : 'Unknown');
                                 
                                 return (
                                     <button
