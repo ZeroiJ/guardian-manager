@@ -46,6 +46,12 @@ export function ItemPicker({
     const items = useInventoryStore((s) => s.items) ?? [];
     const manifest = useInventoryStore((s) => s.manifest) ?? {};
     const characters = useInventoryStore((s) => s.characters) ?? {};
+    const profile = useInventoryStore((s) => s.profile);
+
+    // Don't render until inventory is loaded
+    if (!profile) {
+        return null;
+    }
 
     // Filter items by owner and optional filter function
     const filteredItems = useMemo(() => {

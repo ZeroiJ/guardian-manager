@@ -64,6 +64,12 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const manifest = useInventoryStore((s) => s.manifest) ?? {};
     const allItems = useInventoryStore((s) => s.items) ?? [];
     const characters = useInventoryStore((s) => s.characters) ?? {};
+    const profile = useInventoryStore((s) => s.profile);
+
+    // Don't render until inventory is loaded (like DIM does)
+    if (!profile || Object.keys(characters).length === 0 || allItems.length === 0) {
+        return null;
+    }
 
     // Only render if we have a loadout
     if (!loadout) return null;
