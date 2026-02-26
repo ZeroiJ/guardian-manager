@@ -151,16 +151,17 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setItems(newItems);
     }, [allItems, loadout.characterId, convertToLoadoutItem]);
 
-    // Open item picker for specific bucket
+    // Open item picker for specific bucket (opens full drawer)
     const handleOpenPicker = useCallback((bucketHash: number) => {
         setPickerTargetBucket(bucketHash);
         setShowItemPicker(true);
+        setOpenDropdown(null); // Close any open dropdown
     }, []);
 
-    // Open dropdown for specific bucket
+    // Open dropdown for specific bucket (kept for backward compat, but now just opens picker)
     const handleOpenDropdown = useCallback((bucketHash: number) => {
-        setOpenDropdown(bucketHash);
-    }, []);
+        handleOpenPicker(bucketHash);
+    }, [handleOpenPicker]);
 
     // Close dropdown
     const handleCloseDropdown = useCallback(() => {
@@ -643,45 +644,6 @@ function BucketSlot({
                         <span className="text-[6px] text-gray-600 font-mono uppercase">{label}</span>
                     </button>
                 )}
-                
-                {/* Dropdown */}
-                {isOpen && availableItems && availableItems.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 w-48 bg-[#0a0a0a] border border-white/20 rounded-sm shadow-xl z-50 max-h-64 overflow-y-auto">
-                        <div className="p-2 text-[8px] text-gray-500 font-mono border-b border-white/10">
-                            Select {label}
-                        </div>
-                        {availableItems.map((availItem) => {
-                            const availDef = manifest[availItem.itemHash];
-                            const availIcon = availDef?.displayProperties?.icon;
-                            const availName = availDef?.displayProperties?.name || 'Unknown';
-                            const availPower = availItem.instanceData?.primaryStat?.value;
-                            const isEquipped = availItem.instanceData?.isEquipped;
-                            
-                            return (
-                                <button
-                                    key={availItem.itemInstanceId}
-                                    onClick={() => onSelectItem?.(availItem)}
-                                    className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
-                                >
-                                    <div className="w-8 h-8 rounded-sm border border-white/10 overflow-hidden bg-black/50 flex-shrink-0">
-                                        {availIcon ? (
-                                            <img src={`https://www.bungie.net${availIcon}`} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-[9px] font-bold font-rajdhani truncate">{availName}</p>
-                                        <p className="text-[7px] text-gray-500 font-mono">
-                                            {availPower && `⚡ ${availPower}`}
-                                            {isEquipped && ' • Equipped'}
-                                        </p>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
         );
     }
@@ -721,45 +683,6 @@ function BucketSlot({
                     </div>
                     <span className="text-[10px] font-bold font-rajdhani text-gray-500 uppercase">+ {label}</span>
                 </button>
-            )}
-            
-            {/* Dropdown for non-compact */}
-            {isOpen && availableItems && availableItems.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-[#0a0a0a] border border-white/20 rounded-sm shadow-xl z-50 max-h-64 overflow-y-auto">
-                    <div className="p-2 text-[8px] text-gray-500 font-mono border-b border-white/10">
-                        Select {label}
-                    </div>
-                    {availableItems.map((availItem) => {
-                        const availDef = manifest[availItem.itemHash];
-                        const availIcon = availDef?.displayProperties?.icon;
-                        const availName = availDef?.displayProperties?.name || 'Unknown';
-                        const availPower = availItem.instanceData?.primaryStat?.value;
-                        const isEquipped = availItem.instanceData?.isEquipped;
-                        
-                        return (
-                            <button
-                                key={availItem.itemInstanceId}
-                                onClick={() => onSelectItem?.(availItem)}
-                                className="w-full flex items-center gap-2 p-2 hover:bg-white/5 text-left"
-                            >
-                                <div className="w-10 h-10 rounded-sm border border-white/10 overflow-hidden bg-black/50 flex-shrink-0">
-                                    {availIcon ? (
-                                        <img src={`https://www.bungie.net${availIcon}`} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full" />
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-bold font-rajdhani truncate">{availName}</p>
-                                    <p className="text-[8px] text-gray-500 font-mono">
-                                        {availPower && `⚡ ${availPower}`}
-                                        {isEquipped && ' • Equipped'}
-                                    </p>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
             )}
         </div>
     );
