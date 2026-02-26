@@ -149,16 +149,20 @@ export default function Loadouts() {
         [updateNotes],
     );
 
-    const handleCreateLoadout = useCallback(
-        (characterId: string) => {
-            const newLoadout = saveCurrentLoadout(characterId, 'New Loadout');
-            if (newLoadout) {
-                // Instantly open the editor so they can rename it / remove items
-                setEditingLoadout(newLoadout);
-            }
-        },
-        [saveCurrentLoadout],
-    );
+    // Handle "Create New" - opens empty editor drawer
+    const handleCreateNew = useCallback(() => {
+        // Create an empty loadout placeholder - character selection happens in the drawer
+        const emptyLoadout: ILoadout = {
+            id: '', // Will be set when saved
+            name: 'New Loadout',
+            characterId: '', // Will be selected in drawer
+            characterClass: -1,
+            items: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        };
+        setEditingLoadout(emptyLoadout);
+    }, []);
 
     // ── Render ─────────────────────────────────────────────
     return (
@@ -284,13 +288,11 @@ export default function Loadouts() {
 
             <LoadoutEditorDrawer
                 loadout={editingLoadout}
-                onClose={() => setEditingLoadout(null)}
-            />
-
-            <CreateLoadoutModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onSelectCharacter={handleCreateLoadout}
+                isNew={isCreateModalOpen}
+                onClose={() => {
+                    setEditingLoadout(null);
+                    setIsCreateModalOpen(false);
+                }}
             />
         </div>
     );

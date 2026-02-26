@@ -234,6 +234,11 @@ interface LoadoutState {
      * Replace all items in a loadout (for a future "re-snapshot" / edit flow).
      */
     updateItems: (id: string, items: ILoadoutItem[]) => void;
+
+    /**
+     * Add a completely new loadout (for create flow).
+     */
+    addLoadout: (loadout: ILoadout) => void;
 }
 
 // ============================================================================
@@ -404,6 +409,16 @@ export const useLoadoutStore = create<LoadoutState>()(
                         l.id === id ? { ...l, items, updatedAt: Date.now() } : l
                     ),
                 }));
+            },
+
+            // ----------------------------------------------------------------
+            // addLoadout
+            // ----------------------------------------------------------------
+            addLoadout: (loadout) => {
+                set((state) => ({
+                    loadouts: [loadout, ...state.loadouts],
+                }));
+                console.log(`[LoadoutStore] Added loadout: "${loadout.name}" (${loadout.items.length} items)`);
             },
         }),
         {

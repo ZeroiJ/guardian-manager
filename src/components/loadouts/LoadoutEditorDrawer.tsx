@@ -2,6 +2,7 @@
  * LoadoutEditorDrawer — Phase 6b (Expanded)
  *
  * A side-sheet component to edit loadouts.
+ * Slides up from bottom (DIM-style).
  * Features:
  * - Fill from Equipped / Unequipped
  * - Add/Remove items via bucket categories
@@ -18,7 +19,10 @@ import { createPortal } from 'react-dom';
 import { ItemPicker } from './ItemPicker';
 
 interface LoadoutEditorDrawerProps {
+    /** The loadout to edit. If null, drawer won't render. */
     loadout: ILoadout | null;
+    /** If true, this is a new empty loadout being created */
+    isNew?: boolean;
     onClose: () => void;
 }
 
@@ -55,29 +59,19 @@ const BUCKET_LABELS: Record<number, string> = {
     [BucketHashes.Subclass]: 'Subclass',
 };
 
-export function LoadoutEditorDrawer({ loadout, onClose }: LoadoutEditorDrawerProps) {
-    const { renameLoadout, updateItems, saveCurrentLoadout } = useLoadoutStore();
+export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: LoadoutEditorDrawerProps) {
+    const { renameLoadout, updateItems, saveCurrentLoadout, addLoadout } = useLoadoutStore();
     const manifest = useInventoryStore((s) => s.manifest);
     const allItems = useInventoryStore((s) => s.items);
     const characters = useInventoryStore((s) => s.characters);
 
-    const [name, setName] = useState('');
-    const [items, setItems] = useState<ILoadoutItem[]>([]);
-    const [showItemPicker, setShowItemPicker] = useState(false);
-    const [pickerTargetBucket, setPickerTargetBucket] = useState<number | null>(null);
-
-    // Load initial state
-    useEffect(() => {
-        if (loadout) {
-            setName(loadout.name);
-            setItems(loadout.items);
-        }
-    }, [loadout]);
-
+    // Only render if we have a loadout
     if (!loadout) return null;
 
-    // Get character for this loadout
-    const character = characters[loadout.characterId];
+    const [name, setName] = useState(loadout.name || 'New Loadout');
+    const [items, setItems] = useState<ILoadoutItem[]>(loadout.items);
+    const [showItemPicker, setShowItemPicker] = useState(false);
+    const [pickerTargetBucket, setPickerTargetBucket] = useState<number | null>(null);
 
     // Helper: convert GuardianItem to ILoadoutItem
     const convertToLoadoutItem = useCallback((item: GuardianItem): ILoadoutItem => {
@@ -164,11 +158,29 @@ export function LoadoutEditorDrawer({ loadout, onClose }: LoadoutEditorDrawerPro
         return map;
     }, [items]);
 
-    const handleSave = () => {
-        renameLoadout(loadout.id, name);
-        updateItems(loadout.id, items);
+    const handleSave = useCallback(() => {
+        if (isNew) {
+            // Create new loadout with the selected character
+            const selectedCharId = loadout.characterId || Object.keys(characters)[0];
+            const character = characters[selectedCharId];
+            
+            // Create a new loadout directly
+            const newLoadout: ILoadout = {
+                id: crypto.randomUUID(),
+                name: name.trim() || 'New Loadout',
+                characterId: selectedCharId,
+                characterClass: character?.classType ?? -1,
+                items,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            addLoadout(newLoadout);
+        } else {
+            renameLoadout(loadout.id, name);
+            updateItems(loadout.id, items);
+        }
         onClose();
-    };
+    }, [isNew, loadout, name, items, characters, renameLoadout, updateItems, addLoadout, onClose]);
 
     const handlePickerSelect = useCallback((item: GuardianItem) => {
         handleAddItem(item);
@@ -198,154 +210,208 @@ export function LoadoutEditorDrawer({ loadout, onClose }: LoadoutEditorDrawerPro
         return 'Select an item';
     }, [pickerTargetBucket]);
 
-    return (
-        <>
-            <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm transition-opacity">
-                <div className="w-[480px] h-full bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col transform transition-transform">
+    // For new loadouts, we need a character to be selected first
+    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
+
+    const handleCharSelect = useCallback((charId: string) => {
+        setSelectedCharId(charId);
+    }, []);
+
+    // If new loadout and no character selected, show character picker
+    if (isNew && !selectedCharId) {
+        const charList = Object.values(characters);
+        
+        return createPortal(
+            <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+                <div className="w-full max-w-lg bg-[#0a0a0a] border-t border-white/10 rounded-t-xl shadow-2xl animate-slide-up">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-white/10">
-                        <h2 className="text-lg font-bold font-rajdhani tracking-widest uppercase">Edit Loadout</h2>
+                        <h2 className="text-lg font-bold font-rajdhani tracking-widest uppercase">
+                            Select Character
+                        </h2>
                         <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-sm">
                             <X size={18} />
                         </button>
                     </div>
 
-                    {/* Body */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                        {/* Name Edit */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                                Loadout Name
-                            </label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full bg-void-surface border border-white/15 rounded-sm px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 font-rajdhani tracking-wide"
-                            />
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="grid grid-cols-2 gap-2">
+                    {/* Character List */}
+                    <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+                        {charList.map((char: any) => (
                             <button
-                                onClick={handleFillFromEquipped}
-                                className={cn(
-                                    'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
-                                    'border border-white/10 text-gray-400 bg-white/[0.02]',
-                                    'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
-                                )}
+                                key={char.characterId}
+                                onClick={() => handleCharSelect(char.characterId)}
+                                className="w-full flex items-center gap-4 p-3 rounded-sm border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/30 transition-all"
                             >
-                                <Zap size={12} />
-                                Fill Equipped
+                                <div
+                                    className="w-12 h-12 rounded-sm bg-cover bg-center border border-white/10"
+                                    style={{ backgroundImage: `url(https://www.bungie.net${char.emblemPath})` }}
+                                />
+                                <div className="text-left">
+                                    <div className="text-sm font-bold font-rajdhani uppercase">
+                                        {CLASS_NAMES[char.classType] || 'Unknown'}
+                                    </div>
+                                    <div className="text-xs text-gray-500 font-mono">
+                                        {char.raceName} {char.genderName} • Light {char.light}
+                                    </div>
+                                </div>
                             </button>
-                            <button
-                                onClick={handleFillFromUnequipped}
-                                className={cn(
-                                    'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
-                                    'border border-white/10 text-gray-400 bg-white/[0.02]',
-                                    'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
-                                )}
-                            >
-                                <RefreshCw size={12} />
-                                Fill Best
-                            </button>
-                        </div>
+                        ))}
+                    </div>
+                </div>
+            </div>,
+            document.body
+        );
+    }
 
-                        {/* Subclass Section */}
-                        <BucketSection
-                            title="Subclass"
-                            bucketHash={BucketHashes.Subclass}
-                            item={itemsByBucket[BucketHashes.Subclass]}
-                            manifest={manifest}
-                            onAdd={() => handleOpenPicker(BucketHashes.Subclass)}
-                            onRemove={() => handleRemoveItem(itemsByBucket[BucketHashes.Subclass]?.itemInstanceId || '')}
+    // Main editor drawer (slides up from bottom)
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+            <div className="w-full max-w-2xl bg-[#0a0a0a] border-t border-white/10 rounded-t-xl shadow-2xl flex flex-col max-h-[85vh] animate-slide-up">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+                    <h2 className="text-lg font-bold font-rajdhani tracking-widest uppercase">
+                        {isNew ? 'Create Loadout' : 'Edit Loadout'}
+                    </h2>
+                    <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-sm">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                    {/* Name Edit */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
+                            Loadout Name
+                        </label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full bg-void-surface border border-white/15 rounded-sm px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 font-rajdhani tracking-wide"
                         />
+                    </div>
 
-                        {/* Weapons Section */}
-                        <div className="space-y-2">
-                            <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                                Weapons
-                            </h3>
-                            <div className="grid grid-cols-3 gap-2">
-                                {WEAPON_BUCKETS.map((bucket) => (
-                                    <BucketSlot
-                                        key={bucket}
-                                        bucketHash={bucket}
-                                        label={BUCKET_LABELS[bucket]}
-                                        item={itemsByBucket[bucket]}
-                                        manifest={manifest}
-                                        onAdd={() => handleOpenPicker(bucket)}
-                                        onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={handleFillFromEquipped}
+                            className={cn(
+                                'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
+                                'border border-white/10 text-gray-400 bg-white/[0.02]',
+                                'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
+                            )}
+                        >
+                            <Zap size={12} />
+                            Fill Equipped
+                        </button>
+                        <button
+                            onClick={handleFillFromUnequipped}
+                            className={cn(
+                                'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
+                                'border border-white/10 text-gray-400 bg-white/[0.02]',
+                                'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
+                            )}
+                        >
+                            <RefreshCw size={12} />
+                            Fill Best
+                        </button>
+                    </div>
 
-                        {/* Armor Section */}
-                        <div className="space-y-2">
-                            <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                                Armor
-                            </h3>
-                            <div className="grid grid-cols-5 gap-1">
-                                {ARMOR_BUCKETS.map((bucket) => (
-                                    <BucketSlot
-                                        key={bucket}
-                                        bucketHash={bucket}
-                                        label={BUCKET_LABELS[bucket]}
-                                        item={itemsByBucket[bucket]}
-                                        manifest={manifest}
-                                        compact
-                                        onAdd={() => handleOpenPicker(bucket)}
-                                        onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                    {/* Subclass Section */}
+                    <BucketSection
+                        title="Subclass"
+                        bucketHash={BucketHashes.Subclass}
+                        item={itemsByBucket[BucketHashes.Subclass]}
+                        manifest={manifest}
+                        onAdd={() => handleOpenPicker(BucketHashes.Subclass)}
+                        onRemove={() => handleRemoveItem(itemsByBucket[BucketHashes.Subclass]?.itemInstanceId || '')}
+                    />
 
-                        {/* General Section */}
-                        <div className="space-y-2">
-                            <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                                General
-                            </h3>
-                            <div className="grid grid-cols-2 gap-2">
-                                {GENERAL_BUCKETS.filter(b => b !== BucketHashes.Subclass).map((bucket) => (
-                                    <BucketSlot
-                                        key={bucket}
-                                        bucketHash={bucket}
-                                        label={BUCKET_LABELS[bucket]}
-                                        item={itemsByBucket[bucket]}
-                                        manifest={manifest}
-                                        onAdd={() => handleOpenPicker(bucket)}
-                                        onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Items List Summary */}
-                        <div className="pt-4 border-t border-white/10">
-                            <p className="text-[10px] text-gray-600 font-mono text-center">
-                                {items.length} items in loadout
-                            </p>
+                    {/* Weapons Section */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
+                            Weapons
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            {WEAPON_BUCKETS.map((bucket) => (
+                                <BucketSlot
+                                    key={bucket}
+                                    bucketHash={bucket}
+                                    label={BUCKET_LABELS[bucket]}
+                                    item={itemsByBucket[bucket]}
+                                    manifest={manifest}
+                                    onAdd={() => handleOpenPicker(bucket)}
+                                    onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                />
+                            ))}
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-4 border-t border-white/10 bg-black flex justify-between gap-3">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 font-rajdhani flex-1"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest bg-white text-black hover:bg-gray-200 font-rajdhani flex-1 flex items-center justify-center gap-2"
-                        >
-                            <Save size={14} />
-                            Save Changes
-                        </button>
+                    {/* Armor Section */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
+                            Armor
+                        </h3>
+                        <div className="grid grid-cols-5 gap-1">
+                            {ARMOR_BUCKETS.map((bucket) => (
+                                <BucketSlot
+                                    key={bucket}
+                                    bucketHash={bucket}
+                                    label={BUCKET_LABELS[bucket]}
+                                    item={itemsByBucket[bucket]}
+                                    manifest={manifest}
+                                    compact
+                                    onAdd={() => handleOpenPicker(bucket)}
+                                    onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                />
+                            ))}
+                        </div>
                     </div>
+
+                    {/* General Section */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
+                            General
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            {GENERAL_BUCKETS.filter(b => b !== BucketHashes.Subclass).map((bucket) => (
+                                <BucketSlot
+                                    key={bucket}
+                                    bucketHash={bucket}
+                                    label={BUCKET_LABELS[bucket]}
+                                    item={itemsByBucket[bucket]}
+                                    manifest={manifest}
+                                    onAdd={() => handleOpenPicker(bucket)}
+                                    onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Items Summary */}
+                    <div className="pt-4 border-t border-white/10">
+                        <p className="text-[10px] text-gray-600 font-mono text-center">
+                            {items.length} items in loadout
+                        </p>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-white/10 bg-black flex justify-between gap-3 flex-shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 font-rajdhani flex-1"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest bg-white text-black hover:bg-gray-200 font-rajdhani flex-1 flex items-center justify-center gap-2"
+                    >
+                        <Save size={14} />
+                        {isNew ? 'Create' : 'Save'}
+                    </button>
                 </div>
             </div>
 
@@ -361,7 +427,8 @@ export function LoadoutEditorDrawer({ loadout, onClose }: LoadoutEditorDrawerPro
                 prompt={getPickerPrompt()}
                 ownerId={loadout.characterId}
             />
-        </>
+        </div>,
+        document.body
     );
 }
 
@@ -516,5 +583,8 @@ function BucketSlot({
         </button>
     );
 }
+
+// Need to import CLASS_NAMES
+import { CLASS_NAMES } from '@/store/loadoutStore';
 
 export default LoadoutEditorDrawer;
