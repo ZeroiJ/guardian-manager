@@ -254,12 +254,31 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const pickerFilter = useCallback((item: GuardianItem) => {
         // If target bucket is set, only show items from that bucket
         if (pickerTargetBucket != null) {
-            return item.bucketHash === pickerTargetBucket;
+            if (item.bucketHash !== pickerTargetBucket) return false;
+            
+            // Filter armor by class (like DIM's isItemLoadoutCompatible)
+            const isArmorBucket = ARMOR_BUCKETS.includes(item.bucketHash);
+            if (isArmorBucket) {
+                const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+                const character = effectiveCharId ? characters[effectiveCharId] : null;
+                const loadoutClass = character?.classType ?? loadout.characterClass;
+                
+                if (loadoutClass >= 0) {
+                    const def = manifest[item.itemHash];
+                    const itemClassType = def?.classType;
+                    // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                    if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
         }
         
         // Show all items from all characters + vault
         return true;
-    }, [pickerTargetBucket]);
+    }, [pickerTargetBucket, selectedCharId, loadout.characterId, loadout.characterClass, characters, manifest, isNew]);
 
     const getPickerPrompt = useCallback(() => {
         if (pickerTargetBucket != null) {
