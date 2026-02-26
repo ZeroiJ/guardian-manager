@@ -163,16 +163,38 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
 
     // Get available items for a bucket from all inventory
     const getAvailableItemsForBucket = useCallback((bucketHash: number) => {
-        return allItems.filter((item) => 
-            item.bucketHash === bucketHash && 
-            item.itemInstanceId != null
-        ).sort((a, b) => {
+        const isArmorBucket = ARMOR_BUCKETS.includes(bucketHash);
+        
+        // Get the actual class to use - from selected character for new loadouts
+        const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+        const character = effectiveCharId ? characters[effectiveCharId] : null;
+        const loadoutClass = character?.classType ?? loadout.characterClass;
+        
+        return allItems.filter((item) => {
+            // Must match bucket
+            if (item.bucketHash !== bucketHash) return false;
+            if (!item.itemInstanceId) return false;
+            
+            // For armor buckets, filter by class
+            if (isArmorBucket) {
+                const def = manifest[item.itemHash];
+                const itemClassType = def?.classType;
+                
+                // If loadout has a class, only show matching armor
+                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                if (loadoutClass >= 0 && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }).sort((a, b) => {
             // Sort by power descending
             const powerA = a.instanceData?.primaryStat?.value || 0;
             const powerB = b.instanceData?.primaryStat?.value || 0;
             return powerB - powerA;
         }).slice(0, 10); // Show top 10
-    }, [allItems]);
+    }, [allItems, manifest, loadout.characterClass, selectedCharId, characters, isNew]);
 
     // Select item from dropdown
     const handleSelectFromDropdown = useCallback((item: GuardianItem) => {
