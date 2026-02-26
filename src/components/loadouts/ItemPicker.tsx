@@ -43,9 +43,9 @@ export function ItemPicker({
     const [query, setQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     
-    const items = useInventoryStore((s) => s.items);
-    const manifest = useInventoryStore((s) => s.manifest);
-    const characters = useInventoryStore((s) => s.characters);
+    const items = useInventoryStore((s) => s.items) ?? [];
+    const manifest = useInventoryStore((s) => s.manifest) ?? {};
+    const characters = useInventoryStore((s) => s.characters) ?? {};
 
     // Filter items by owner and optional filter function
     const filteredItems = useMemo(() => {

@@ -73,9 +73,9 @@ export default function Loadouts() {
     const updateNotes = useLoadoutStore((s) => s.updateNotes);
     const saveCurrentLoadout = useLoadoutStore((s) => s.saveCurrentLoadout);
 
-    const manifest = useInventoryStore((s) => s.manifest);
-    const characters = useInventoryStore((s) => s.characters);
-    const allItems = useInventoryStore((s) => s.items);
+    const manifest = useInventoryStore((s) => s.manifest) ?? {};
+    const characters = useInventoryStore((s) => s.characters) ?? {};
+    const allItems = useInventoryStore((s) => s.items) ?? [];
 
     // ── Local state ────────────────────────────────────────
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });

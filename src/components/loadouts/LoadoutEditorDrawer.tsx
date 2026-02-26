@@ -61,9 +61,9 @@ const BUCKET_LABELS: Record<number, string> = {
 
 export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: LoadoutEditorDrawerProps) {
     const { renameLoadout, updateItems, saveCurrentLoadout, addLoadout } = useLoadoutStore();
-    const manifest = useInventoryStore((s) => s.manifest);
-    const allItems = useInventoryStore((s) => s.items);
-    const characters = useInventoryStore((s) => s.characters);
+    const manifest = useInventoryStore((s) => s.manifest) ?? {};
+    const allItems = useInventoryStore((s) => s.items) ?? [];
+    const characters = useInventoryStore((s) => s.characters) ?? {};
 
     // Only render if we have a loadout
     if (!loadout) return null;
