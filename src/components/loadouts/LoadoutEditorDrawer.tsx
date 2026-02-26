@@ -6,7 +6,7 @@
  * Features:
  * - Fill from Equipped / Unequipped
  * - Add/Remove items via bucket categories
- * - Item picker integration
+ * - Item picker integration we still getting errors look ""
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Save, Trash2, Plus, Zap, Package, Shield, RefreshCw } from 'lucide-react';
@@ -33,7 +33,7 @@ const WEAPON_BUCKETS = [
     BucketHashes.PowerWeapons,
 ];
 
-const ARMOR_BUCKETS = [
+const ARMOR_BUCKETS: number[] = [
     BucketHashes.Helmet,
     BucketHashes.Gauntlets,
     BucketHashes.ChestArmor,
