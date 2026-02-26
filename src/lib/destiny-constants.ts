@@ -141,6 +141,19 @@ export const SocketCategoryHashes = {
     GhostShellPerks: 3301318876,
     EmblemCustomization: 279738248,
     Super: 457473665,
+    // Subclass Abilities
+    Abilities_Abilities: 2537643955,
+    Abilities_Abilities_Ikora: 3070628938,
+    // Subclass Aspects
+    Aspects_Abilities: 3123754848,
+    Aspects_Abilities_Ikora: 3064681718,
+    Aspects_Abilities_Neomuna: 3812362759,
+    Aspects_Abilities_Stranger: 2963972037,
+    // Subclass Fragments
+    Fragments_Abilities: 2371191495,
+    Fragments_Abilities_Ikora: 2856088273,
+    Fragments_Abilities_Neomuna: 3662304455,
+    Fragments_Abilities_Stranger: 2220101226,
     // Footer socket categories
     WeaponMods: 2685412949,        // Weapon mod sockets (Backup Mag, etc.)
     WeaponCosmetics: 2048875504,   // Shaders, Ornaments, Mementos
