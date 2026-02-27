@@ -253,7 +253,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const handlePickerSelect = useCallback((item: GuardianItem) => {
         const def = manifest[item.itemHash];
         const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
-        const isSubclass = itemBucketTypeHash === BucketHashes.Subclass;
+        // Check both bucketHash and bucketTypeHash for subclass
+        const isSubclass = item.bucketHash === BucketHashes.Subclass || itemBucketTypeHash === BucketHashes.Subclass;
         
         // If selecting a subclass, also open the plug drawer to configure it
         if (isSubclass) {
@@ -290,46 +291,21 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         if (pickerTargetBucket != null) {   
             const def = manifest[item.itemHash];
             
-            // Check both item.bucketHash (where it currently is) and def.inventory.bucketTypeHash (what type of item it is)
+            // Use item.bucketHash directly - it's where the item currently is located
             const itemBucketHash = item.bucketHash;
+            
+            // Also try bucketTypeHash from definition
             const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
             
-            // Match if either matches - this handles both equipped and inventory items
+            // Match if either matches
             const matchesBucket = itemBucketHash === pickerTargetBucket || itemBucketTypeHash === pickerTargetBucket;
             
-            if (!matchesBucket) return false;
-            
-            // Get loadout class
-            const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
-            const character = effectiveCharId ? characters[effectiveCharId] : null;
-            const loadoutClass = character?.classType ?? loadout.characterClass;
-            
-            // Filter armor by class (like DIM's isItemLoadoutCompatible)
-            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketTypeHash);
-            if (isArmorBucket && loadoutClass >= 0) {
-                const itemClassType = def?.classType;
-                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
-                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
-                    return false;
-                }
-            }
-            
-            // Filter subclass by class - only show matching class subclasses
-            const isSubclass = itemBucketTypeHash === BucketHashes.Subclass;
-            if (isSubclass && loadoutClass >= 0) {
-                const itemClassType = def?.classType;
-                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
-                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
-                    return false;
-                }
-            }
-            
-            return true;
+            return matchesBucket;
         }
         
         // Show all items from all characters + vault
         return true;
-    }, [pickerTargetBucket, selectedCharId, loadout.characterId, loadout.characterClass, characters, manifest, isNew]);
+    }, [pickerTargetBucket, manifest]);
 
     const getPickerPrompt = useCallback(() => {
         if (pickerTargetBucket != null) {
