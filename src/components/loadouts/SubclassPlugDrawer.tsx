@@ -2,9 +2,10 @@
  * SubclassPlugDrawer - Configure subclass aspects, fragments, abilities
  * 
  * A drawer to configure subclass socket overrides (Aspects, Fragments, Abilities, Super)
+ * Ported from DIM's SubclassPlugDrawer
  */
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { X, Check, Zap } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { GuardianItem } from '@/services/profile/types';
@@ -18,29 +19,20 @@ interface SubclassPlugDrawerProps {
     onClose: () => void;
 }
 
-type SocketGroup = {
-    categoryHash: number;
+type SocketPlug = {
+    hash: number;
     name: string;
-    sockets: Array<{
-        socketIndex: number;
-        plugHash?: number;
-        plugOptions: Array<{ hash: number; name: string; icon?: string }>;
-    }>;
+    icon?: string;
+    canBeRemoved: boolean;
 };
 
-// Category names for display
-const CATEGORY_NAMES: Record<number, string> = {
-    [SocketCategoryHashes.Super]: 'Super',
-    [SocketCategoryHashes.Abilities_Abilities]: 'Ability',
-    [SocketCategoryHashes.Abilities_Abilities_Ikora]: 'Ability',
-    [SocketCategoryHashes.Aspects_Abilities]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Ikora]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Neomuna]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Stranger]: 'Aspect',
-    [SocketCategoryHashes.Fragments_Abilities]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Ikora]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Neomuna]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Stranger]: 'Fragment',
+type SocketGroup = {
+    socketIndex: number;
+    categoryHash: number;
+    categoryName: string;
+    plugs: SocketPlug[];
+    selectedHash: number;
+    isFragment: boolean;
 };
 
 const ABILITY_CATEGORIES: number[] = [
@@ -63,6 +55,20 @@ const FRAGMENT_CATEGORIES: number[] = [
     SocketCategoryHashes.Fragments_Abilities_Stranger,
 ];
 
+const CATEGORY_NAMES: Record<number, string> = {
+    [SocketCategoryHashes.Super]: 'Super',
+    [SocketCategoryHashes.Abilities_Abilities]: 'Ability',
+    [SocketCategoryHashes.Abilities_Abilities_Ikora]: 'Ability',
+    [SocketCategoryHashes.Aspects_Abilities]: 'Aspect',
+    [SocketCategoryHashes.Aspects_Abilities_Ikora]: 'Aspect',
+    [SocketCategoryHashes.Aspects_Abilities_Neomuna]: 'Aspect',
+    [SocketCategoryHashes.Aspects_Abilities_Stranger]: 'Aspect',
+    [SocketCategoryHashes.Fragments_Abilities]: 'Fragment',
+    [SocketCategoryHashes.Fragments_Abilities_Ikora]: 'Fragment',
+    [SocketCategoryHashes.Fragments_Abilities_Neomuna]: 'Fragment',
+    [SocketCategoryHashes.Fragments_Abilities_Stranger]: 'Fragment',
+};
+
 export function SubclassPlugDrawer({
     item,
     socketOverrides,
@@ -75,70 +81,75 @@ export function SubclassPlugDrawer({
     // Get the item definition
     const itemDef = manifest[item.itemHash];
 
-    // Build socket groups from the item's sockets
+    // Build socket groups - matching DIM's approach using categories
     const socketGroups = useMemo(() => {
-        if (!item.sockets?.sockets || !itemDef?.sockets?.socketCategories) return [];
+        if (!item.sockets || !itemDef?.sockets) return [] as SocketGroup[];
 
         const groups: SocketGroup[] = [];
-
-        // Build category index map
-        const categoryMap: Record<number, number[]> = {};
-        for (const cat of itemDef.sockets.socketCategories) {
-            categoryMap[cat.socketCategoryHash] = cat.socketIndexes;
-        }
-
-        // Process each socket
-        for (let i = 0; i < item.sockets.sockets.length; i++) {
-            const liveSocket = item.sockets.sockets[i];
-            if (!liveSocket?.plugHash) continue;
-
-            // Find which category this socket belongs to
-            for (const [categoryHash, indexes] of Object.entries(categoryMap)) {
-                if (!indexes.includes(i)) continue;
-
-                const hash = parseInt(categoryHash);
-                const categoryName = CATEGORY_NAMES[hash] || `Socket ${hash}`;
-
-                // Get plug options from manifest
-                const plugOptions: Array<{ hash: number; name: string; icon?: string }> = [];
+        
+        // Get categories from item definition
+        const categories = itemDef.sockets.socketCategories || [];
+        
+        for (const category of categories) {
+            const categoryHash = category.socketCategoryHash;
+            const socketIndexes = category.socketIndexes || [];
+            
+            // Skip if not a relevant category
+            const isAbility = ABILITY_CATEGORIES.includes(categoryHash);
+            const isAspect = ASPECT_CATEGORIES.includes(categoryHash);
+            const isFragment = FRAGMENT_CATEGORIES.includes(categoryHash);
+            
+            if (!isAbility && !isAspect && !isFragment) continue;
+            
+            const categoryName = CATEGORY_NAMES[categoryHash] || 'Unknown';
+            
+            // Process each socket in this category
+            for (const socketIndex of socketIndexes) {
+                const liveSocket = item.sockets?.sockets?.[socketIndex];
+                if (!liveSocket) continue;
                 
-                // Find the socket definition to get plug set
-                const socketDef = itemDef.sockets.socketEntries[i];
-                if (socketDef?.plugSource && socketDef.reusablePlugSetHash) {
-                    // Try to get plugs from plug set
+                // Get plug options from the socket's plug set
+                const plugs: SocketPlug[] = [];
+                
+                // Try to get plugs from the socket definition
+                const socketDef = itemDef.sockets?.socketEntries?.[socketIndex];
+                
+                if (socketDef?.reusablePlugSetHash) {
                     const plugSetDef = manifest[socketDef.reusablePlugSetHash];
                     if (plugSetDef?.reusablePlugItems) {
                         for (const plug of plugSetDef.reusablePlugItems) {
+                            // Skip empty plugs
+                            if (EMPTY_PLUG_HASHES.has(plug.plugItemHash)) continue;
+                            
                             const plugDef = manifest[plug.plugItemHash];
-                            if (plugDef && !EMPTY_PLUG_HASHES.has(plug.plugItemHash)) {
-                                plugOptions.push({
+                            if (plugDef) {
+                                plugs.push({
                                     hash: plug.plugItemHash,
                                     name: plugDef.displayProperties?.name || 'Unknown',
                                     icon: plugDef.displayProperties?.icon,
+                                    canBeRemoved: isAspect || isFragment,
                                 });
                             }
                         }
                     }
                 }
-
-                if (plugOptions.length > 0) {
-                    // Check if this socket is already selected
-                    const currentPlugHash = selected[i] ?? liveSocket.plugHash;
-
+                
+                if (plugs.length > 0) {
+                    // Get currently selected plug hash (from overrides or current)
+                    const selectedHash = selected[socketIndex] ?? liveSocket.plugHash;
+                    
                     groups.push({
-                        categoryHash: hash,
-                        name: categoryName,
-                        sockets: [{
-                            socketIndex: i,
-                            plugHash: currentPlugHash,
-                            plugOptions,
-                        }],
+                        socketIndex,
+                        categoryHash,
+                        categoryName,
+                        plugs,
+                        selectedHash,
+                        isFragment,
                     });
                 }
-                break;
             }
         }
-
+        
         // Sort: Super first, Abilities second, Aspects third, Fragments last
         const sortOrder = (hash: number) => {
             if (hash === SocketCategoryHashes.Super) return 0;
@@ -147,7 +158,7 @@ export function SubclassPlugDrawer({
             if (FRAGMENT_CATEGORIES.includes(hash)) return 3;
             return 4;
         };
-
+        
         return groups.sort((a, b) => sortOrder(a.categoryHash) - sortOrder(b.categoryHash));
     }, [item, itemDef, manifest, selected]);
 
@@ -189,10 +200,10 @@ export function SubclassPlugDrawer({
 
     // Group by category name for display
     const groupedSockets = useMemo(() => {
-        const groups: Record<string, typeof socketGroups> = {};
+        const groups: Record<string, SocketGroup[]> = {};
         for (const group of socketGroups) {
-            if (!groups[group.name]) groups[group.name] = [];
-            groups[group.name].push(group);
+            if (!groups[group.categoryName]) groups[group.categoryName] = [];
+            groups[group.categoryName].push(group);
         }
         return groups;
     }, [socketGroups]);
@@ -218,7 +229,7 @@ export function SubclassPlugDrawer({
                                 Configure {itemDef?.displayProperties?.name || 'Subclass'}
                             </h2>
                             <p className="text-xs text-gray-500 font-mono">
-                                Select abilities, aspects, and fragments
+                                {capacityInfo.aspectSlots} Aspect slots, {capacityInfo.fragmentSlots} Fragment slots
                             </p>
                         </div>
                     </div>
@@ -240,49 +251,48 @@ export function SubclassPlugDrawer({
                                     ({groups.length} slot{groups.length !== 1 ? 's' : ''})
                                 </span>
                             </h3>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 gap-2">
                                 {groups.map((group) => {
-                                    const socket = group.sockets[0];
-                                    const selectedPlug = socket.plugOptions.find(p => p.hash === socket.plugHash);
+                                    const selectedPlug = group.plugs.find(p => p.hash === group.selectedHash);
                                     
                                     return (
                                         <div 
-                                            key={`${group.categoryHash}-${socket.socketIndex}`}
+                                            key={`${group.categoryHash}-${group.socketIndex}`}
                                             className="p-3 rounded-sm border border-white/10 bg-white/[0.02]"
                                         >
                                             <div className="text-[10px] text-gray-600 font-mono mb-2">
-                                                Socket {socket.socketIndex + 1}
+                                                Socket {group.socketIndex + 1} - {group.selectedHash ? 'Customized' : 'Default'}
                                             </div>
-                                            <div className="grid grid-cols-2 gap-1">
-                                                {socket.plugOptions.map((plug) => {
-                                                    const isSelected = socket.plugHash === plug.hash;
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {group.plugs.map((plug) => {
+                                                    const isSelected = group.selectedHash === plug.hash;
                                                     
                                                     return (
                                                         <button
                                                             key={plug.hash}
-                                                            onClick={() => handleSelect(socket.socketIndex, plug.hash)}
+                                                            onClick={() => handleSelect(group.socketIndex, plug.hash)}
                                                             className={cn(
-                                                                'flex items-center gap-2 p-2 rounded-sm border transition-all text-left',
+                                                                'flex flex-col items-center gap-1 p-2 rounded-sm border transition-all',
                                                                 isSelected 
                                                                     ? 'border-rarity-legendary bg-rarity-legendary/10' 
                                                                     : 'border-white/10 bg-white/[0.02] hover:border-white/20'
                                                             )}
                                                         >
-                                                            {isSelected && (
-                                                                <Check size={12} className="text-rarity-legendary flex-shrink-0" />
-                                                            )}
                                                             {plug.icon ? (
                                                                 <img 
                                                                     src={`https://www.bungie.net${plug.icon}`} 
                                                                     alt=""
-                                                                    className="w-6 h-6 rounded-sm object-cover"
+                                                                    className="w-8 h-8 rounded-sm object-cover"
                                                                 />
                                                             ) : (
-                                                                <div className="w-6 h-6 rounded-sm bg-white/10" />
+                                                                <div className="w-8 h-8 rounded-sm bg-white/10" />
                                                             )}
-                                                            <span className="text-[10px] font-bold font-rajdhani truncate">
+                                                            <span className="text-[8px] font-bold font-rajdhani text-center truncate w-full">
                                                                 {plug.name}
                                                             </span>
+                                                            {isSelected && (
+                                                                <Check size={10} className="text-rarity-legendary" />
+                                                            )}
                                                         </button>
                                                     );
                                                 })}
@@ -293,6 +303,11 @@ export function SubclassPlugDrawer({
                             </div>
                         </div>
                     ))}
+                    {socketGroups.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                            No configurable sockets found for this subclass.
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
