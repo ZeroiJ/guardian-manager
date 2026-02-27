@@ -87,10 +87,14 @@ export default function Inventory() {
   const { definitions: statGroupDefs, loading: statGroupsLoading } =
     useDefinitions("DestinyStatGroupDefinition", statGroupHashes);
 
+  // Load Plug Sets (needed for subclass sockets, mods, etc.)
+  const { definitions: plugSetDefs, loading: plugSetsLoading } =
+    useDefinitions("DestinyPlugSetDefinition", []);
+
   // Merge Definitions
   const definitions = useMemo(
-    () => ({ ...itemDefs, ...statGroupDefs }),
-    [itemDefs, statGroupDefs],
+    () => ({ ...itemDefs, ...statGroupDefs, ...plugSetDefs }),
+    [itemDefs, statGroupDefs, plugSetDefs],
   );
 
   // Sync Manifest to Store for Headless Engine
@@ -141,7 +145,7 @@ export default function Inventory() {
 
   const loading =
     profileLoading ||
-    (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading));
+    (itemHashes.length > 0 && (itemDefsLoading || statGroupsLoading || plugSetsLoading));
 
   const handleContextMenu = (
     e: React.MouseEvent,
