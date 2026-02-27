@@ -111,15 +111,43 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         };
     }, [manifest]);
 
+    // Helper: check if item is exotic (tierType 6)
+    const isItemExotic = useCallback((item: GuardianItem): boolean => {
+        const def = manifest[item.itemHash];
+        return def?.inventory?.tierType === 6;
+    }, [manifest]);
+
     // Helper: add item to loadout (replaces existing in same bucket)
     const handleAddItem = useCallback((item: GuardianItem) => {
+        const isExotic = isItemExotic(item);
+        const isArmorBucket = ARMOR_BUCKETS.includes(item.bucketHash);
+        const isWeaponBucket = WEAPON_BUCKETS.includes(item.bucketHash);
+
         setItems((prev) => {
-            // Remove any existing item in the same bucket
-            const filtered = prev.filter((i) => i.bucketHash !== item.bucketHash);
+            let filtered = prev.filter((i) => i.bucketHash !== item.bucketHash);
+
+            // If adding an exotic, remove any existing exotic in same category
+            if (isExotic) {
+                const existingItems = prev.filter((i) => i.bucketHash !== item.bucketHash);
+                if (isArmorBucket) {
+                    // Remove any existing exotic armor
+                    filtered = existingItems.filter((i) => {
+                        const iDef = manifest[i.itemHash];
+                        return !(iDef?.inventory?.tierType === 6 && ARMOR_BUCKETS.includes(i.bucketHash));
+                    });
+                } else if (isWeaponBucket) {
+                    // Remove any existing exotic weapon
+                    filtered = existingItems.filter((i) => {
+                        const iDef = manifest[i.itemHash];
+                        return !(iDef?.inventory?.tierType === 6 && WEAPON_BUCKETS.includes(i.bucketHash));
+                    });
+                }
+            }
+
             // Add new item
             return [...filtered, convertToLoadoutItem(item)];
         });
-    }, [convertToLoadoutItem]);
+    }, [convertToLoadoutItem, isItemExotic, manifest]);
 
     // Helper: remove item
     const handleRemoveItem = useCallback((itemInstanceId: string) => {
@@ -215,8 +243,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             const powerA = a.instanceData?.primaryStat?.value || 0;
             const powerB = b.instanceData?.primaryStat?.value || 0;
             return powerB - powerA;
-        }).slice(0, 10); // Show top 10
-    }, [allItems, manifest, loadout.characterClass, selectedCharId, characters, isNew]);
+        });
+    }, [allItems, manifest, loadout.characterClass, selectedCharId, characters, isNew, character]);
 
     // Select item from dropdown
     const handleSelectFromDropdown = useCallback((item: GuardianItem) => {
