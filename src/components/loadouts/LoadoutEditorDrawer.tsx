@@ -18,6 +18,7 @@ import { BucketHashes } from '@/lib/destiny-constants';
 import { createPortal } from 'react-dom';
 import { ItemPicker } from './ItemPicker';
 import { SubclassPlugDrawer } from './SubclassPlugDrawer';
+import { ModPicker } from './ModPicker';
 
 interface LoadoutEditorDrawerProps {
     /** The loadout to edit. If null, drawer won't render. */
@@ -83,8 +84,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const [showSubclassDrawer, setShowSubclassDrawer] = useState(false);
     const [selectedSubclass, setSelectedSubclass] = useState<GuardianItem | null>(null);
     const [socketOverrides, setSocketOverrides] = useState<Record<number, number>>({});
+    // Mod picker state
+    const [showModPicker, setShowModPicker] = useState(false);
+    const [modsByBucket, setModsByBucket] = useState<Record<number, number[]>>(loadout.modsByBucket || {});
     // Dropdown state - which bucket slot has the dropdown open
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+
+    // Get character class for mod picker
+    const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+    const character = effectiveCharId ? characters[effectiveCharId] : null;
+    const characterClass = character?.classType ?? loadout.characterClass ?? -1;
 
     // Helper: convert GuardianItem to ILoadoutItem
     const convertToLoadoutItem = useCallback((item: GuardianItem): ILoadoutItem => {
@@ -239,16 +248,17 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                 characterId: selectedCharId,
                 characterClass: character?.classType ?? -1,
                 items,
+                modsByBucket,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
             };
             addLoadout(newLoadout);
         } else {
             renameLoadout(loadout.id, name);
-            updateItems(loadout.id, items);
+            updateItems(loadout.id, items, modsByBucket);
         }
         onClose();
-    }, [isNew, loadout, name, items, characters, renameLoadout, updateItems, addLoadout, onClose]);
+    }, [isNew, loadout, name, items, modsByBucket, characters, renameLoadout, updateItems, addLoadout, onClose]);
 
     const handlePickerSelect = useCallback((item: GuardianItem) => {
         const def = manifest[item.itemHash];
@@ -506,6 +516,24 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                         </div>
                     </div>
 
+                    {/* Armor Mods Section */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
+                            Armor Mods
+                        </h3>
+                        <button
+                            onClick={() => setShowModPicker(true)}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] transition-colors"
+                        >
+                            <Shield size={16} className="text-amber-400" />
+                            <span className="text-sm font-bold font-rajdhani uppercase">
+                                {Object.keys(modsByBucket).length > 0 
+                                    ? `${Object.values(modsByBucket).flat().length} mods selected`
+                                    : 'Select Armor Mods'}
+                            </span>
+                        </button>
+                    </div>
+
                     {/* Items Summary */}
                     <div className="pt-4 border-t border-white/10">
                         <p className="text-[10px] text-gray-600 font-mono text-center">
@@ -552,6 +580,19 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                     socketOverrides={socketOverrides}
                     onAccept={handleSubclassAccept}
                     onClose={() => setShowSubclassDrawer(false)}
+                />
+            )}
+
+            {/* Mod Picker */}
+            {showModPicker && (
+                <ModPicker
+                    modsByBucket={modsByBucket}
+                    characterClass={characterClass}
+                    onAccept={(newMods) => {
+                        setModsByBucket(newMods);
+                        setShowModPicker(false);
+                    }}
+                    onClose={() => setShowModPicker(false)}
                 />
             )}
         </div>,

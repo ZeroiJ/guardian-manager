@@ -236,7 +236,7 @@ interface LoadoutState {
     /**
      * Replace all items in a loadout (for a future "re-snapshot" / edit flow).
      */
-    updateItems: (id: string, items: ILoadoutItem[]) => void;
+    updateItems: (id: string, items: ILoadoutItem[], modsByBucket?: Record<number, number[]>) => void;
 
     /**
      * Add a completely new loadout (for create flow).
@@ -406,10 +406,10 @@ export const useLoadoutStore = create<LoadoutState>()(
             // ----------------------------------------------------------------
             // updateItems
             // ----------------------------------------------------------------
-            updateItems: (id, items) => {
+            updateItems: (id, items, modsByBucket) => {
                 set((state) => ({
                     loadouts: state.loadouts.map((l) =>
-                        l.id === id ? { ...l, items, updatedAt: Date.now() } : l
+                        l.id === id ? { ...l, items, modsByBucket, updatedAt: Date.now() } : l
                     ),
                 }));
             },
