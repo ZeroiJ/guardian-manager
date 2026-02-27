@@ -93,6 +93,10 @@ export function SubclassPlugDrawer({
         // Get the live socket data if available
         const liveSockets = item.sockets?.sockets || [];
         
+        console.log('[SubclassPlugDrawer] itemDef.sockets:', itemDef.sockets);
+        console.log('[SubclassPlugDrawer] categories:', categories);
+        console.log('[SubclassPlugDrawer] liveSockets:', liveSockets);
+        
         for (const category of categories) {
             const categoryHash = category.socketCategoryHash;
             const socketIndexes = category.socketIndexes || [];
@@ -101,6 +105,8 @@ export function SubclassPlugDrawer({
             const isAbility = ABILITY_CATEGORIES.includes(categoryHash);
             const isAspect = ASPECT_CATEGORIES.includes(categoryHash);
             const isFragment = FRAGMENT_CATEGORIES.includes(categoryHash);
+            
+            console.log('[SubclassPlugDrawer] categoryHash:', categoryHash, 'isAbility:', isAbility, 'isAspect:', isAspect, 'isFragment:', isFragment);
             
             if (!isAbility && !isAspect && !isFragment) continue;
             
@@ -114,10 +120,18 @@ export function SubclassPlugDrawer({
                 
                 // Get plug options from the socket definition
                 const plugs: SocketPlug[] = [];
-                const socketDef = itemDef.sockets?.socketEntries?.[socketIndex];
+                
+                // Try to get socket entries - could be array or object
+                const socketEntries = itemDef.sockets.socketEntries;
+                const socketDef = Array.isArray(socketEntries) ? socketEntries[socketIndex] : socketEntries?.[socketIndex];
+                
+                console.log('[SubclassPlugDrawer] socketIndex:', socketIndex, 'socketDef:', socketDef);
                 
                 if (socketDef?.reusablePlugSetHash) {
+                    console.log('[SubclassPlugDrawer] Looking up plugSet:', socketDef.reusablePlugSetHash);
                     const plugSetDef = manifest[socketDef.reusablePlugSetHash];
+                    console.log('[SubclassPlugDrawer] plugSetDef:', plugSetDef);
+                    
                     if (plugSetDef?.reusablePlugItems) {
                         for (const plug of plugSetDef.reusablePlugItems) {
                             // Skip empty plugs
