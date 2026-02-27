@@ -99,6 +99,14 @@ export class ManifestManager {
     }
 
     /**
+     * Get the full table from memory cache synchronously.
+     * Returns empty object if not loaded yet.
+     */
+    static getFullTableSync(tableName: string): Record<string, any> {
+        return memoryCache.get(tableName) || {};
+    }
+
+    /**
      * Gets multiple definitions by their hashes from a specific table.
      */
     static async getDefinitions(tableName: string, hashes: (number | string)[]): Promise<Record<string, any>> {
