@@ -1,10 +1,10 @@
-# Guardian Nexus
+# Guardian Manager
 
 A full-featured Destiny 2 inventory management web application. Built to help players manage their weapons, armor, and loadouts with a modern, responsive interface.
 
 ## About This Project
 
-Guardian Nexus is a personal project I built to deepen my understanding of full-stack web development while creating something genuinely useful for the Destiny 2 community. The application interfaces with Bungie's official API to provide real-time inventory management, loadout optimization, and cloud-synced organization features.
+Guardian Manager is a personal project I built to deepen my understanding of full-stack web development while creating something genuinely useful for the Destiny 2 community. The application interfaces with Bungie's official API to provide real-time inventory management, loadout optimization, and cloud-synced organization features.
 
 ## Tech Stack
 
