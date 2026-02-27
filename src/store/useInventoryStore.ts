@@ -91,7 +91,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         const items: GuardianItem[] = rawItems.map(item => {
             const inst = item.itemInstanceId ? instanceData[item.itemInstanceId] : undefined;
             const stats = item.itemInstanceId ? statsData[item.itemInstanceId] : undefined;
-            const sockets = item.itemInstanceId ? socketsData[item.itemInstanceId] : undefined;
+            const socketData = item.itemInstanceId ? socketsData[item.itemInstanceId] : undefined;
             const objectives = item.itemInstanceId ? objectivesData[item.itemInstanceId] : undefined;
             const instanceId = item.itemInstanceId;
 
@@ -105,7 +105,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
                     isEquipped: item.isEquipped
                 },
                 stats: stats?.stats || item.stats,
-                sockets: sockets || undefined,
+                sockets: socketData ? { sockets: socketData.sockets } : undefined,
                 objectives: objectives || undefined,
                 owner: item.owner,
                 userTag: tag || null,
