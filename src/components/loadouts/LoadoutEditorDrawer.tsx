@@ -90,6 +90,9 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Dropdown state - which bucket slot has the dropdown open
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
+    // For new loadouts, we need a character to be selected first
+    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
+
     // Get character class for mod picker
     const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
     const character = effectiveCharId ? characters[effectiveCharId] : null;
@@ -182,16 +185,11 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setOpenDropdown(null);
     }, []);
 
-    // For new loadouts, we need a character to be selected first
-    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
-
     // Get available items for a bucket from all inventory
     const getAvailableItemsForBucket = useCallback((bucketHash: number) => {
         const isArmorBucket = ARMOR_BUCKETS.includes(bucketHash);
         
         // Get the actual class to use - from selected character for new loadouts
-        const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
-        const character = effectiveCharId ? characters[effectiveCharId] : null;
         const loadoutClass = character?.classType ?? loadout.characterClass;
         
         return allItems.filter((item) => {
@@ -313,8 +311,6 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             if (!matchesBucket) return false;
             
             // Get loadout class
-            const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
-            const character = effectiveCharId ? characters[effectiveCharId] : null;
             const loadoutClass = character?.classType ?? loadout.characterClass;
             
             // For armor, filter by class
