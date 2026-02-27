@@ -223,20 +223,21 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         return allItems.filter((item) => {
             const def = manifest[item.itemHash];
             const itemBucketHash = item.bucketHash;
+            // Also check bucketTypeHash from definition as fallback
             const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
             
             // Must match bucket - check both current location and item type
-            const matchesBucket = itemBucketHash === bucketHash || itemBucketTypeHash === bucketHash;
+            const matchesBucket = itemBucketHash === bucketHash || (itemBucketTypeHash && itemBucketTypeHash === bucketHash);
             if (!matchesBucket) return false;
             if (!item.itemInstanceId) return false;
             
             // For armor buckets, filter by class
-            if (isArmorBucket) {
+            if (isArmorBucket && def) {
                 const itemClassType = def?.classType;
                 
                 // If loadout has a class, only show matching armor
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
-                if (loadoutClass >= 0 && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                if (loadoutClass >= 0 && itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
                     return false;
                 }
             }
@@ -338,16 +339,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
             
             // Match if either matches
-            const matchesBucket = itemBucketHash === pickerTargetBucket || itemBucketTypeHash === pickerTargetBucket;
+            const matchesBucket = itemBucketHash === pickerTargetBucket || (itemBucketTypeHash && itemBucketTypeHash === pickerTargetBucket);
             
             if (!matchesBucket) return false;
             
             // Get loadout class
             const loadoutClass = character?.classType ?? loadout.characterClass;
             
-            // For armor buckets, filter by class - check both bucketHash and bucketTypeHash
-            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketHash) || ARMOR_BUCKETS.includes(itemBucketTypeHash);
-            if (isArmorBucket && loadoutClass >= 0) {
+            // For armor buckets, filter by class - check both bucketHash and bucketTypeHash (only if def exists)
+            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketHash) || (itemBucketTypeHash && ARMOR_BUCKETS.includes(itemBucketTypeHash));
+            if (isArmorBucket && def && loadoutClass >= 0) {
                 const itemClassType = def?.classType;
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
                 if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
@@ -356,8 +357,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             }
             
             // For subclasses, filter by class
-            const isSubclass = itemBucketHash === BucketHashes.Subclass || itemBucketTypeHash === BucketHashes.Subclass;
-            if (isSubclass && loadoutClass >= 0) {
+            const isSubclass = itemBucketHash === BucketHashes.Subclass || (itemBucketTypeHash && itemBucketTypeHash === BucketHashes.Subclass);
+            if (isSubclass && def && loadoutClass >= 0) {
                 const itemClassType = def?.classType;
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
                 if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
