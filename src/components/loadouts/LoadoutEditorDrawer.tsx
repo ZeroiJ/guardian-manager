@@ -287,12 +287,17 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Filter for item picker - show items from ALL characters + vault (not just selected)
     const pickerFilter = useCallback((item: GuardianItem) => {
         // If target bucket is set, only show items from that bucket
-        if (pickerTargetBucket != null) {
-            // Use bucketTypeHash from definition (what TYPE of item it is), not current location
+        if (pickerTargetBucket != null) {   
             const def = manifest[item.itemHash];
+            
+            // Check both item.bucketHash (where it currently is) and def.inventory.bucketTypeHash (what type of item it is)
+            const itemBucketHash = item.bucketHash;
             const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
             
-            if (itemBucketTypeHash !== pickerTargetBucket) return false;
+            // Match if either matches - this handles both equipped and inventory items
+            const matchesBucket = itemBucketHash === pickerTargetBucket || itemBucketTypeHash === pickerTargetBucket;
+            
+            if (!matchesBucket) return false;
             
             // Get loadout class
             const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
