@@ -72,7 +72,7 @@ export function ItemPicker({
 
     // Apply search query using existing itemFilter
     const searchResults = useMemo(() => {
-        if (!query.trim()) return filteredItems.slice(0, 50); // Limit initial results
+        if (!query.trim()) return filteredItems; // Show all items when no search query
         
         // Get dupe instance IDs for is:dupe filter
         const dupeInstanceIds = new Set<string>();
@@ -87,7 +87,7 @@ export function ItemPicker({
             }
         }
         
-        return filterItems(filteredItems, query, manifest, dupeInstanceIds).slice(0, 100);
+        return filterItems(filteredItems, query, manifest, dupeInstanceIds);
     }, [filteredItems, query, manifest]);
 
     const handleSelect = useCallback((item: GuardianItem) => {
