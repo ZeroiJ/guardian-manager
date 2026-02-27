@@ -307,6 +307,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             const character = effectiveCharId ? characters[effectiveCharId] : null;
             const loadoutClass = character?.classType ?? loadout.characterClass;
             
+            // For armor, filter by class
+            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketTypeHash);
+            if (isArmorBucket && loadoutClass >= 0) {
+                const itemClassType = def?.classType;
+                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                    return false;
+                }
+            }
+            
             // For subclasses, filter by class
             const isSubclass = itemBucketHash === BucketHashes.Subclass || itemBucketTypeHash === BucketHashes.Subclass;
             if (isSubclass && loadoutClass >= 0) {
