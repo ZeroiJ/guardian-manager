@@ -1,4 +1,4 @@
-import { SocketCategoryHashes, EMPTY_PLUG_HASHES } from './destiny-constants';
+import { SocketCategoryHashes, EMPTY_PLUG_HASHES } from '../destiny-constants';
 
 export interface SubclassSocketGroup {
     socketIndex: number;
