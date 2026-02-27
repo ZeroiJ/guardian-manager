@@ -1,53 +1,52 @@
 # Guardian Nexus
 
-The ultimate companion for your Destiny 2 journey. Manage your inventory, track your stats, and optimize your builds.
+A full-featured Destiny 2 inventory management web application. Built to help players manage their weapons, armor, and loadouts with a modern, responsive interface.
 
-## ⚡ The Vibe Coding Manifesto
+## About This Project
 
-This project is built using 100% Vibe Coding.
+Guardian Nexus is a personal project I built to deepen my understanding of full-stack web development while creating something genuinely useful for the Destiny 2 community. The application interfaces with Bungie's official API to provide real-time inventory management, loadout optimization, and cloud-synced organization features.
 
-I’m leveraging AI-powered development tools (like Cursor and Trae) to bridge the gap between my ideas as a Guardian and the code required to make them a reality. This approach allows me to build features for the Destiny 2 community at the speed of thought, focusing on utility and "vibe" over traditional manual boilerplate.
+## Tech Stack
 
-### 🛠️ A Community Effort
-
-Since this is vibe-coded, the logic can occasionally be as chaotic as a Mayhem match. That’s where you come in:
-
-**Flag the Glitches**: If you find a bug or something feels "off," please open an Issue immediately. Don't worry about being too technical—just tell me what's broken.
-
-**Refine the Vibe**: If you see code that can be optimized, a UI that can be polished, or a feature that needs a better implementation, Pull Requests are highly encouraged.
-
-### 🌌 Why I'm doing this
-
-I am building this for the love of the game. Every contribution, bug report, or bit of feedback doesn't just help me—it helps the entire community. If you think you can make this tool better for our fellow Guardians, I would be incredibly happy to have your help.
-
-Let's build something the Tower would be proud of. 🚀
+- **Frontend**: React 18 + TypeScript + Vite
+- **State Management**: Zustand
+- **Styling**: Tailwind CSS
+- **Backend**: Cloudflare Workers (API proxy)
+- **Deployment**: Cloudflare Pages
+- **API**: Bungie.net REST API (OAuth 2.0)
 
 ## Features
 
-- **Arsenal**: View your weapons and armor with a premium, high-fidelity UI (DIM-like density).
-- **Max Power Engine**: Automatically calculates your "Base Power" level, respecting the complex "One Exotic" rule to show your true potential.
-- **Armor 3.0 Stats**: View your stats with functional names (Health, Melee, etc.) and raw values for instant build assessment.
-- **Smart Transfers**: Move items between any character or vault instantly. The system automatically handles multi-step transfers (Source -> Vault -> Destination).
-- **Postmaster & Lost Items**: View and manage lost items directly from your inventory screen.
-- **Granular Vault**: Browsable vault organized by item type (Auto Rifle, Helmet, etc.) and sorted alphabetically.
-- **Tag & Organize**: Right-click any item to Tag it (Favorite, Junk, Infuse) or add Notes. Data is synced to the cloud.
-- **Real-time Data**: Fetches your live inventory from Bungie.net.
-- **Secure Auth**: OAuth 2.0 authentication with Bungie.net.
+### Inventory Management
+- **Complete Arsenal View**: Browse all weapons and armor across characters and vault
+- **Detailed Item Stats**: View damage types, rarity, power level, and item perks
+- **Granular Vault Organization**: Filter and sort by item type, rarity, and damage
 
-## Changelog
+### Loadout System
+- **Create & Manage Loadouts**: Save up to 10 loadouts per character
+- **One-Click Equip**: Instantly equip full loadouts with automatic handling of multi-step transfers
+- **Armor Mod Support**: Configure armor mods within loadouts
+- **Subclass Customization**: Configure subclass abilities and fragments
 
-See [CHANGELOG.md](/CHANGELOG.md).
+### Optimization Tools
+- **Max Power Calculator**: Automatically calculates base power level with proper exotic handling
+- **Smart Transfers**: Intelligent multi-step item transfers (vault routing when direct transfer isn't possible)
+- **Postmaster Recovery**: View and retrieve items from the Postmaster
 
-## 🛠️ Development Setup
+### Organization
+- **Item Tagging**: Mark items as Favorite, Junk, or Infuse
+- **Custom Notes**: Add personal notes to any item
+- **Cloud Sync**: Tags and notes synced via Cloudflare KV storage
 
-So you want to contribute? Excellent. Here is how you get the ghost running locally.
+## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- npm
+- npm or bun
+- A Bungie.net developer account (free)
 
-### 1. Clone & Install
+### Installation
 
 ```bash
 git clone https://github.com/GuardianManager/guardian-nexus.git
@@ -55,35 +54,56 @@ cd guardian-nexus
 npm install
 ```
 
-### 2. Configure Bungie API Keys
+### Configuration
 
-This app needs a connection to the [Bungie API](https://bungie.net/en/Application).
-
-1. Go to [Bungie.net Developer Portal](https://www.bungie.net/en/Application).
-2. **Create a new App** (select "Confidential" client type).
-3. Set **Redirect URL** to: `http://localhost:5173/api/auth/callback` (or your local port).
-4. Select strict scope for **Read/Write Destiny Inventory** (Move/Transfer items).
-
-### 3. Set Secrets
-
-Create a `.dev.vars` file in the root `guardian-nexus/` directory (used by Cloudflare Wrangler):
+1. Create an application at [Bungie Developer Portal](https://www.bungie.net/en/Application)
+2. Set redirect URL to `http://localhost:5173/api/auth/callback`
+3. Create `.dev.vars` file:
 
 ```ini
-# .dev.vars
-BUNGIE_API_KEY=your_api_key_here
-BUNGIE_CLIENT_ID=your_client_id_here
-BUNGIE_CLIENT_SECRET=your_client_secret_here
-BUNGIE_AUTH_URL=https://www.bungie.net/en/OAuth/Authorize
+BUNGIE_API_KEY=your_api_key
+BUNGIE_CLIENT_ID=your_client_id
+BUNGIE_CLIENT_SECRET=your_client_secret
 ```
 
-### 4. Run Locally
-
-We use **Vite** for the frontend and **Cloudflare Functions** for the backend proxy.
+### Running Locally
 
 ```bash
-# Terminal 1: Run the frontend
 npm run dev
 ```
 
-> **Note:** For full API functionality locally, you may need to run via Wrangler proxy:
-> `npx wrangler pages dev --proxy=5173`
+For full API functionality with OAuth flows:
+
+```bash
+npx wrangler pages dev --proxy=5173
+```
+
+## Project Structure
+
+```
+src/
+├── components/     # React components
+├── hooks/          # Custom React hooks
+├── lib/            # Utilities and helpers
+├── pages/          # Route pages
+├── services/       # API client and services
+├── store/          # Zustand state management
+└── styles/         # Global styles
+```
+
+## Contributing
+
+This is an open project and contributions are welcome. Whether you want to fix a bug, add a feature, or improve the documentation:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+## License
+
+MIT
+
+## Acknowledgments
+
+- [DIM (Destiny Item Manager)](https://destinyitemmanager.com/) - Inspiration for UI patterns
+- [Bungie.net](https://www.bungie.net/) - API access
