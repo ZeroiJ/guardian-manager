@@ -55,7 +55,7 @@ export function ModPicker({
     characterClass,
     onAccept,
     onClose,
-}: {
+}: ModPickerProps) {
     const manifest = useInventoryStore((s) => s.manifest);
 
     // Flatten all selected mods for tracking
