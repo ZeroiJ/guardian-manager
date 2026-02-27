@@ -9,8 +9,8 @@ import { X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { GuardianItem } from '@/services/profile/types';
-import { SocketCategoryHashes, EMPTY_PLUG_HASHES } from '@/lib/destiny-constants';
 import { createPortal } from 'react-dom';
+import { getSubclassPlugsFromManifest, SubclassSocketGroup } from '@/lib/destiny/subclass-utils';
 
 interface SubclassPlugDrawerProps {
     item: GuardianItem;
@@ -18,56 +18,6 @@ interface SubclassPlugDrawerProps {
     onAccept: (overrides: Record<number, number>) => void;
     onClose: () => void;
 }
-
-type SocketPlug = {
-    hash: number;
-    name: string;
-    icon?: string;
-    canBeRemoved: boolean;
-};
-
-type SocketGroup = {
-    socketIndex: number;
-    categoryHash: number;
-    categoryName: string;
-    plugs: SocketPlug[];
-    selectedHash: number;
-    isFragment: boolean;
-};
-
-const ABILITY_CATEGORIES: number[] = [
-    SocketCategoryHashes.Super,
-    SocketCategoryHashes.Abilities_Abilities,
-    SocketCategoryHashes.Abilities_Abilities_Ikora,
-];
-
-const ASPECT_CATEGORIES: number[] = [
-    SocketCategoryHashes.Aspects_Abilities,
-    SocketCategoryHashes.Aspects_Abilities_Ikora,
-    SocketCategoryHashes.Aspects_Abilities_Neomuna,
-    SocketCategoryHashes.Aspects_Abilities_Stranger,
-];
-
-const FRAGMENT_CATEGORIES: number[] = [
-    SocketCategoryHashes.Fragments_Abilities,
-    SocketCategoryHashes.Fragments_Abilities_Ikora,
-    SocketCategoryHashes.Fragments_Abilities_Neomuna,
-    SocketCategoryHashes.Fragments_Abilities_Stranger,
-];
-
-const CATEGORY_NAMES: Record<number, string> = {
-    [SocketCategoryHashes.Super]: 'Super',
-    [SocketCategoryHashes.Abilities_Abilities]: 'Ability',
-    [SocketCategoryHashes.Abilities_Abilities_Ikora]: 'Ability',
-    [SocketCategoryHashes.Aspects_Abilities]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Ikora]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Neomuna]: 'Aspect',
-    [SocketCategoryHashes.Aspects_Abilities_Stranger]: 'Aspect',
-    [SocketCategoryHashes.Fragments_Abilities]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Ikora]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Neomuna]: 'Fragment',
-    [SocketCategoryHashes.Fragments_Abilities_Stranger]: 'Fragment',
-};
 
 export function SubclassPlugDrawer({
     item,
@@ -78,95 +28,15 @@ export function SubclassPlugDrawer({
     const manifest = useInventoryStore((s) => s.manifest);
     const [selected, setSelected] = useState<Record<number, number>>({ ...socketOverrides });
 
-    // Get the item definition
-    const itemDef = manifest[item.itemHash];
-
-    // Build socket groups - using socketCategories from the definition
-    const socketGroups = useMemo(() => {
-        if (!itemDef?.sockets) return [] as SocketGroup[];
-
-        const groups: SocketGroup[] = [];
-        
-        // Get categories from item definition
-        const categories = itemDef.sockets.socketCategories || [];
-        
-        // Get the live socket data if available
-        const liveSockets = item.sockets?.sockets || [];
-        
-        for (const category of categories) {
-            const categoryHash = category.socketCategoryHash;
-            const socketIndexes = category.socketIndexes || [];
-            
-            // Skip if not a relevant category
-            const isAbility = ABILITY_CATEGORIES.includes(categoryHash);
-            const isAspect = ASPECT_CATEGORIES.includes(categoryHash);
-            const isFragment = FRAGMENT_CATEGORIES.includes(categoryHash);
-            
-            if (!isAbility && !isAspect && !isFragment) continue;
-            
-            const categoryName = CATEGORY_NAMES[categoryHash] || 'Unknown';
-            
-            // Process each socket in this category
-            for (const socketIndex of socketIndexes) {
-                // Get the live socket data (what's currently equipped)
-                const liveSocket = liveSockets[socketIndex];
-                const currentPlugHash = liveSocket?.plugHash;
-                
-                // Get plug options from the socket definition
-                const plugs: SocketPlug[] = [];
-                
-                // Try to get socket entries - could be array or object
-                const socketEntries = itemDef.sockets.socketEntries;
-                const socketDef = Array.isArray(socketEntries) ? socketEntries[socketIndex] : socketEntries?.[socketIndex];
-                
-                if (socketDef?.reusablePlugSetHash) {
-                    const plugSetDef = manifest[socketDef.reusablePlugSetHash];
-                    
-                    if (plugSetDef?.reusablePlugItems) {
-                        for (const plug of plugSetDef.reusablePlugItems) {
-                            // Skip empty plugs
-                            if (EMPTY_PLUG_HASHES.has(plug.plugItemHash)) continue;
-                            
-                            const plugDef = manifest[plug.plugItemHash];
-                            if (plugDef) {
-                                plugs.push({
-                                    hash: plug.plugItemHash,
-                                    name: plugDef.displayProperties?.name || 'Unknown',
-                                    icon: plugDef.displayProperties?.icon,
-                                    canBeRemoved: isAspect || isFragment,
-                                });
-                            }
-                        }
-                    }
-                }
-                
-                if (plugs.length > 0) {
-                    // Get currently selected plug hash (from overrides or current)
-                    const selectedHash = selected[socketIndex] ?? currentPlugHash;
-                    
-                    groups.push({
-                        socketIndex,
-                        categoryHash,
-                        categoryName,
-                        plugs,
-                        selectedHash,
-                        isFragment,
-                    });
-                }
-            }
-        }
-        
-        // Sort: Super first, Abilities second, Aspects third, Fragments last
-        const sortOrder = (hash: number) => {
-            if (hash === SocketCategoryHashes.Super) return 0;
-            if (ABILITY_CATEGORIES.includes(hash)) return 1;
-            if (ASPECT_CATEGORIES.includes(hash)) return 2;
-            if (FRAGMENT_CATEGORIES.includes(hash)) return 3;
-            return 4;
-        };
-        
-        return groups.sort((a, b) => sortOrder(a.categoryHash) - sortOrder(b.categoryHash));
-    }, [item, itemDef, manifest, selected]);
+    // Get socket groups from manifest using the utility function
+    const socketGroups = useMemo((): SubclassSocketGroup[] => {
+        return getSubclassPlugsFromManifest(
+            item.itemHash,
+            manifest,
+            selected,
+            item.sockets?.sockets
+        );
+    }, [item.itemHash, manifest, selected, item.sockets?.sockets]);
 
     const handleSelect = useCallback((socketIndex: number, plugHash: number) => {
         setSelected((prev) => {
@@ -190,10 +60,10 @@ export function SubclassPlugDrawer({
         let fragments = 0;
 
         for (const group of socketGroups) {
-            if (ASPECT_CATEGORIES.includes(group.categoryHash)) {
+            if (group.categoryName === 'Aspect') {
                 aspects++;
             }
-            if (FRAGMENT_CATEGORIES.includes(group.categoryHash)) {
+            if (group.categoryName === 'Fragment') {
                 fragments++;
             }
         }
@@ -206,13 +76,16 @@ export function SubclassPlugDrawer({
 
     // Group by category name for display
     const groupedSockets = useMemo(() => {
-        const groups: Record<string, SocketGroup[]> = {};
+        const groups: Record<string, SubclassSocketGroup[]> = {};
         for (const group of socketGroups) {
             if (!groups[group.categoryName]) groups[group.categoryName] = [];
             groups[group.categoryName].push(group);
         }
         return groups;
     }, [socketGroups]);
+
+    // Get item definition for display
+    const itemDef = manifest[item.itemHash];
 
     return createPortal(
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
