@@ -90,6 +90,9 @@ export function SubclassPlugDrawer({
         // Get categories from item definition
         const categories = itemDef.sockets.socketCategories || [];
         
+        // Get the live socket data if available
+        const liveSockets = item.sockets?.sockets || [];
+        
         for (const category of categories) {
             const categoryHash = category.socketCategoryHash;
             const socketIndexes = category.socketIndexes || [];
@@ -106,7 +109,7 @@ export function SubclassPlugDrawer({
             // Process each socket in this category
             for (const socketIndex of socketIndexes) {
                 // Get the live socket data (what's currently equipped)
-                const liveSocket = item.sockets?.sockets?.[socketIndex];
+                const liveSocket = liveSockets[socketIndex];
                 const currentPlugHash = liveSocket?.plugHash;
                 
                 // Get plug options from the socket definition

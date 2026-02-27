@@ -300,7 +300,24 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             // Match if either matches
             const matchesBucket = itemBucketHash === pickerTargetBucket || itemBucketTypeHash === pickerTargetBucket;
             
-            return matchesBucket;
+            if (!matchesBucket) return false;
+            
+            // Get loadout class
+            const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+            const character = effectiveCharId ? characters[effectiveCharId] : null;
+            const loadoutClass = character?.classType ?? loadout.characterClass;
+            
+            // For subclasses, filter by class
+            const isSubclass = itemBucketHash === BucketHashes.Subclass || itemBucketTypeHash === BucketHashes.Subclass;
+            if (isSubclass && loadoutClass >= 0) {
+                const itemClassType = def?.classType;
+                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                    return false;
+                }
+            }
+            
+            return true;
         }
         
         // Show all items from all characters + vault
