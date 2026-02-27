@@ -17,6 +17,7 @@ import { GuardianItem } from '@/services/profile/types';
 import { BucketHashes } from '@/lib/destiny-constants';
 import { createPortal } from 'react-dom';
 import { ItemPicker } from './ItemPicker';
+import { SubclassPlugDrawer } from './SubclassPlugDrawer';
 
 interface LoadoutEditorDrawerProps {
     /** The loadout to edit. If null, drawer won't render. */
@@ -78,6 +79,10 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const [items, setItems] = useState<ILoadoutItem[]>(loadout.items);
     const [showItemPicker, setShowItemPicker] = useState(false);
     const [pickerTargetBucket, setPickerTargetBucket] = useState<number | null>(null);
+    // Subclass plug drawer state
+    const [showSubclassDrawer, setShowSubclassDrawer] = useState(false);
+    const [selectedSubclass, setSelectedSubclass] = useState<GuardianItem | null>(null);
+    const [socketOverrides, setSocketOverrides] = useState<Record<number, number>>({});
     // Dropdown state - which bucket slot has the dropdown open
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
@@ -246,10 +251,38 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     }, [isNew, loadout, name, items, characters, renameLoadout, updateItems, addLoadout, onClose]);
 
     const handlePickerSelect = useCallback((item: GuardianItem) => {
+        const def = manifest[item.itemHash];
+        const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
+        const isSubclass = itemBucketTypeHash === BucketHashes.Subclass;
+        
+        // If selecting a subclass, also open the plug drawer to configure it
+        if (isSubclass) {
+            setSelectedSubclass(item);
+            setSocketOverrides({});
+            setShowSubclassDrawer(true);
+        }
+        
         handleAddItem(item);
         setShowItemPicker(false);
         setPickerTargetBucket(null);
-    }, [handleAddItem]);
+    }, [handleAddItem, manifest]);
+
+    // Handle accepting socket overrides from subclass drawer
+    const handleSubclassAccept = useCallback((overrides: Record<number, number>) => {
+        setSocketOverrides(overrides);
+        // Update the subclass item in loadout with socket overrides
+        if (selectedSubclass) {
+            setItems((prev) => 
+                prev.map((item) => {
+                    if (item.bucketHash === BucketHashes.Subclass && item.itemInstanceId === selectedSubclass.itemInstanceId) {
+                        return { ...item, socketOverrides: overrides };
+                    }
+                    return item;
+                })
+            );
+        }
+        setShowSubclassDrawer(false);
+    }, [selectedSubclass]);
 
     // Filter for item picker - show items from ALL characters + vault (not just selected)
     const pickerFilter = useCallback((item: GuardianItem) => {
@@ -261,19 +294,28 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             
             if (itemBucketTypeHash !== pickerTargetBucket) return false;
             
+            // Get loadout class
+            const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+            const character = effectiveCharId ? characters[effectiveCharId] : null;
+            const loadoutClass = character?.classType ?? loadout.characterClass;
+            
             // Filter armor by class (like DIM's isItemLoadoutCompatible)
             const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketTypeHash);
-            if (isArmorBucket) {
-                const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
-                const character = effectiveCharId ? characters[effectiveCharId] : null;
-                const loadoutClass = character?.classType ?? loadout.characterClass;
-                
-                if (loadoutClass >= 0) {
-                    const itemClassType = def?.classType;
-                    // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
-                    if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
-                        return false;
-                    }
+            if (isArmorBucket && loadoutClass >= 0) {
+                const itemClassType = def?.classType;
+                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                    return false;
+                }
+            }
+            
+            // Filter subclass by class - only show matching class subclasses
+            const isSubclass = itemBucketTypeHash === BucketHashes.Subclass;
+            if (isSubclass && loadoutClass >= 0) {
+                const itemClassType = def?.classType;
+                // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
+                if (itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
+                    return false;
                 }
             }
             
@@ -346,16 +388,6 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm">
             <div className="w-full max-w-2xl bg-[#0a0a0a] border-t border-white/10 rounded-t-xl shadow-2xl flex flex-col max-h-[85vh] animate-slide-up">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-                    <h2 className="text-lg font-bold font-rajdhani tracking-widest uppercase">
-                        {isNew ? 'Create Loadout' : 'Edit Loadout'}
-                    </h2>
-                    <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-sm">
-                        <X size={18} />
-                    </button>
-                </div>
-
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
                     {/* Name Edit */}
@@ -371,32 +403,6 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                         />
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <button
-                            onClick={handleFillFromEquipped}
-                            className={cn(
-                                'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
-                                'border border-white/10 text-gray-400 bg-white/[0.02]',
-                                'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
-                            )}
-                        >
-                            <Zap size={12} />
-                            Fill Equipped
-                        </button>
-                        <button
-                            onClick={handleFillFromUnequipped}
-                            className={cn(
-                                'flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-[10px] font-bold uppercase tracking-wider font-rajdhani',
-                                'border border-white/10 text-gray-400 bg-white/[0.02]',
-                                'hover:border-white/25 hover:text-white hover:bg-white/[0.05]'
-                            )}
-                        >
-                            <RefreshCw size={12} />
-                            Fill Best
-                        </button>
-                    </div>
-
                     {/* Subclass Section */}
                     <BucketSection
                         title="Subclass"
@@ -405,6 +411,18 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                         manifest={manifest}
                         onAdd={() => handleOpenPicker(BucketHashes.Subclass)}
                         onRemove={() => handleRemoveItem(itemsByBucket[BucketHashes.Subclass]?.itemInstanceId || '')}
+                        onConfigure={() => {
+                            const subclassItem = itemsByBucket[BucketHashes.Subclass];
+                            if (subclassItem) {
+                                // Find the actual GuardianItem from allItems
+                                const fullItem = allItems.find(i => i.itemInstanceId === subclassItem.itemInstanceId);
+                                if (fullItem) {
+                                    setSelectedSubclass(fullItem);
+                                    setSocketOverrides(subclassItem.socketOverrides || {});
+                                    setShowSubclassDrawer(true);
+                                }
+                            }
+                        }}
                     />
 
                     {/* Weapons Section */}
@@ -518,6 +536,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                 prompt={getPickerPrompt()}
                 // No ownerId - show all items from all characters + vault
             />
+
+            {/* Subclass Plug Drawer */}
+            {showSubclassDrawer && selectedSubclass && (
+                <SubclassPlugDrawer
+                    item={selectedSubclass}
+                    socketOverrides={socketOverrides}
+                    onAccept={handleSubclassAccept}
+                    onClose={() => setShowSubclassDrawer(false)}
+                />
+            )}
         </div>,
         document.body
     );
@@ -531,6 +559,7 @@ function BucketSection({
     manifest,
     onAdd,
     onRemove,
+    onConfigure,
 }: {
     title: string;
     bucketHash: number;
@@ -538,10 +567,12 @@ function BucketSection({
     manifest: Record<number, any>;
     onAdd: () => void;
     onRemove: () => void;
+    onConfigure?: () => void;
 }) {
     const def = item ? manifest[item.itemHash] : null;
     const icon = def?.displayProperties?.icon;
     const name = def?.displayProperties?.name || 'Empty';
+    const isSubclass = bucketHash === BucketHashes.Subclass;
 
     return (
         <div className="space-y-2">
@@ -564,6 +595,14 @@ function BucketSection({
                             <p className="text-sm font-bold font-rajdhani truncate">{name}</p>
                             {item.power && <p className="text-[10px] text-gray-500 font-mono">Power: {item.power}</p>}
                         </div>
+                        {isSubclass && onConfigure && (
+                            <button
+                                onClick={onConfigure}
+                                className="px-3 py-1.5 text-[10px] font-bold text-gray-400 border border-white/10 rounded-sm hover:border-white/20 hover:text-white transition-colors font-rajdhani uppercase"
+                            >
+                                Configure
+                            </button>
+                        )}
                         <button
                             onClick={onRemove}
                             className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
