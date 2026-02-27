@@ -43,20 +43,20 @@ const CATEGORY_NAMES: Record<number, string> = {
     [SocketCategoryHashes.Fragments_Abilities_Stranger]: 'Fragment',
 };
 
-const ABILITY_CATEGORIES = [
+const ABILITY_CATEGORIES: number[] = [
     SocketCategoryHashes.Super,
     SocketCategoryHashes.Abilities_Abilities,
     SocketCategoryHashes.Abilities_Abilities_Ikora,
 ];
 
-const ASPECT_CATEGORIES = [
+const ASPECT_CATEGORIES: number[] = [
     SocketCategoryHashes.Aspects_Abilities,
     SocketCategoryHashes.Aspects_Abilities_Ikora,
     SocketCategoryHashes.Aspects_Abilities_Neomuna,
     SocketCategoryHashes.Aspects_Abilities_Stranger,
 ];
 
-const FRAGMENT_CATEGORIES = [
+const FRAGMENT_CATEGORIES: number[] = [
     SocketCategoryHashes.Fragments_Abilities,
     SocketCategoryHashes.Fragments_Abilities_Ikora,
     SocketCategoryHashes.Fragments_Abilities_Neomuna,
