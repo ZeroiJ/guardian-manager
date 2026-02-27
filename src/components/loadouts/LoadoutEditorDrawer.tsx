@@ -221,13 +221,17 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         const loadoutClass = character?.classType ?? loadout.characterClass;
         
         return allItems.filter((item) => {
-            // Must match bucket
-            if (item.bucketHash !== bucketHash) return false;
+            const def = manifest[item.itemHash];
+            const itemBucketHash = item.bucketHash;
+            const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
+            
+            // Must match bucket - check both current location and item type
+            const matchesBucket = itemBucketHash === bucketHash || itemBucketTypeHash === bucketHash;
+            if (!matchesBucket) return false;
             if (!item.itemInstanceId) return false;
             
             // For armor buckets, filter by class
             if (isArmorBucket) {
-                const def = manifest[item.itemHash];
                 const itemClassType = def?.classType;
                 
                 // If loadout has a class, only show matching armor
@@ -244,7 +248,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             const powerB = b.instanceData?.primaryStat?.value || 0;
             return powerB - powerA;
         });
-    }, [allItems, manifest, loadout.characterClass, selectedCharId, characters, isNew, character]);
+    }, [allItems, manifest, loadout.characterClass, character]);
 
     // Select item from dropdown
     const handleSelectFromDropdown = useCallback((item: GuardianItem) => {
@@ -341,8 +345,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             // Get loadout class
             const loadoutClass = character?.classType ?? loadout.characterClass;
             
-            // For armor, filter by class
-            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketTypeHash);
+            // For armor buckets, filter by class - check both bucketHash and bucketTypeHash
+            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketHash) || ARMOR_BUCKETS.includes(itemBucketTypeHash);
             if (isArmorBucket && loadoutClass >= 0) {
                 const itemClassType = def?.classType;
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
@@ -366,7 +370,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         
         // Show all items from all characters + vault
         return true;
-    }, [pickerTargetBucket, manifest]);
+    }, [pickerTargetBucket, manifest, character, loadout.characterClass]);
 
     const getPickerPrompt = useCallback(() => {
         if (pickerTargetBucket != null) {
