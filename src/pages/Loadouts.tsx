@@ -19,6 +19,7 @@ import {
 } from '@/store/loadoutStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { applyLoadout } from '@/lib/bungie/equipManager';
+import { useToast } from '@/contexts/ToastContext';
 import { Navigation } from '@/components/Navigation';
 import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
 import { LoadoutEditorDrawer } from '@/components/loadouts/LoadoutEditorDrawer';
@@ -76,6 +77,7 @@ export default function Loadouts() {
     const manifest = useInventoryStore((s) => s.manifest) ?? {};
     const characters = useInventoryStore((s) => s.characters) ?? {};
     const allItems = useInventoryStore((s) => s.items) ?? [];
+    const { showToast } = useToast();
 
     // ── Local state ────────────────────────────────────────
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });
@@ -123,12 +125,35 @@ export default function Loadouts() {
             try {
                 const result = await applyLoadout(targetCharacterId, loadout);
                 setEquipState({ status: 'success', loadoutId: loadout.id, result });
+                
+                // Show toast notification
+                const char = characters[targetCharacterId];
+                const charName = char ? CLASS_NAMES[char.classType] || 'Character' : 'Character';
+                
+                if (result.success && result.equipped.length > 0) {
+                    showToast({
+                        type: 'success',
+                        title: 'Loadout Equipped',
+                        message: `${result.equipped.length} items equipped to ${charName}`,
+                    });
+                } else if (result.failed.length > 0) {
+                    showToast({
+                        type: 'warning',
+                        title: 'Loadout Partially Equipped',
+                        message: `${result.equipped.length} equipped, ${result.failed.length} failed`,
+                    });
+                }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown equip error';
                 setEquipState({ status: 'error', loadoutId: loadout.id, message });
+                showToast({
+                    type: 'error',
+                    title: 'Equip Failed',
+                    message: message,
+                });
             }
         },
-        [],
+        [characters, showToast],
     );
 
     const handleEdit = useCallback((loadout: ILoadout) => {
