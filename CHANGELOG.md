@@ -3,6 +3,67 @@
 
 All notable changes to the **GM** project will be documented in this file.
 
+## [0.25.0] - 2026-02-27
+
+### 🎯 Loadout Editor: Subclass Configuration & Class Filtering
+
+Major improvements to the Loadout Editor, bringing it closer to DIM parity with full subclass customization and class-specific filtering.
+
+#### New Features
+
+- **Subclass Configuration Modal (`SubclassPlugDrawer.tsx`)**:
+  - Full ability to configure subclass sockets: Abilities, Aspects, and Fragments
+  - Dynamic categorization based on `plugCategoryIdentifier` (detects "aspect", "fragment", "super" automatically)
+  - Visual selection grid with icons and names
+  - Socket overrides saved with loadout
+
+- **Class-Specific Filtering**:
+  - **Armor**: When creating a loadout for a specific class (e.g., Warlock), only Warlock-specific armor is shown in the item picker
+  - **Subclasses**: Only subclasses matching the selected character's class are displayed
+  - Filtering logic mirrors DIM's `isItemLoadoutCompatible` function
+
+- **Manifest Pipeline Enhancements**:
+  - Added `DestinyPlugSetDefinition` table loading for subclass sockets, mods, and perks
+  - Updated `useDefinitions` hook to load full tables when no specific hashes are provided
+  - Fixed socket data hydration in `useInventoryStore`
+
+- **Utility Function**:
+  - Created `getSubclassPlugsFromManifest()` in `src/lib/destiny/subclass-utils.ts` to extract available plugs from manifest definitions
+  - Dynamically resolves `reusablePlugSetHash` and `randomizedPlugSetHash` from socket entries
+  - Falls back to direct `reusablePlugItems` when plug sets aren't available
+
+#### UI Improvements
+
+- **Loadout Editor Drawer**:
+  - Removed header ("CREATE LOADOUT") and close button
+  - Removed "Fill Equipped" and "Fill Best" action buttons
+  - Added "Configure" button on subclass to open the socket configuration modal
+  - Opens subclass picker in full drawer instead of inline dropdown
+
+#### Bug Fixes
+
+- **TDZ Error**: Fixed "Cannot access 'M' before initialization" error by moving `selectedCharId` state declaration before the callback that uses it
+- **TypeScript Errors**:
+  - Fixed `ARMOR_BUCKETS` type error by explicitly typing as `number[]`
+  - Fixed category array type errors in `SubclassPlugDrawer`
+  - Fixed `ModPicker` component props type definition
+- **Socket Data**: Fixed socket structure in store hydration to properly wrap sockets in `{ sockets: [...] }` object
+
+#### Files Added
+
+- `src/lib/destiny/subclass-utils.ts` — Utility for extracting subclass plugs from manifest
+
+#### Files Modified
+
+- `src/components/loadouts/LoadoutEditorDrawer.tsx` — UI cleanup, class filtering, subclass integration
+- `src/components/loadouts/SubclassPlugDrawer.tsx` — Complete rewrite for proper socket rendering
+- `src/components/loadouts/ModPicker.tsx` — Fixed type definition
+- `src/pages/Inventory.tsx` — Added `DestinyPlugSetDefinition` loading
+- `src/hooks/useDefinitions.ts` — Added full table loading support
+- `src/services/manifest/manager.ts` — Added `getFullTableSync` method
+- `src/services/profile/types.ts` — Updated GuardianItem socket type
+- `src/store/useInventoryStore.ts` — Fixed socket data hydration
+
 ## [0.24.0] - 2026-02-19
 
 ### 🗂️ Phase 6: Loadout Dashboard — "The Hub"
