@@ -98,7 +98,20 @@ Comprehensive dashboard for Ranks, Challenges, and Triumphs.
 
 Save/restore full equipment sets with one click.
 
-**Status:** PARTIAL reference only — `powerUtils.ts` mentions loadout concept but no full implementation.
+**Status:** PARTIAL — Core functionality implemented in v0.24.0-v0.25.0
+
+- ✅ **Loadout Card**: Standalone "Tactical Briefing" card component with class-colored accents
+- ✅ **Loadout Page**: `/loadouts` hub with card grid, equip/delete actions
+- ✅ **Loadout Editor Drawer**: Full slide-up drawer for creating/editing loadouts
+- ✅ **Class Filtering**: Armor and subclass filtering by character class (like DIM's `isItemLoadoutCompatible`)
+- ✅ **Item Picker**: Full drawer showing all items from inventory + vault, filtered by bucket and class
+- ✅ **Subclass Configuration**: `SubclassPlugDrawer` for configuring abilities, aspects, and fragments
+- ✅ **Socket Overrides**: Save subclass plug selections with loadout
+- ✅ **Manifest Integration**: `DestinyPlugSetDefinition` loading for plug set lookups
+- 🚧 **Equip Action**: Basic equip flow wired up
+- ❌ **Loadout Sharing**: DIM-style share codes
+- ❌ **Auto-Equip**: One-click equip from saved loadouts
+- ❌ **Loadout Analyzer**: What-if scenarios
 
 ### 6. Organizer View ❌
 
@@ -144,7 +157,7 @@ Shows what items can infuse into what.
 | Item Comparisons | ✅ | High |
 | Search Filters | ✅ | High |
 | Progress Page | 🚧 | High |
-| Loadout System | ❌ | Medium |
+| Loadout System | 🚧 | Medium |
 | Organizer View | ❌ | Medium |
 | Infusion Finder | ❌ | Medium |
 | Armory/Database | ❌ | Low |
@@ -154,6 +167,6 @@ Shows what items can infuse into what.
 
 ## Recommended Next Steps
 
-1. **Loadout System** — Save/restore full equipment sets with one click
+1. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
 2. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
 3. **Organizer View** — Sortable table for bulk vault management
