@@ -1,7 +1,43 @@
 # Changelog
 
+All notable changes to **Guardian Manager** will be documented in this file.
 
-All notable changes to the **GM** project will be documented in this file.
+## [0.26.0] - 2026-02-27
+
+### Loadout Editor: Armor Mods & Selection Improvements
+
+Continued work on the Loadout Editor with new functionality and bug fixes.
+
+#### New Features
+
+- **Armor Mod Picker Integration**:
+  - Added "Armor Mods" section to the Loadout Editor drawer
+  - Opens the existing ModPicker component for mod selection
+  - Mods are saved with the loadout and applied when equipping
+  - Toast notifications show success/failure when equipping loadouts with mods
+
+- **Exotic Uniqueness Enforcement**:
+  - When adding an exotic weapon or armor piece to a loadout, automatically removes any existing exotic in that category
+  - Ensures only one exotic weapon and one exotic armor piece can be in a loadout at a time
+
+- **Expanded Item Selection**:
+  - Removed the top 10 limit from dropdown item selection
+  - All available items for each bucket are now shown, sorted by power
+
+#### Bug Fixes
+
+- **Helmet & Gauntlets Selection**:
+  - Fixed issue where Helmet and Gauntlet slots could not be selected
+  - Added defensive checks for manifest lookup in armor filtering logic
+  - Now checks both `bucketHash` and `bucketTypeHash` from item definitions
+
+- **Variable Initialization Order**:
+  - Fixed "Cannot access 'L'/'M' before initialization" error by properly ordering state declarations
+
+#### Files Modified
+
+- `src/components/loadouts/LoadoutEditorDrawer.tsx` - Added mod picker, exotic logic, item selection fixes
+- `src/store/loadoutStore.ts` - Updated updateItems to accept modsByBucket
 
 ## [0.25.0] - 2026-02-27
 
