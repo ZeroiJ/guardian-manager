@@ -81,9 +81,9 @@ export function SubclassPlugDrawer({
     // Get the item definition
     const itemDef = manifest[item.itemHash];
 
-    // Build socket groups - matching DIM's approach using categories
+    // Build socket groups - using socketCategories from the definition
     const socketGroups = useMemo(() => {
-        if (!item.sockets || !itemDef?.sockets) return [] as SocketGroup[];
+        if (!itemDef?.sockets) return [] as SocketGroup[];
 
         const groups: SocketGroup[] = [];
         
@@ -105,13 +105,12 @@ export function SubclassPlugDrawer({
             
             // Process each socket in this category
             for (const socketIndex of socketIndexes) {
+                // Get the live socket data (what's currently equipped)
                 const liveSocket = item.sockets?.sockets?.[socketIndex];
-                if (!liveSocket) continue;
+                const currentPlugHash = liveSocket?.plugHash;
                 
-                // Get plug options from the socket's plug set
+                // Get plug options from the socket definition
                 const plugs: SocketPlug[] = [];
-                
-                // Try to get plugs from the socket definition
                 const socketDef = itemDef.sockets?.socketEntries?.[socketIndex];
                 
                 if (socketDef?.reusablePlugSetHash) {
@@ -136,7 +135,7 @@ export function SubclassPlugDrawer({
                 
                 if (plugs.length > 0) {
                     // Get currently selected plug hash (from overrides or current)
-                    const selectedHash = selected[socketIndex] ?? liveSocket.plugHash;
+                    const selectedHash = selected[socketIndex] ?? currentPlugHash;
                     
                     groups.push({
                         socketIndex,
@@ -305,7 +304,8 @@ export function SubclassPlugDrawer({
                     ))}
                     {socketGroups.length === 0 && (
                         <div className="text-center py-8 text-gray-500">
-                            No configurable sockets found for this subclass.
+                            <p>No configurable sockets found for this subclass.</p>
+                            <p className="text-xs mt-2 text-gray-600">This may be because socket data hasn't loaded yet.</p>
                         </div>
                     )}
                 </div>
