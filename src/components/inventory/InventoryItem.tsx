@@ -42,8 +42,11 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
     return (
         <div
-            className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200`}
-            style={{ borderColor: effectiveBorderColor }}
+            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200`}
+            style={{
+                borderColor: effectiveBorderColor,
+                backgroundColor: isMasterwork ? '#3d3523' : undefined,
+            }}
             onClick={onClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -54,6 +57,11 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
                 alt={definition?.displayProperties?.name || "Item"}
                 className="absolute inset-0 w-full h-full"
             />
+
+            {/* Masterwork golden hue overlay */}
+            {isMasterwork && (
+                <div className="absolute inset-0 pointer-events-none z-[1]" style={{ boxShadow: 'inset 0 0 12px rgba(234, 222, 139, 0.25)' }} />
+            )}
 
             {/* Wishlist Indicator - Top Right */}
 
