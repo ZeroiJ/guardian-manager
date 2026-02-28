@@ -80,6 +80,8 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Mod picker state
     const [showModPicker, setShowModPicker] = useState(false);
     const [modsByBucket, setModsByBucket] = useState<Record<number, number[]>>(loadout?.modsByBucket || {});
+    /** Which armor bucket hash triggered the mod picker (for auto-tab) */
+    const [modPickerBucket, setModPickerBucket] = useState<number | null>(null);
     // Dropdown state - which bucket slot has the dropdown open
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     // For new loadouts, we need a character to be selected first
@@ -497,28 +499,96 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                         </div>
                     </div>
 
-                    {/* Armor Section */}
+                    {/* Armor Section — each slot with inline mod boxes */}
                     <div className="space-y-2">
                         <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
                             Armor
                         </h3>
-                        <div className="grid grid-cols-5 gap-1">
-                            {ARMOR_BUCKETS.map((bucket) => (
-                                <BucketSlot
-                                    key={bucket}
-                                    bucketHash={bucket}
-                                    label={BUCKET_LABELS[bucket]}
-                                    item={itemsByBucket[bucket]}
-                                    manifest={manifest}
-                                    compact
-                                    isOpen={openDropdown === bucket}
-                                    onAdd={() => handleOpenDropdown(bucket)}
-                                    onRemove={() => handleRemoveItem(itemsByBucket[bucket]?.itemInstanceId || '')}
-                                    availableItems={getAvailableItemsForBucket(bucket)}
-                                    onSelectItem={handleSelectFromDropdown}
-                                    onClose={handleCloseDropdown}
-                                />
-                            ))}
+                        <div className="grid grid-cols-5 gap-2">
+                            {ARMOR_BUCKETS.map((bucket) => {
+                                const armorItem = itemsByBucket[bucket];
+                                const armorDef = armorItem ? manifest[armorItem.itemHash] : null;
+                                const armorIcon = armorDef?.displayProperties?.icon;
+                                const armorName = armorDef?.displayProperties?.name || '';
+                                const bucketLabel = BUCKET_LABELS[bucket];
+                                // Mods for this bucket: index 0 = general, indices 1-3 = slot-specific
+                                const bucketMods = modsByBucket[bucket] || [];
+
+                                return (
+                                    <div key={bucket} className="flex flex-col items-center gap-1">
+                                        {/* Armor piece icon */}
+                                        {armorItem ? (
+                                            <div className="group relative w-full">
+                                                <div className="w-full aspect-square rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50">
+                                                    {armorIcon ? (
+                                                        <img src={`https://www.bungie.net${armorIcon}`} alt={armorName} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                                            <Package size={16} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemoveItem(armorItem.itemInstanceId || '')}
+                                                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X size={8} className="text-white" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleOpenDropdown(bucket)}
+                                                className="w-full aspect-square rounded-sm border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-1 hover:border-white/20 hover:bg-white/[0.05] transition-colors group"
+                                            >
+                                                <Plus size={12} className="text-gray-600 group-hover:text-white" />
+                                            </button>
+                                        )}
+
+                                        {/* Label */}
+                                        <p className="text-[7px] text-center text-gray-500 font-mono truncate w-full">{bucketLabel}</p>
+
+                                        {/* 4 mod boxes: 1 general + 3 slot-specific */}
+                                        <div className="grid grid-cols-4 gap-0.5 w-full">
+                                            {[0, 1, 2, 3].map((modIndex) => {
+                                                const modHash = bucketMods[modIndex];
+                                                const modDef = modHash ? (manifest[modHash] || null) : null;
+                                                const modIcon = modDef?.displayProperties?.icon;
+                                                const modName = modDef?.displayProperties?.name || '';
+                                                const isGeneral = modIndex === 0;
+
+                                                return (
+                                                    <button
+                                                        key={modIndex}
+                                                        onClick={() => {
+                                                            setModPickerBucket(bucket);
+                                                            setShowModPicker(true);
+                                                        }}
+                                                        className={cn(
+                                                            'aspect-square rounded-[2px] border overflow-hidden transition-all flex items-center justify-center',
+                                                            modHash
+                                                                ? 'border-amber-500/30 bg-amber-500/5'
+                                                                : isGeneral
+                                                                    ? 'border-white/15 bg-white/[0.03] hover:border-amber-400/30'
+                                                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                                                        )}
+                                                        title={modName || (isGeneral ? 'General Mod' : `${bucketLabel} Mod ${modIndex}`)}
+                                                    >
+                                                        {modIcon ? (
+                                                            <img
+                                                                src={`https://www.bungie.net${modIcon}`}
+                                                                alt={modName}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Plus size={6} className="text-gray-700" />
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -544,24 +614,6 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                                 />
                             ))}
                         </div>
-                    </div>
-
-                    {/* Armor Mods Section */}
-                    <div className="space-y-2">
-                        <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                            Armor Mods
-                        </h3>
-                        <button
-                            onClick={() => setShowModPicker(true)}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] transition-colors"
-                        >
-                            <Shield size={16} className="text-amber-400" />
-                            <span className="text-sm font-bold font-rajdhani uppercase">
-                                {Object.keys(modsByBucket).length > 0
-                                    ? `${Object.values(modsByBucket).flat().length} mods selected`
-                                    : 'Select Armor Mods'}
-                            </span>
-                        </button>
                     </div>
 
                     {/* Items Summary */}
@@ -618,11 +670,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                 <ModPicker
                     modsByBucket={modsByBucket}
                     characterClass={characterClass}
+                    targetBucket={modPickerBucket ?? undefined}
                     onAccept={(newMods) => {
                         setModsByBucket(newMods);
                         setShowModPicker(false);
+                        setModPickerBucket(null);
                     }}
-                    onClose={() => setShowModPicker(false)}
+                    onClose={() => {
+                        setShowModPicker(false);
+                        setModPickerBucket(null);
+                    }}
                 />
             )}
         </div>,

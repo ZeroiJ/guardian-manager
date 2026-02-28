@@ -16,6 +16,8 @@ import { createPortal } from 'react-dom';
 interface ModPickerProps {
     modsByBucket: Record<number, number[]>;
     characterClass: number;
+    /** Optional bucket hash to auto-select the matching slot tab on open */
+    targetBucket?: number;
     onAccept: (modsByBucket: Record<number, number[]>) => void;
     onClose: () => void;
 }
@@ -70,6 +72,7 @@ function getModSlot(plugCategoryIdentifier: string): SlotKey {
 export function ModPicker({
     modsByBucket,
     characterClass,
+    targetBucket,
     onAccept,
     onClose,
 }: ModPickerProps) {
@@ -78,7 +81,13 @@ export function ModPicker({
     // Full item definition table (loaded async from ManifestManager)
     const [fullTable, setFullTable] = useState<Record<string, any> | null>(null);
     const [tableLoading, setTableLoading] = useState(true);
-    const [activeSlot, setActiveSlot] = useState<SlotKey>('helmet');
+    const [activeSlot, setActiveSlot] = useState<SlotKey>(() => {
+        if (targetBucket) {
+            const tab = SLOT_TABS.find(t => t.bucketHash === targetBucket);
+            if (tab) return tab.key;
+        }
+        return 'helmet';
+    });
 
     // Load the full DestinyInventoryItemDefinition table
     useEffect(() => {
