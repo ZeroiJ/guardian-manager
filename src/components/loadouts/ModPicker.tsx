@@ -1,9 +1,9 @@
 /**
  * ModPicker - Select armor mods for loadout
  * 
- * A drawer to select armor mods grouped by category with energy tracking.
- * Loads the FULL DestinyInventoryItemDefinition table from ManifestManager
- * to discover all available armor mods (not just currently equipped ones).
+ * A drawer to select armor mods grouped by armor slot (Helmet, Gauntlets, etc.)
+ * with tabbed navigation. Loads the FULL DestinyInventoryItemDefinition table
+ * from ManifestManager to discover all available armor mods.
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { X, Check, Zap, Shield, Loader2 } from 'lucide-react';
@@ -26,41 +26,45 @@ type ModEntry = {
     icon?: string;
     energyCost: number;
     description?: string;
-};
-
-type ModCategory = {
-    name: string;
-    identifier: string;
-    mods: ModEntry[];
+    /** Sub-category label within a slot (e.g. "Ammo Finder", "Targeting") */
+    subCategory?: string;
 };
 
 /**
- * Map plugCategoryIdentifier patterns to human-readable names.
- * The Bungie API uses "enhancements.v2.*" identifiers for armor mods.
- * We match partial strings to group mods into categories.
+ * Armor slot tabs for mod categorization.
+ * Each slot maps to plugCategoryIdentifier patterns from the Bungie manifest.
  */
-const CATEGORY_DISPLAY: Array<{ match: string; name: string; priority: number }> = [
-    { match: 'enhancements.v2.head', name: 'Helmet Mods', priority: 1 },
-    { match: 'enhancements.v2.arms', name: 'Gauntlet Mods', priority: 2 },
-    { match: 'enhancements.v2.chest', name: 'Chest Mods', priority: 3 },
-    { match: 'enhancements.v2.legs', name: 'Leg Mods', priority: 4 },
-    { match: 'enhancements.v2.class', name: 'Class Item Mods', priority: 5 },
-    { match: 'enhancements.v2.general', name: 'General Mods', priority: 6 },
-    { match: 'enhancements.raid', name: 'Raid Mods', priority: 7 },
-    { match: 'enhancements.activity', name: 'Activity Mods', priority: 8 },
-    { match: 'enhancements.season_', name: 'Seasonal Mods', priority: 9 },
-    { match: 'enhancements.v2', name: 'Armor Mods', priority: 10 },
-    { match: 'enhancements', name: 'Other Mods', priority: 99 },
-];
+const SLOT_TABS = [
+    { key: 'helmet', label: 'Helmet', bucketHash: BucketHashes.Helmet, patterns: ['head', 'helmet'] },
+    { key: 'gauntlets', label: 'Gauntlets', bucketHash: BucketHashes.Gauntlets, patterns: ['arms', 'gauntlet'] },
+    { key: 'chest', label: 'Chest', bucketHash: BucketHashes.ChestArmor, patterns: ['chest'] },
+    { key: 'legs', label: 'Legs', bucketHash: BucketHashes.LegArmor, patterns: ['legs', 'leg'] },
+    { key: 'class', label: 'Class Item', bucketHash: BucketHashes.ClassArmor, patterns: ['class'] },
+    { key: 'general', label: 'General', bucketHash: 0, patterns: ['general'] },
+] as const;
 
-function getCategoryName(plugCategoryIdentifier: string): { name: string; priority: number } {
+type SlotKey = typeof SLOT_TABS[number]['key'];
+
+/**
+ * Determine which armor slot a mod belongs to based on its plugCategoryIdentifier.
+ */
+function getModSlot(plugCategoryIdentifier: string): SlotKey {
     const id = plugCategoryIdentifier.toLowerCase();
-    for (const cat of CATEGORY_DISPLAY) {
-        if (id.includes(cat.match)) {
-            return { name: cat.name, priority: cat.priority };
-        }
-    }
-    return { name: 'Other Mods', priority: 99 };
+
+    // Check specific slot patterns first
+    if (id.includes('head') || id.includes('helmet')) return 'helmet';
+    if (id.includes('arms') || id.includes('gauntlet')) return 'gauntlets';
+    if (id.includes('chest')) return 'chest';
+    if (id.includes('legs') || id.includes('leg.')) return 'legs';
+    if (id.includes('class_item') || id.includes('.class')) return 'class';
+
+    // General/universal mods
+    if (id.includes('general') || id.includes('universal')) return 'general';
+
+    // Raid/activity/seasonal mods default to general
+    if (id.includes('raid') || id.includes('activity') || id.includes('season')) return 'general';
+
+    return 'general';
 }
 
 export function ModPicker({
@@ -74,6 +78,7 @@ export function ModPicker({
     // Full item definition table (loaded async from ManifestManager)
     const [fullTable, setFullTable] = useState<Record<string, any> | null>(null);
     const [tableLoading, setTableLoading] = useState(true);
+    const [activeSlot, setActiveSlot] = useState<SlotKey>('helmet');
 
     // Load the full DestinyInventoryItemDefinition table
     useEffect(() => {
@@ -105,17 +110,19 @@ export function ModPicker({
         return set;
     });
 
-    // Discover all armor mods from the full manifest table
-    const modCategories = useMemo((): ModCategory[] => {
-        if (!fullTable) return [];
+    // Discover all armor mods grouped by slot
+    const modsBySlot = useMemo((): Record<SlotKey, ModEntry[]> => {
+        const result: Record<SlotKey, ModEntry[]> = {
+            helmet: [], gauntlets: [], chest: [], legs: [], class: [], general: [],
+        };
 
-        const categoryMap = new Map<string, { name: string; priority: number; mods: ModEntry[] }>();
+        if (!fullTable) return result;
 
         for (const [hash, def] of Object.entries(fullTable)) {
             const hashNum = parseInt(hash);
             if (isNaN(hashNum)) continue;
 
-            // Armor mods have itemType === 19 and a plugCategoryIdentifier containing "enhancements"
+            // Armor mods have itemType === 19 with plugCategoryIdentifier containing "enhancements"
             if (def?.itemType !== 19) continue;
             const plugCategoryId = def?.plug?.plugCategoryIdentifier;
             if (!plugCategoryId || !plugCategoryId.toLowerCase().includes('enhancements')) continue;
@@ -125,19 +132,13 @@ export function ModPicker({
             if (!name || name === '' || name === 'Empty Mod Socket' || name.toLowerCase().includes('deprecated')) continue;
 
             // Filter by class if the mod has a class restriction
-            // classType: 0=Titan, 1=Hunter, 2=Warlock, 3=Unknown/Any
             if (def.classType != null && def.classType >= 0 && def.classType <= 2 && characterClass >= 0) {
                 if (def.classType !== characterClass) continue;
             }
 
-            const { name: catName, priority } = getCategoryName(plugCategoryId);
-            const catKey = catName;
+            const slot = getModSlot(plugCategoryId);
 
-            if (!categoryMap.has(catKey)) {
-                categoryMap.set(catKey, { name: catName, priority, mods: [] });
-            }
-
-            categoryMap.get(catKey)!.mods.push({
+            result[slot].push({
                 hash: hashNum,
                 name,
                 icon: def.displayProperties?.icon,
@@ -146,15 +147,25 @@ export function ModPicker({
             });
         }
 
-        // Sort categories by priority, mods alphabetically within each
-        return Array.from(categoryMap.values())
-            .sort((a, b) => a.priority - b.priority)
-            .map(cat => ({
-                ...cat,
-                identifier: cat.name,
-                mods: cat.mods.sort((a, b) => a.name.localeCompare(b.name)),
-            }));
+        // Sort mods alphabetically within each slot
+        for (const key of Object.keys(result) as SlotKey[]) {
+            result[key].sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        return result;
     }, [fullTable, characterClass]);
+
+    // Get counts per slot for the tab badges
+    const slotCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        for (const tab of SLOT_TABS) {
+            counts[tab.key] = modsBySlot[tab.key].length;
+        }
+        return counts;
+    }, [modsBySlot]);
+
+    // Current slot's mods
+    const currentMods = modsBySlot[activeSlot];
 
     // Calculate total energy used
     const totalEnergy = useMemo(() => {
@@ -182,21 +193,46 @@ export function ModPicker({
     }, []);
 
     const handleAccept = useCallback(() => {
-        // Group selected mods by bucket
+        // Group selected mods by their slot bucket
         const newModsByBucket: Record<number, number[]> = {};
 
-        // For simplicity, assign all mods to chest armor bucket
-        // In a full implementation, we'd let user choose which bucket gets which mod
-        newModsByBucket[BucketHashes.ChestArmor] = Array.from(selectedMods);
+        for (const modHash of selectedMods) {
+            // Look up mod to determine its slot
+            const lookupTable: Record<string, any> = (fullTable || manifest) as Record<string, any>;
+            const def = lookupTable[modHash];
+            const plugCategoryId = def?.plug?.plugCategoryIdentifier || '';
+            const slot = getModSlot(plugCategoryId);
+            const tab = SLOT_TABS.find(t => t.key === slot);
+            const bucket = tab?.bucketHash || BucketHashes.ChestArmor;
+
+            if (!newModsByBucket[bucket]) newModsByBucket[bucket] = [];
+            newModsByBucket[bucket].push(modHash);
+        }
 
         onAccept(newModsByBucket);
         onClose();
-    }, [selectedMods, onAccept, onClose]);
+    }, [selectedMods, onAccept, onClose, fullTable, manifest]);
+
+    // Count how many selected mods are in each slot
+    const selectedPerSlot = useMemo(() => {
+        const counts: Record<string, number> = {};
+        for (const tab of SLOT_TABS) {
+            counts[tab.key] = 0;
+        }
+        for (const modHash of selectedMods) {
+            const lookupTable: Record<string, any> = (fullTable || manifest) as Record<string, any>;
+            const def = lookupTable[modHash];
+            const plugCategoryId = def?.plug?.plugCategoryIdentifier || '';
+            const slot = getModSlot(plugCategoryId);
+            counts[slot] = (counts[slot] || 0) + 1;
+        }
+        return counts;
+    }, [selectedMods, fullTable, manifest]);
 
     return createPortal(
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
             <div
-                className="w-[700px] max-h-[80vh] bg-[#0a0a0a] border border-white/15 rounded-lg shadow-2xl flex flex-col overflow-hidden"
+                className="w-[750px] max-h-[85vh] bg-[#0a0a0a] border border-white/15 rounded-lg shadow-2xl flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -223,83 +259,110 @@ export function ModPicker({
                     </button>
                 </div>
 
-                {/* Mod Categories */}
+                {/* Slot Tabs */}
+                <div className="flex border-b border-white/10 bg-black/30">
+                    {SLOT_TABS.map((tab) => {
+                        const isActive = activeSlot === tab.key;
+                        const count = slotCounts[tab.key] || 0;
+                        const selected = selectedPerSlot[tab.key] || 0;
+
+                        return (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActiveSlot(tab.key)}
+                                className={cn(
+                                    'flex-1 py-2.5 px-1 text-[10px] font-bold uppercase tracking-widest font-rajdhani transition-all relative',
+                                    isActive
+                                        ? 'text-white bg-white/5'
+                                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'
+                                )}
+                            >
+                                {/* Active indicator bar */}
+                                {isActive && (
+                                    <div className="absolute bottom-0 left-1 right-1 h-[2px] bg-amber-400 rounded-full" />
+                                )}
+
+                                <div className="flex flex-col items-center gap-0.5">
+                                    <span>{tab.label}</span>
+                                    <span className={cn(
+                                        'text-[8px] font-mono font-normal',
+                                        isActive ? 'text-gray-400' : 'text-gray-700'
+                                    )}>
+                                        {count > 0 ? `${count} mods` : '—'}
+                                        {selected > 0 && (
+                                            <span className="ml-1 text-amber-400">• {selected}</span>
+                                        )}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Mod Grid */}
                 <div className="flex-1 overflow-y-auto p-4">
                     {tableLoading ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Loader2 size={32} className="text-gray-500 mb-3 animate-spin" />
                             <p className="text-gray-500 font-mono text-sm">Loading mod definitions...</p>
                         </div>
-                    ) : modCategories.length === 0 ? (
+                    ) : currentMods.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Shield size={32} className="text-gray-600 mb-3" />
-                            <p className="text-gray-500 font-mono text-sm">No mods found</p>
-                            <p className="text-gray-600 font-mono text-xs mt-1">
-                                Make sure you've unlocked armor mods
+                            <p className="text-gray-500 font-mono text-sm">
+                                No {SLOT_TABS.find(t => t.key === activeSlot)?.label} mods found
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {modCategories.map((category) => (
-                                <div key={category.identifier} className="space-y-2">
-                                    <h3 className="text-xs font-bold text-gray-500 font-rajdhani uppercase tracking-widest">
-                                        {category.name}
-                                        <span className="ml-2 text-gray-700 font-mono font-normal">
-                                            ({category.mods.length})
+                        <div className="grid grid-cols-5 gap-2">
+                            {currentMods.map((mod) => {
+                                const isSelected = selectedMods.has(mod.hash);
+
+                                return (
+                                    <button
+                                        key={mod.hash}
+                                        onClick={() => handleToggleMod(mod.hash)}
+                                        className={cn(
+                                            'group relative p-2 rounded-sm border transition-all flex flex-col items-center gap-1',
+                                            isSelected
+                                                ? 'border-rarity-legendary bg-rarity-legendary/10'
+                                                : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
+                                        )}
+                                        title={mod.description || mod.name}
+                                    >
+                                        {isSelected && (
+                                            <div className="absolute top-1 right-1 w-4 h-4 bg-rarity-legendary rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-white" />
+                                            </div>
+                                        )}
+
+                                        <div className="w-10 h-10 rounded-sm overflow-hidden bg-black/50">
+                                            {mod.icon ? (
+                                                <img
+                                                    src={`https://www.bungie.net${mod.icon}`}
+                                                    alt={mod.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                                    <Shield size={16} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <span className="text-[9px] font-bold font-rajdhani text-center truncate w-full leading-tight">
+                                            {mod.name}
                                         </span>
-                                    </h3>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {category.mods.map((mod) => {
-                                            const isSelected = selectedMods.has(mod.hash);
 
-                                            return (
-                                                <button
-                                                    key={mod.hash}
-                                                    onClick={() => handleToggleMod(mod.hash)}
-                                                    className={cn(
-                                                        'group relative p-2 rounded-sm border transition-all flex flex-col items-center gap-1',
-                                                        isSelected
-                                                            ? 'border-rarity-legendary bg-rarity-legendary/10'
-                                                            : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                                                    )}
-                                                    title={mod.description || mod.name}
-                                                >
-                                                    {isSelected && (
-                                                        <div className="absolute top-1 right-1 w-4 h-4 bg-rarity-legendary rounded-full flex items-center justify-center">
-                                                            <Check size={10} className="text-white" />
-                                                        </div>
-                                                    )}
-
-                                                    <div className="w-10 h-10 rounded-sm overflow-hidden bg-black/50">
-                                                        {mod.icon ? (
-                                                            <img
-                                                                src={`https://www.bungie.net${mod.icon}`}
-                                                                alt={mod.name}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-gray-600">
-                                                                <Shield size={16} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <span className="text-[9px] font-bold font-rajdhani text-center truncate w-full">
-                                                        {mod.name}
-                                                    </span>
-
-                                                    {mod.energyCost > 0 && (
-                                                        <span className="flex items-center gap-0.5 text-[8px] text-amber-400 font-mono">
-                                                            <Zap size={8} />
-                                                            {mod.energyCost}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
+                                        {mod.energyCost > 0 && (
+                                            <span className="flex items-center gap-0.5 text-[8px] text-amber-400 font-mono">
+                                                <Zap size={8} />
+                                                {mod.energyCost}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
