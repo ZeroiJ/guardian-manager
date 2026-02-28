@@ -67,8 +67,8 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
             {/* Overlay: Power Level - white text per design audit */}
             {power && (
-                <div className={`absolute bottom-0 right-0 left-0 px-0.5 text-right pointer-events-none ${isMasterwork ? 'bg-[#3d3523]/90' : 'bg-black/75'}`}>
-                    <span className="text-[11px] font-medium text-dim-text font-mono leading-none font-tabular">
+                <div className={`absolute bottom-0 right-0 left-0 px-0.5 text-right pointer-events-none ${isMasterwork ? 'bg-[#eade8b]' : 'bg-black/75'}`}>
+                    <span className={`text-[11px] font-medium font-mono leading-none font-tabular ${isMasterwork ? 'text-black font-bold' : 'text-dim-text'}`}>
                         {power}
                     </span>
                 </div>
