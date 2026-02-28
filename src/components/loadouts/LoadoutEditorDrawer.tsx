@@ -671,6 +671,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                     modsByBucket={modsByBucket}
                     characterClass={characterClass}
                     targetBucket={modPickerBucket ?? undefined}
+                    loadoutItems={items}
                     onAccept={(newMods) => {
                         setModsByBucket(newMods);
                         setShowModPicker(false);

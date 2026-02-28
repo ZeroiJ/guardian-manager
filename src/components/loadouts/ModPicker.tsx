@@ -12,12 +12,15 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { BucketHashes } from '@/lib/destiny-constants';
 import { ManifestManager } from '@/services/manifest/manager';
 import { createPortal } from 'react-dom';
+import { ILoadoutItem } from '@/store/loadoutStore';
 
 interface ModPickerProps {
     modsByBucket: Record<number, number[]>;
     characterClass: number;
     /** Optional bucket hash to auto-select the matching slot tab on open */
     targetBucket?: number;
+    /** Loadout items so we can display the selected armor piece per slot */
+    loadoutItems?: ILoadoutItem[];
     onAccept: (modsByBucket: Record<number, number[]>) => void;
     onClose: () => void;
 }
@@ -73,6 +76,7 @@ export function ModPicker({
     modsByBucket,
     characterClass,
     targetBucket,
+    loadoutItems,
     onAccept,
     onClose,
 }: ModPickerProps) {
@@ -323,55 +327,89 @@ export function ModPicker({
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-5 gap-2">
-                            {currentMods.map((mod) => {
-                                const isSelected = selectedMods.has(mod.hash);
+                        <div className="space-y-3">
+                            {/* Selected Armor Piece for this slot */}
+                            {(() => {
+                                const activeTab = SLOT_TABS.find(t => t.key === activeSlot);
+                                const armorItem = activeTab && loadoutItems?.find(i => i.bucketHash === activeTab.bucketHash);
+                                const armorDef = armorItem ? manifest[armorItem.itemHash] : null;
+                                const armorIcon = armorDef?.displayProperties?.icon;
+                                const armorName = armorDef?.displayProperties?.name;
 
                                 return (
-                                    <button
-                                        key={mod.hash}
-                                        onClick={() => handleToggleMod(mod.hash)}
-                                        className={cn(
-                                            'group relative p-2 rounded-sm border transition-all flex flex-col items-center gap-1',
-                                            isSelected
-                                                ? 'border-rarity-legendary bg-rarity-legendary/10'
-                                                : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
-                                        )}
-                                        title={mod.description || mod.name}
-                                    >
-                                        {isSelected && (
-                                            <div className="absolute top-1 right-1 w-4 h-4 bg-rarity-legendary rounded-full flex items-center justify-center">
-                                                <Check size={10} className="text-white" />
-                                            </div>
-                                        )}
-
-                                        <div className="w-10 h-10 rounded-sm overflow-hidden bg-black/50">
-                                            {mod.icon ? (
-                                                <img
-                                                    src={`https://www.bungie.net${mod.icon}`}
-                                                    alt={mod.name}
-                                                    className="w-full h-full object-cover"
-                                                />
+                                    <div className="flex items-center gap-3 p-2.5 rounded-sm border border-white/10 bg-white/[0.02]">
+                                        <div className="w-10 h-10 rounded-sm border border-rarity-legendary/30 overflow-hidden bg-black/50 flex-shrink-0">
+                                            {armorIcon ? (
+                                                <img src={`https://www.bungie.net${armorIcon}`} alt={armorName || ''} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-gray-600">
                                                     <Shield size={16} />
                                                 </div>
                                             )}
                                         </div>
-
-                                        <span className="text-[9px] font-bold font-rajdhani text-center truncate w-full leading-tight">
-                                            {mod.name}
-                                        </span>
-
-                                        {mod.energyCost > 0 && (
-                                            <span className="flex items-center gap-0.5 text-[8px] text-amber-400 font-mono">
-                                                <Zap size={8} />
-                                                {mod.energyCost}
-                                            </span>
-                                        )}
-                                    </button>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold font-rajdhani truncate text-white">
+                                                {armorName || 'No armor selected'}
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-mono">
+                                                {activeTab?.label || 'Slot'} • Select mods below
+                                            </p>
+                                        </div>
+                                    </div>
                                 );
-                            })}
+                            })()}
+
+                            {/* Mod Grid */}
+                            <div className="grid grid-cols-5 gap-2">
+                                {currentMods.map((mod) => {
+                                    const isSelected = selectedMods.has(mod.hash);
+
+                                    return (
+                                        <button
+                                            key={mod.hash}
+                                            onClick={() => handleToggleMod(mod.hash)}
+                                            className={cn(
+                                                'group relative p-2 rounded-sm border transition-all flex flex-col items-center gap-1',
+                                                isSelected
+                                                    ? 'border-rarity-legendary bg-rarity-legendary/10'
+                                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
+                                            )}
+                                            title={mod.description || mod.name}
+                                        >
+                                            {isSelected && (
+                                                <div className="absolute top-1 right-1 w-4 h-4 bg-rarity-legendary rounded-full flex items-center justify-center">
+                                                    <Check size={10} className="text-white" />
+                                                </div>
+                                            )}
+
+                                            <div className="w-10 h-10 rounded-sm overflow-hidden bg-black/50">
+                                                {mod.icon ? (
+                                                    <img
+                                                        src={`https://www.bungie.net${mod.icon}`}
+                                                        alt={mod.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                                        <Shield size={16} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <span className="text-[9px] font-bold font-rajdhani text-center truncate w-full leading-tight">
+                                                {mod.name}
+                                            </span>
+
+                                            {mod.energyCost > 0 && (
+                                                <span className="flex items-center gap-0.5 text-[8px] text-amber-400 font-mono">
+                                                    <Zap size={8} />
+                                                    {mod.energyCost}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>
