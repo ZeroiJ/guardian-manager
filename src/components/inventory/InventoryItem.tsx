@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { RARITY_COLORS } from '../../data/constants';
+import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { BungieImage } from '../ui/BungieImage';
 
 interface InventoryItemProps {
@@ -18,6 +18,10 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     // Visual Style: Border based on rarity (1px per design system)
     const tierType = definition?.inventory?.tierType || 0;
     const borderColor = RARITY_COLORS[tierType] || RARITY_COLORS[0];
+
+    // Masterwork detection: Bungie state bitmask bit 2 (& 4)
+    const isMasterwork = (item?.state & 4) !== 0;
+    const effectiveBorderColor = isMasterwork ? MASTERWORK_GOLD : borderColor;
 
     // Power Level
     const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
@@ -39,7 +43,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     return (
         <div
             className={`relative w-16 h-16 box-border border bg-dim-surface cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200`}
-            style={{ borderColor }}
+            style={{ borderColor: effectiveBorderColor }}
             onClick={onClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
