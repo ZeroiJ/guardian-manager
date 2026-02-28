@@ -29,7 +29,7 @@ interface LoadoutEditorDrawerProps {
 }
 
 // Bucket categories for organization
-const WEAPON_BUCKETS = [
+const WEAPON_BUCKETS: number[] = [
     BucketHashes.KineticWeapons,
     BucketHashes.EnergyWeapons,
     BucketHashes.PowerWeapons,
@@ -68,16 +68,9 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const characters = useInventoryStore((s) => s.characters) ?? {};
     const profile = useInventoryStore((s) => s.profile);
 
-    // Don't render until inventory is loaded (like DIM does)
-    if (!profile || Object.keys(characters).length === 0 || allItems.length === 0) {
-        return null;
-    }
-
-    // Only render if we have a loadout
-    if (!loadout) return null;
-
-    const [name, setName] = useState(loadout.name || 'New Loadout');
-    const [items, setItems] = useState<ILoadoutItem[]>(loadout.items);
+    // --- All hooks MUST be called before any early returns (React rules of hooks) ---
+    const [name, setName] = useState(loadout?.name || 'New Loadout');
+    const [items, setItems] = useState<ILoadoutItem[]>(loadout?.items ?? []);
     const [showItemPicker, setShowItemPicker] = useState(false);
     const [pickerTargetBucket, setPickerTargetBucket] = useState<number | null>(null);
     // Subclass plug drawer state
@@ -86,17 +79,33 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     const [socketOverrides, setSocketOverrides] = useState<Record<number, number>>({});
     // Mod picker state
     const [showModPicker, setShowModPicker] = useState(false);
-    const [modsByBucket, setModsByBucket] = useState<Record<number, number[]>>(loadout.modsByBucket || {});
+    const [modsByBucket, setModsByBucket] = useState<Record<number, number[]>>(loadout?.modsByBucket || {});
     // Dropdown state - which bucket slot has the dropdown open
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-
     // For new loadouts, we need a character to be selected first
-    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout.characterId || null);
+    const [selectedCharId, setSelectedCharId] = useState<string | null>(loadout?.characterId || null);
 
     // Get character class for mod picker
-    const effectiveCharId = isNew ? selectedCharId : loadout.characterId;
+    const effectiveCharId = isNew ? selectedCharId : loadout?.characterId;
     const character = effectiveCharId ? characters[effectiveCharId] : null;
-    const characterClass = character?.classType ?? loadout.characterClass ?? -1;
+    const characterClass = character?.classType ?? loadout?.characterClass ?? -1;
+
+    /**
+     * Resolve the item's TRUE type bucket hash (not its current location bucket).
+     * The Bungie API may return a location-based bucketHash (e.g. General vault bucket)
+     * instead of the item's type bucket (e.g. Helmet). The manifest definition's
+     * bucketTypeHash is always the authoritative source.
+     */
+    const getResolvedBucketHash = useCallback((item: GuardianItem): number => {
+        const def = manifest[item.itemHash];
+        return def?.inventory?.bucketTypeHash ?? item.bucketHash;
+    }, [manifest]);
+
+    // --- Early return guards AFTER all hooks ---
+    if (!profile || Object.keys(characters).length === 0 || allItems.length === 0) {
+        return null;
+    }
+    if (!loadout) return null;
 
     // Helper: convert GuardianItem to ILoadoutItem
     const convertToLoadoutItem = useCallback((item: GuardianItem): ILoadoutItem => {
@@ -104,12 +113,12 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         return {
             itemInstanceId: item.itemInstanceId!,
             itemHash: item.itemHash,
-            bucketHash: item.bucketHash,
+            bucketHash: getResolvedBucketHash(item),
             label: def?.displayProperties?.name,
             power: item.instanceData?.primaryStat?.value,
             socketOverrides: undefined,
         };
-    }, [manifest]);
+    }, [manifest, getResolvedBucketHash]);
 
     // Helper: check if item is exotic (tierType 6)
     const isItemExotic = useCallback((item: GuardianItem): boolean => {
@@ -120,15 +129,16 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Helper: add item to loadout (replaces existing in same bucket)
     const handleAddItem = useCallback((item: GuardianItem) => {
         const isExotic = isItemExotic(item);
-        const isArmorBucket = ARMOR_BUCKETS.includes(item.bucketHash);
-        const isWeaponBucket = WEAPON_BUCKETS.includes(item.bucketHash);
+        const resolvedBucket = getResolvedBucketHash(item);
+        const isArmorBucket = ARMOR_BUCKETS.includes(resolvedBucket);
+        const isWeaponBucket = WEAPON_BUCKETS.includes(resolvedBucket);
 
         setItems((prev) => {
-            let filtered = prev.filter((i) => i.bucketHash !== item.bucketHash);
+            let filtered = prev.filter((i) => i.bucketHash !== resolvedBucket);
 
             // If adding an exotic, remove any existing exotic in same category
             if (isExotic) {
-                const existingItems = prev.filter((i) => i.bucketHash !== item.bucketHash);
+                const existingItems = prev.filter((i) => i.bucketHash !== resolvedBucket);
                 if (isArmorBucket) {
                     // Remove any existing exotic armor
                     filtered = existingItems.filter((i) => {
@@ -147,7 +157,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             // Add new item
             return [...filtered, convertToLoadoutItem(item)];
         });
-    }, [convertToLoadoutItem, isItemExotic, manifest]);
+    }, [convertToLoadoutItem, isItemExotic, manifest, getResolvedBucketHash]);
 
     // Helper: remove item
     const handleRemoveItem = useCallback((itemInstanceId: string) => {
@@ -216,32 +226,29 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Get available items for a bucket from all inventory
     const getAvailableItemsForBucket = useCallback((bucketHash: number) => {
         const isArmorBucket = ARMOR_BUCKETS.includes(bucketHash);
-        
+
         // Get the actual class to use - from selected character for new loadouts
-        const loadoutClass = character?.classType ?? loadout.characterClass;
-        
+        const loadoutClass = character?.classType ?? loadout?.characterClass;
+
         return allItems.filter((item) => {
             const def = manifest[item.itemHash];
-            const itemBucketHash = item.bucketHash;
-            // Also check bucketTypeHash from definition as fallback
-            const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
-            
-            // Must match bucket - check both current location and item type
-            const matchesBucket = itemBucketHash === bucketHash || (itemBucketTypeHash && itemBucketTypeHash === bucketHash);
-            if (!matchesBucket) return false;
+            // Use manifest definition's bucketTypeHash as primary source of truth
+            const resolvedBucket = def?.inventory?.bucketTypeHash ?? item.bucketHash;
+
+            if (resolvedBucket !== bucketHash) return false;
             if (!item.itemInstanceId) return false;
-            
+
             // For armor buckets, filter by class
             if (isArmorBucket && def) {
                 const itemClassType = def?.classType;
-                
+
                 // If loadout has a class, only show matching armor
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
                 if (loadoutClass >= 0 && itemClassType != null && itemClassType >= 0 && itemClassType !== loadoutClass) {
                     return false;
                 }
             }
-            
+
             return true;
         }).sort((a, b) => {
             // Sort by power descending
@@ -249,7 +256,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             const powerB = b.instanceData?.primaryStat?.value || 0;
             return powerB - powerA;
         });
-    }, [allItems, manifest, loadout.characterClass, character]);
+    }, [allItems, manifest, loadout?.characterClass, character]);
 
     // Select item from dropdown
     const handleSelectFromDropdown = useCallback((item: GuardianItem) => {
@@ -271,7 +278,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
             // Create new loadout with the selected character
             const selectedCharId = loadout.characterId || Object.keys(characters)[0];
             const character = characters[selectedCharId];
-            
+
             // Create a new loadout directly
             const newLoadout: ILoadout = {
                 id: crypto.randomUUID(),
@@ -296,14 +303,14 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
         // Check both bucketHash and bucketTypeHash for subclass
         const isSubclass = item.bucketHash === BucketHashes.Subclass || itemBucketTypeHash === BucketHashes.Subclass;
-        
+
         // If selecting a subclass, also open the plug drawer to configure it
         if (isSubclass) {
             setSelectedSubclass(item);
             setSocketOverrides({});
             setShowSubclassDrawer(true);
         }
-        
+
         handleAddItem(item);
         setShowItemPicker(false);
         setPickerTargetBucket(null);
@@ -314,7 +321,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
         setSocketOverrides(overrides);
         // Update the subclass item in loadout with socket overrides
         if (selectedSubclass) {
-            setItems((prev) => 
+            setItems((prev) =>
                 prev.map((item) => {
                     if (item.bucketHash === BucketHashes.Subclass && item.itemInstanceId === selectedSubclass.itemInstanceId) {
                         return { ...item, socketOverrides: overrides };
@@ -329,25 +336,19 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // Filter for item picker - show items from ALL characters + vault (not just selected)
     const pickerFilter = useCallback((item: GuardianItem) => {
         // If target bucket is set, only show items from that bucket
-        if (pickerTargetBucket != null) {   
+        if (pickerTargetBucket != null) {
             const def = manifest[item.itemHash];
-            
-            // Use item.bucketHash directly - it's where the item currently is located
-            const itemBucketHash = item.bucketHash;
-            
-            // Also try bucketTypeHash from definition
-            const itemBucketTypeHash = def?.inventory?.bucketTypeHash;
-            
-            // Match if either matches
-            const matchesBucket = itemBucketHash === pickerTargetBucket || (itemBucketTypeHash && itemBucketTypeHash === pickerTargetBucket);
-            
-            if (!matchesBucket) return false;
-            
+
+            // Use manifest definition's bucketTypeHash as primary source of truth
+            const resolvedBucket = def?.inventory?.bucketTypeHash ?? item.bucketHash;
+
+            if (resolvedBucket !== pickerTargetBucket) return false;
+
             // Get loadout class
-            const loadoutClass = character?.classType ?? loadout.characterClass;
-            
-            // For armor buckets, filter by class - check both bucketHash and bucketTypeHash (only if def exists)
-            const isArmorBucket = ARMOR_BUCKETS.includes(itemBucketHash) || (itemBucketTypeHash && ARMOR_BUCKETS.includes(itemBucketTypeHash));
+            const loadoutClass = character?.classType ?? loadout?.characterClass;
+
+            // For armor buckets, filter by class
+            const isArmorBucket = ARMOR_BUCKETS.includes(resolvedBucket);
             if (isArmorBucket && def && loadoutClass >= 0) {
                 const itemClassType = def?.classType;
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
@@ -355,9 +356,9 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                     return false;
                 }
             }
-            
+
             // For subclasses, filter by class
-            const isSubclass = itemBucketHash === BucketHashes.Subclass || (itemBucketTypeHash && itemBucketTypeHash === BucketHashes.Subclass);
+            const isSubclass = resolvedBucket === BucketHashes.Subclass;
             if (isSubclass && def && loadoutClass >= 0) {
                 const itemClassType = def?.classType;
                 // classType: 0=Titan, 1=Hunter, 2=Warlock, -1/3=Any
@@ -365,13 +366,13 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                     return false;
                 }
             }
-            
+
             return true;
         }
-        
+
         // Show all items from all characters + vault
         return true;
-    }, [pickerTargetBucket, manifest, character, loadout.characterClass]);
+    }, [pickerTargetBucket, manifest, character, loadout?.characterClass]);
 
     const getPickerPrompt = useCallback(() => {
         if (pickerTargetBucket != null) {
@@ -388,7 +389,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
     // If new loadout and no character selected, show character picker
     if (isNew && !selectedCharId) {
         const charList = Object.values(characters);
-        
+
         return createPortal(
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm">
                 <div className="w-full max-w-lg bg-[#0a0a0a] border-t border-white/10 rounded-t-xl shadow-2xl animate-slide-up">
@@ -556,7 +557,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                         >
                             <Shield size={16} className="text-amber-400" />
                             <span className="text-sm font-bold font-rajdhani uppercase">
-                                {Object.keys(modsByBucket).length > 0 
+                                {Object.keys(modsByBucket).length > 0
                                     ? `${Object.values(modsByBucket).flat().length} mods selected`
                                     : 'Select Armor Mods'}
                             </span>
@@ -599,7 +600,7 @@ export function LoadoutEditorDrawer({ loadout, isNew = false, onClose }: Loadout
                 onItemSelected={handlePickerSelect}
                 filter={pickerFilter}
                 prompt={getPickerPrompt()}
-                // No ownerId - show all items from all characters + vault
+            // No ownerId - show all items from all characters + vault
             />
 
             {/* Subclass Plug Drawer */}
