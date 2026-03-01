@@ -27,6 +27,14 @@ export interface GuardianItem {
         isEquipped?: boolean;
         canEquip?: boolean;
         equipRequiredLevel?: number;
+        /** Armor energy capacity/usage (from Bungie API DestinyItemInstanceEnergy) */
+        energy?: {
+            energyType: number;
+            energyTypeHash: number;
+            energyCapacity: number;
+            energyUsed: number;
+            energyUnused: number;
+        };
     };
 
     // User Metadata (The "Zipper" Part)
@@ -40,6 +48,9 @@ export interface GuardianItem {
     sockets?: {
         sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }>;
     };
+    /** Per-instance reusable plugs from itemComponents.reusablePlugs.data[instanceId] (component 305)
+     *  Keyed by socket index → array of available plug hashes with insert/enable state. */
+    reusablePlugs?: Record<number, Array<{ plugItemHash: number; canInsert: boolean; enabled: boolean }>>;
     /** Per-instance objectives from itemComponents.objectives.data[instanceId] */
     objectives?: { objectives: Array<{ objectiveHash: number; progress?: number; completionValue?: number; complete?: boolean; visible?: boolean }> };
 }

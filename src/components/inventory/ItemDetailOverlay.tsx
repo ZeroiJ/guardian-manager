@@ -1,13 +1,18 @@
-import React, { useMemo } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
-import { calculateStats } from '../../lib/destiny/stat-manager';
+import { calculateStats, getSocketAlternatives, type StatSegment, type StatSegmentType, type SocketAlternatives } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
+import { PerkCircle } from '../item/PerkCircle';
 import { BungieImage, bungieNetPath } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
-import { StatHashes } from '../../lib/destiny-constants';
+import { StatHashes, PlugCategoryHashes } from '../../lib/destiny-constants';
+import { useInventoryStore } from '../../store/useInventoryStore';
+import { getItemSeasonInfo } from '../../lib/destiny/season-info';
+import { getKillTracker, getCraftedInfo, getArmorEnergy, getCatalystInfo, getDeepsightInfo } from '../../lib/destiny/item-info';
+import catalystMapping from '../../data/exotic-to-catalyst-record.json';
 
 // ============================================================================
 // TYPES
@@ -38,6 +43,77 @@ const rarityColors: Record<string, string> = {
     common: '#c3bcb4',
 };
 
+/**
+ * Segment colors for stat bars (ported from DIM's ItemStat.m.scss).
+ * base=gray, parts=blue (barrels/mags), traits=green, mod=purple, masterwork=gold
+ */
+const SEGMENT_COLORS: Record<StatSegmentType, string> = {
+    base: '#888888',
+    parts: '#68a8e0',
+    traits: '#5ac467',
+    mod: '#a855f7',
+    masterwork: '#ceae33',
+};
+
+const SEGMENT_LABELS: Record<StatSegmentType, string> = {
+    base: 'Base',
+    parts: 'Weapon Part',
+    traits: 'Trait',
+    mod: 'Mod',
+    masterwork: 'Masterwork',
+};
+
+/** Weapon component plug category hashes that may be enhanced (same set from stat-manager). */
+const WEAPON_COMPONENT_PCHS = new Set<number>([
+    PlugCategoryHashes.Barrels, PlugCategoryHashes.Magazines, PlugCategoryHashes.Scopes,
+    PlugCategoryHashes.Stocks, PlugCategoryHashes.Grips, PlugCategoryHashes.Arrows,
+]);
+
+/**
+ * Detect enhanced perk — ported from DIM's socket-utils.ts isEnhancedPerk.
+ * Enhanced perks have tierType=0 (Common) and a plugCategoryHash that is
+ * Frames, Origins, or a weapon component.
+ */
+function isEnhancedPerk(plugDef: any): boolean {
+    if (!plugDef?.inventory || !plugDef?.plug) return false;
+    const tier = plugDef.inventory.tierType;
+    const pch = plugDef.plug.plugCategoryHash;
+    return tier === 0 && (
+        pch === PlugCategoryHashes.Frames ||
+        pch === PlugCategoryHashes.Origins ||
+        WEAPON_COMPONENT_PCHS.has(pch)
+    );
+}
+
+/**
+ * Stat bar tooltip — shows the math breakdown of each contributing segment.
+ */
+const StatBarTooltip: React.FC<{ segments: StatSegment[]; statLabel: string; displayValue: number }> = ({
+    segments,
+    statLabel,
+    displayValue,
+}) => {
+    const showMath = !(segments.length === 1 && segments[0][1] === 'base');
+    return (
+        <div className="text-xs space-y-0.5 min-w-[140px]">
+            {showMath && segments.map(([val, segType, name], i) => (
+                <div key={i} className="flex justify-between gap-3">
+                    <span style={{ color: SEGMENT_COLORS[segType] }}>
+                        {name || SEGMENT_LABELS[segType]}
+                    </span>
+                    <span style={{ color: SEGMENT_COLORS[segType] }} className="font-mono tabular-nums">
+                        {i > 0 && val >= 0 ? '+' : ''}{val}
+                    </span>
+                </div>
+            ))}
+            <div className={`flex justify-between gap-3 font-bold ${showMath ? 'border-t border-white/10 pt-0.5 mt-0.5' : ''}`}>
+                <span className="text-white">{statLabel}</span>
+                <span className="text-white font-mono tabular-nums">{displayValue}</span>
+            </div>
+        </div>
+    );
+};
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -54,11 +130,33 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
     onClose,
 }) => {
     // --- JIT Definitions for plugs ---
+    // Collect all plug hashes: active plugs + all alternative plugs from reusablePlugs/plug sets
     const plugHashes = useMemo(() => {
         const hashes = new Set<number>();
         const liveSockets = item?.sockets?.sockets || item?.itemComponents?.sockets?.data?.sockets;
         if (liveSockets) {
             for (const s of liveSockets) if (s.plugHash) hashes.add(s.plugHash);
+        }
+        // Add all reusable plug alternatives (component 305)
+        const reusable = item?.reusablePlugs as Record<number, Array<{ plugItemHash: number }>> | undefined;
+        if (reusable) {
+            for (const plugs of Object.values(reusable)) {
+                for (const p of plugs) if (p.plugItemHash) hashes.add(p.plugItemHash);
+            }
+        }
+        // Add plug set hashes from manifest socket entries (for manifest-only fallback)
+        const socketEntries = definition?.sockets?.socketEntries;
+        if (socketEntries) {
+            for (const entry of socketEntries) {
+                const psHash = entry.reusablePlugSetHash || entry.randomizedPlugSetHash;
+                if (psHash) hashes.add(psHash); // will be fetched below as PlugSetDef
+                // Inline reusablePlugItems
+                if (entry.reusablePlugItems) {
+                    for (const rpi of entry.reusablePlugItems) {
+                        if (rpi.plugItemHash) hashes.add(rpi.plugItemHash);
+                    }
+                }
+            }
         }
         // Also fetch lore definition if available
         if (definition?.loreHash) hashes.add(definition.loreHash);
@@ -68,6 +166,35 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
     }, [item, definition]);
 
     const { definitions: plugDefinitions } = useDefinitions('DestinyInventoryItemDefinition', plugHashes);
+
+    // Fetch plug set definitions for socket alternatives
+    const plugSetHashes = useMemo(() => {
+        const hashes = new Set<number>();
+        const socketEntries = definition?.sockets?.socketEntries;
+        if (socketEntries) {
+            for (const entry of socketEntries) {
+                if (entry.reusablePlugSetHash) hashes.add(entry.reusablePlugSetHash);
+                if (entry.randomizedPlugSetHash) hashes.add(entry.randomizedPlugSetHash);
+            }
+        }
+        return Array.from(hashes);
+    }, [definition]);
+    const { definitions: plugSetDefs } = useDefinitions('DestinyPlugSetDefinition', plugSetHashes);
+
+    // Fetch alternative plug item definitions (from plug sets we just resolved)
+    const altPlugItemHashes = useMemo(() => {
+        const hashes = new Set<number>();
+        for (const psDef of Object.values(plugSetDefs)) {
+            const ps = psDef as any;
+            if (ps?.reusablePlugItems) {
+                for (const entry of ps.reusablePlugItems) {
+                    if (entry.plugItemHash) hashes.add(entry.plugItemHash);
+                }
+            }
+        }
+        return Array.from(hashes);
+    }, [plugSetDefs]);
+    const { definitions: altPlugDefs } = useDefinitions('DestinyInventoryItemDefinition', altPlugItemHashes);
 
     // Fetch lore separately since it's a different table
     const loreHashes = useMemo(() => definition?.loreHash ? [definition.loreHash] : [], [definition]);
@@ -85,8 +212,8 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
     const { definitions: statGroupDefs } = useDefinitions('DestinyStatGroupDefinition', statGroupHashes);
 
     const definitions = useMemo(
-        () => ({ ...initialDefinitions, ...plugDefinitions, ...statGroupDefs }),
-        [initialDefinitions, plugDefinitions, statGroupDefs]
+        () => ({ ...initialDefinitions, ...plugDefinitions, ...statGroupDefs, ...plugSetDefs, ...altPlugDefs }),
+        [initialDefinitions, plugDefinitions, statGroupDefs, plugSetDefs, altPlugDefs]
     );
 
     // --- Derived Data ---
@@ -113,13 +240,90 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
     // Season watermark
     const watermarkIcon = definition?.iconWatermark || definition?.iconWatermarkShelved;
 
-    // Stats & Sockets
+    // Season info (name, number, year)
+    const seasonInfo = useMemo(() => getItemSeasonInfo(definition), [definition]);
+
+    // --- Item Info Features (Kill Tracker, Crafted, Energy, Catalyst, Deepsight) ---
+    const killTracker = useMemo(() => getKillTracker(item, definition), [item, definition]);
+    const craftedInfo = useMemo(() => getCraftedInfo(item, definition), [item, definition]);
+    const armorEnergy = useMemo(() => getArmorEnergy(item), [item]);
+
+    // Profile records for catalyst & deepsight
+    const profile = useInventoryStore(s => s.profile);
+    const profileRecords = useMemo(
+        () => profile?.profileRecords?.data,
+        [profile]
+    );
+    const characterRecords = useMemo(
+        () => profile?.characterRecords?.data,
+        [profile]
+    );
+
+    // Catalyst (exotics only)
+    const catalystInfo = useMemo(() => {
+        if (!isExotic) return null;
+        return getCatalystInfo(
+            item?.itemHash,
+            profileRecords,
+            characterRecords,
+            catalystMapping as Record<string, number>,
+        );
+    }, [item?.itemHash, isExotic, profileRecords, characterRecords]);
+
+    // Deepsight / pattern progress
+    // Build pattern record map from DestinyRecordDefinition (CraftingRecipeUnlocked toast style)
+    const recordHashes = useMemo(() => [] as number[], []); // Empty = load full table
+    const { definitions: recordDefs } = useDefinitions('DestinyRecordDefinition', recordHashes);
+    const patternRecordMap = useMemo(() => {
+        const map: Record<string, number> = {};
+        for (const [hash, record] of Object.entries(recordDefs)) {
+            const rec = record as any;
+            // DestinyRecordToastStyle.CraftingRecipeUnlocked = 3
+            if (rec?.completionInfo?.toastStyle === 3 && rec?.displayProperties?.name) {
+                map[rec.displayProperties.name] = Number(hash);
+            }
+        }
+        return map;
+    }, [recordDefs]);
+
+    const deepsightInfo = useMemo(
+        () => getDeepsightInfo(item, definition, profileRecords, patternRecordMap),
+        [item, definition, profileRecords, patternRecordMap]
+    );
+
+    // --- Socket Override State (for perk swap preview) ---
+    const [socketOverrides, setSocketOverrides] = useState<Record<number, number>>({});
+    const hasOverrides = Object.keys(socketOverrides).length > 0;
+
+    const handlePlugClick = useCallback((socketIndex: number, plugHash: number) => {
+        setSocketOverrides(prev => {
+            // If clicking the currently equipped plug (original), remove the override
+            const liveSockets = item?.sockets?.sockets;
+            const originalHash = liveSockets?.[socketIndex]?.plugHash;
+            if (plugHash === originalHash) {
+                const next = { ...prev };
+                delete next[socketIndex];
+                return next;
+            }
+            return { ...prev, [socketIndex]: plugHash };
+        });
+    }, [item]);
+
+    const resetOverrides = useCallback(() => setSocketOverrides({}), []);
+
+    // Stats & Sockets (with socket overrides applied for live preview)
     const calculatedStats = useMemo(
-        () => calculateStats(item, definition, definitions),
-        [item, definition, definitions]
+        () => calculateStats(item, definition, definitions, socketOverrides),
+        [item, definition, definitions, socketOverrides]
     );
     const sockets = useMemo(
-        () => categorizeSockets(item, definition, definitions),
+        () => categorizeSockets(item, definition, definitions, socketOverrides),
+        [item, definition, definitions, socketOverrides]
+    );
+
+    // Socket alternatives (available plugs per socket column)
+    const socketAlternatives: SocketAlternatives = useMemo(
+        () => getSocketAlternatives(item, definition, definitions),
         [item, definition, definitions]
     );
 
@@ -133,6 +337,36 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
     }, [onClose]);
 
     const visibleStats = calculatedStats.filter(stat => stat.displayValue > 0);
+
+    // Key stats for intrinsic frame display (e.g., "900 RPM / 21 Impact")
+    // Following DIM: first 2 stats, excluding swords/LFRs, filtered for non-Blast Radius
+    const keyStats = useMemo(() => {
+        const itemCategories = definition?.itemCategoryHashes || [];
+        const isSword = itemCategories.includes(54);      // ItemCategoryHashes.Sword
+        const isLFR = itemCategories.includes(1504945536); // ItemCategoryHashes.LinearFusionRifles
+        if (isSword || isLFR) return null;
+
+        return calculatedStats
+            .slice(0, 2)
+            .filter(s => s.statHash !== StatHashes.BlastRadius && s.displayValue > 0);
+    }, [calculatedStats, definition]);
+
+    // --- Perk view mode toggle ---
+    const [perkViewMode, setPerkViewMode] = useState<'grid' | 'list'>('grid');
+
+    // --- "Your Items" data ---
+    const allItems = useInventoryStore(s => s.items);
+    const manifest = useInventoryStore(s => s.manifest);
+    const startCompare = useInventoryStore(s => s.startCompare);
+    const characters = useInventoryStore(s => s.characters);
+
+    const yourItems = useMemo(() => {
+        const itemHash = item?.itemHash;
+        if (!itemHash) return [];
+        return allItems.filter(
+            i => i.itemHash === itemHash && i.itemInstanceId !== item.itemInstanceId
+        );
+    }, [allItems, item]);
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center">
@@ -194,10 +428,18 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Season watermark */}
+                                {/* Season info */}
                                 {watermarkIcon && (
-                                    <div className="w-10 h-10 opacity-60 shrink-0">
-                                        <BungieImage src={watermarkIcon} className="w-full h-full" />
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <div className="w-8 h-8 opacity-70">
+                                            <BungieImage src={watermarkIcon} className="w-full h-full" />
+                                        </div>
+                                        {seasonInfo && (
+                                            <div className="text-[10px] text-gray-400 leading-tight text-right">
+                                                <div className="text-gray-300">{seasonInfo.seasonName}</div>
+                                                <div>S{seasonInfo.seasonNumber} / Y{seasonInfo.year}</div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -261,7 +503,86 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                             </div>
                         )}
 
-                        {/* ---- INTRINSIC FRAME PERK ---- */}
+                        {/* ---- KILL TRACKER / CRAFTED / DEEPSIGHT BADGES ---- */}
+                        {(killTracker || craftedInfo || (deepsightInfo && !deepsightInfo.patternComplete)) && (
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Kill tracker */}
+                                {killTracker && (
+                                    <div
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs"
+                                        style={{
+                                            backgroundColor: killTracker.activityType === 'pvp' ? 'rgba(239, 68, 68, 0.06)'
+                                                : killTracker.activityType === 'gambit' ? 'rgba(34, 197, 94, 0.06)'
+                                                : 'rgba(96, 165, 250, 0.06)',
+                                            borderColor: killTracker.activityType === 'pvp' ? 'rgba(239, 68, 68, 0.15)'
+                                                : killTracker.activityType === 'gambit' ? 'rgba(34, 197, 94, 0.15)'
+                                                : 'rgba(96, 165, 250, 0.15)',
+                                        }}
+                                    >
+                                        {killTracker.activityType === 'pvp' ? (
+                                            <Crosshair size={12} className="text-red-400" />
+                                        ) : killTracker.activityType === 'gambit' ? (
+                                            <Sword size={12} className="text-green-400" />
+                                        ) : (
+                                            <Sword size={12} className="text-blue-400" />
+                                        )}
+                                        <span className="text-gray-300 font-mono tabular-nums font-bold">
+                                            {killTracker.count.toLocaleString()}
+                                        </span>
+                                        <span className="text-gray-500">{killTracker.label} kills</span>
+                                    </div>
+                                )}
+
+                                {/* Crafted weapon badge */}
+                                {craftedInfo && (
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-amber-400/[0.06] border border-amber-400/[0.15] text-xs">
+                                        <Sparkles size={12} className="text-amber-400" />
+                                        <span className="text-amber-300 font-bold">Shaped</span>
+                                        {craftedInfo.level !== null && (
+                                            <span className="text-gray-400">
+                                                Lv. <span className="font-mono tabular-nums text-white">{craftedInfo.level}</span>
+                                            </span>
+                                        )}
+                                        {craftedInfo.progress !== null && craftedInfo.progress < 1 && (
+                                            <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden ml-1">
+                                                <div
+                                                    className="h-full bg-amber-400/60 rounded-full transition-all"
+                                                    style={{ width: `${(craftedInfo.progress * 100).toFixed(1)}%` }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Deepsight pattern progress */}
+                                {deepsightInfo && !deepsightInfo.patternComplete && deepsightInfo.objectives.length > 0 && (
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-cyan-400/[0.06] border border-cyan-400/[0.15] text-xs">
+                                        <FlaskConical size={12} className="text-cyan-400" />
+                                        <span className="text-cyan-300 font-bold">Pattern</span>
+                                        {deepsightInfo.objectives.map((obj, i) => {
+                                            const pct = obj.completionValue
+                                                ? Math.min(100, ((obj.progress ?? 0) / obj.completionValue) * 100)
+                                                : 0;
+                                            return (
+                                                <div key={i} className="flex items-center gap-1">
+                                                    <span className="text-gray-400 font-mono tabular-nums">
+                                                        {obj.progress ?? 0}/{obj.completionValue ?? '?'}
+                                                    </span>
+                                                    <div className="w-12 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-cyan-400/60 rounded-full"
+                                                            style={{ width: `${pct}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ---- INTRINSIC FRAME PERK (with key stats) ---- */}
                         {sockets.intrinsic && (
                             <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                                 <div className="w-12 h-12 shrink-0">
@@ -275,7 +596,15 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                     <div className="font-bold text-sm text-[#e2bf36]">
                                         {sockets.intrinsic.plugDef.displayProperties.name}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                                    {/* Key stats inline (e.g., "900 rpm / 21 impact") */}
+                                    {keyStats && keyStats.length > 0 && (
+                                        <div className="text-xs text-gray-300 mt-0.5">
+                                            {keyStats
+                                                .map(s => `${s.displayValue} ${s.label.toLowerCase()}`)
+                                                .join(' / ')}
+                                        </div>
+                                    )}
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 mt-0.5">
                                         {sockets.intrinsic.plugDef.itemTypeDisplayName || 'Intrinsic'}
                                     </div>
                                     {sockets.intrinsic.plugDef.displayProperties.description && (
@@ -287,21 +616,229 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                             </div>
                         )}
 
-                        {/* ---- PERKS ROW ---- */}
+                        {/* ---- PERKS (Grid / List toggle with Socket Override) ---- */}
                         {sockets.perks.length > 0 && (
                             <div>
-                                <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">
-                                    Perks
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                                            Perks
+                                        </div>
+                                        {hasOverrides && (
+                                            <button
+                                                onClick={resetOverrides}
+                                                className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] text-amber-400/80 hover:text-amber-300 bg-amber-400/[0.06] hover:bg-amber-400/[0.12] border border-amber-400/[0.15] rounded transition-colors uppercase tracking-wider font-bold"
+                                                title="Reset perk selection"
+                                            >
+                                                <RotateCcw size={9} />
+                                                Reset
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-0.5 bg-white/[0.04] border border-white/[0.06] rounded p-0.5">
+                                        <button
+                                            onClick={() => setPerkViewMode('grid')}
+                                            className={`p-1 rounded transition-colors ${
+                                                perkViewMode === 'grid'
+                                                    ? 'bg-white/10 text-white'
+                                                    : 'text-gray-500 hover:text-gray-300'
+                                            }`}
+                                            aria-label="Grid view"
+                                            title="Grid view"
+                                        >
+                                            <Grid3x3 size={12} />
+                                        </button>
+                                        <button
+                                            onClick={() => setPerkViewMode('list')}
+                                            className={`p-1 rounded transition-colors ${
+                                                perkViewMode === 'list'
+                                                    ? 'bg-white/10 text-white'
+                                                    : 'text-gray-500 hover:text-gray-300'
+                                            }`}
+                                            aria-label="List view"
+                                            title="List view"
+                                        >
+                                            <List size={12} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {sockets.perks.map(socket => (
-                                        <ItemSocket
-                                            key={socket.socketIndex}
-                                            plugDef={socket.plugDef}
-                                            categoryHash={socket.categoryHash}
-                                            isActive={socket.isEnabled}
-                                        />
-                                    ))}
+
+                                {/* Grid mode — perk columns with clickable SVG PerkCircle alternatives */}
+                                {perkViewMode === 'grid' && (
+                                    <div className="flex gap-3">
+                                        {sockets.perks.map(socket => {
+                                            const alts = socketAlternatives[socket.socketIndex];
+                                            const activePlugHash = socketOverrides[socket.socketIndex] ?? socket.plugHash;
+                                            const originalPlugHash = item?.sockets?.sockets?.[socket.socketIndex]?.plugHash;
+
+                                            // No alternatives — render single SVG perk circle (not clickable)
+                                            if (!alts || alts.length <= 1) {
+                                                return (
+                                                    <div key={socket.socketIndex} className="flex flex-col items-center gap-1">
+                                                        <PerkCircle
+                                                            plugDef={socket.plugDef}
+                                                            size={40}
+                                                            isPlugged={true}
+                                                            isEnhanced={isEnhancedPerk(socket.plugDef)}
+                                                            title={socket.plugDef?.displayProperties?.name || ''}
+                                                        />
+                                                    </div>
+                                                );
+                                            }
+
+                                            // Multiple alternatives — render as clickable column of SVG PerkCircles
+                                            return (
+                                                <div key={socket.socketIndex} className="flex flex-col items-center gap-1">
+                                                    {alts.map(alt => {
+                                                        const isActive = alt.plugHash === activePlugHash;
+                                                        const isOriginal = alt.plugHash === originalPlugHash;
+                                                        const isOverridden = hasOverrides && socketOverrides[socket.socketIndex] !== undefined;
+                                                        const wasOriginal = isOriginal && isOverridden && !isActive;
+
+                                                        return (
+                                                            <div
+                                                                key={alt.plugHash}
+                                                                className={`transition-opacity ${
+                                                                    isActive ? 'opacity-100' :
+                                                                    wasOriginal ? 'opacity-50' :
+                                                                    'opacity-40 hover:opacity-80'
+                                                                }`}
+                                                            >
+                                                                <PerkCircle
+                                                                    plugDef={alt.plugDef}
+                                                                    size={40}
+                                                                    isPlugged={isActive && !isOverridden}
+                                                                    isSelected={isActive && isOverridden}
+                                                                    isNotSelected={wasOriginal}
+                                                                    isEnhanced={isEnhancedPerk(alt.plugDef)}
+                                                                    cannotRoll={!alt.canInsert}
+                                                                    onClick={() => handlePlugClick(socket.socketIndex, alt.plugHash)}
+                                                                    title={alt.plugDef?.displayProperties?.name || ''}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* List mode — icon + name + description, with alternatives */}
+                                {perkViewMode === 'list' && (
+                                    <div className="space-y-3">
+                                        {sockets.perks.map(socket => {
+                                            const alts = socketAlternatives[socket.socketIndex];
+                                            const activePlugHash = socketOverrides[socket.socketIndex] ?? socket.plugHash;
+                                            const originalPlugHash = item?.sockets?.sockets?.[socket.socketIndex]?.plugHash;
+                                            const activeDef = definitions[activePlugHash];
+                                            const dp = activeDef?.displayProperties || socket.plugDef?.displayProperties;
+                                            if (!dp?.icon) return null;
+
+                                            return (
+                                                <div key={socket.socketIndex}>
+                                                    {/* Active perk (full detail) */}
+                                                    <div
+                                                        className={`flex items-start gap-2.5 p-2 rounded-lg border transition-colors ${
+                                                            socketOverrides[socket.socketIndex] !== undefined
+                                                                ? 'bg-amber-400/[0.03] border-amber-400/[0.15]'
+                                                                : 'bg-white/[0.03] border-white/[0.08]'
+                                                        }`}
+                                                    >
+                                                        <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-white/20 bg-[#222]">
+                                                            <BungieImage src={dp.icon} className="w-full h-full" />
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="text-xs font-bold text-white leading-tight">
+                                                                {dp.name}
+                                                            </div>
+                                                            {(activeDef?.itemTypeDisplayName || socket.plugDef?.itemTypeDisplayName) && (
+                                                                <div className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5">
+                                                                    {activeDef?.itemTypeDisplayName || socket.plugDef?.itemTypeDisplayName}
+                                                                </div>
+                                                            )}
+                                                            {dp.description && (
+                                                                <div className="text-[11px] text-gray-400 leading-relaxed mt-0.5">
+                                                                    {dp.description}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Alternative plugs (compact PerkCircle row below) */}
+                                                    {alts && alts.length > 1 && (
+                                                        <div className="flex gap-1 mt-1 ml-1">
+                                                            {alts.map(alt => {
+                                                                const isActive = alt.plugHash === activePlugHash;
+                                                                const isOriginal = alt.plugHash === originalPlugHash;
+                                                                const isOverridden = socketOverrides[socket.socketIndex] !== undefined;
+                                                                const wasOriginal = isOriginal && isOverridden && !isActive;
+                                                                return (
+                                                                    <div
+                                                                        key={alt.plugHash}
+                                                                        className={`transition-opacity ${
+                                                                            isActive ? 'opacity-100' :
+                                                                            wasOriginal ? 'opacity-50' :
+                                                                            'opacity-40 hover:opacity-80'
+                                                                        }`}
+                                                                    >
+                                                                        <PerkCircle
+                                                                            plugDef={alt.plugDef}
+                                                                            size={28}
+                                                                            isPlugged={isActive && !isOverridden}
+                                                                            isSelected={isActive && isOverridden}
+                                                                            isNotSelected={wasOriginal}
+                                                                            isEnhanced={isEnhancedPerk(alt.plugDef)}
+                                                                            cannotRoll={!alt.canInsert}
+                                                                            onClick={() => handlePlugClick(socket.socketIndex, alt.plugHash)}
+                                                                            title={alt.plugDef?.displayProperties?.name || ''}
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ---- CATALYST PROGRESS (Exotic Weapons) ---- */}
+                        {catalystInfo && catalystInfo.unlocked && !catalystInfo.complete && catalystInfo.objectives.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <Zap size={12} className="text-yellow-400" />
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                                        Catalyst Progress
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5 p-3 rounded-lg bg-yellow-400/[0.02] border border-yellow-400/[0.08]">
+                                    {catalystInfo.objectives.map((obj, i) => {
+                                        const progress = obj.progress ?? 0;
+                                        const completionValue = obj.completionValue ?? 1;
+                                        const pct = Math.min(100, (progress / completionValue) * 100);
+                                        return (
+                                            <div key={i} className="space-y-1">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-gray-400">
+                                                        Objective {catalystInfo.objectives.length > 1 ? i + 1 : ''}
+                                                    </span>
+                                                    <span className="text-gray-300 font-mono tabular-nums">
+                                                        {progress.toLocaleString()} / {completionValue.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-yellow-400/60 rounded-full transition-all"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -333,7 +870,52 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                             </div>
                         )}
 
-                        {/* ---- STATS SECTION ---- */}
+                        {/* ---- ENERGY METER (Armor) ---- */}
+                        {armorEnergy && (
+                            <div>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <Zap size={12} className="text-blue-400" />
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                                        Energy
+                                    </div>
+                                    <span className="text-xs text-gray-300 font-mono font-bold ml-1">
+                                        {armorEnergy.energyUsed}/{armorEnergy.energyCapacity}
+                                    </span>
+                                </div>
+                                <div className="flex gap-1 p-2 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                                    {Array.from({ length: Math.max(10, armorEnergy.energyCapacity) }).map((_, i) => {
+                                        const isUsed = i < armorEnergy.energyUsed;
+                                        const isAvailable = i < armorEnergy.energyCapacity && !isUsed;
+                                        const isLocked = i >= armorEnergy.energyCapacity;
+                                        return (
+                                            <div
+                                                key={i}
+                                                className={`flex-1 h-3 rounded-sm transition-colors ${
+                                                    isUsed
+                                                        ? 'bg-blue-400/80'
+                                                        : isAvailable
+                                                        ? 'bg-blue-400/20 border border-blue-400/30'
+                                                        : isLocked
+                                                        ? 'bg-white/[0.04] border border-white/[0.06]'
+                                                        : ''
+                                                }`}
+                                                title={
+                                                    isUsed ? `Slot ${i + 1}: Used`
+                                                    : isAvailable ? `Slot ${i + 1}: Available`
+                                                    : `Slot ${i + 1}: Locked`
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex justify-between mt-1 text-[10px] text-gray-500 px-0.5">
+                                    <span>{armorEnergy.energyUsed} used</span>
+                                    <span>{armorEnergy.energyCapacity - armorEnergy.energyUsed} available</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ---- STATS SECTION (Segmented Color Bars) ---- */}
                         {visibleStats.length > 0 && (
                             <div>
                                 <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">
@@ -341,29 +923,7 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                 </div>
                                 <div className="space-y-1.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
                                     {visibleStats.map(stat => (
-                                        <div key={stat.statHash} className="flex items-center gap-2">
-                                            <div className="w-28 text-right text-xs text-gray-400 truncate shrink-0">
-                                                {stat.label}
-                                            </div>
-                                            <div className="w-8 text-right text-xs font-bold text-white tabular-nums font-mono shrink-0">
-                                                {stat.displayValue}
-                                            </div>
-                                            <div className="flex-1 h-[6px] bg-white/[0.06] rounded-full overflow-hidden flex items-center">
-                                                {stat.statHash === StatHashes.RecoilDirection ? (
-                                                    <div className="w-full">
-                                                        <RecoilStat value={stat.displayValue} />
-                                                    </div>
-                                                ) : stat.isBar ? (
-                                                    <div
-                                                        className="h-full rounded-full transition-all"
-                                                        style={{
-                                                            width: `${Math.min(100, (stat.displayValue / stat.maximumValue) * 100)}%`,
-                                                            backgroundColor: stat.bonusValue > 0 ? '#4ade80' : 'white',
-                                                        }}
-                                                    />
-                                                ) : null}
-                                            </div>
-                                        </div>
+                                        <StatRow key={stat.statHash} stat={stat} />
                                     ))}
                                 </div>
                             </div>
@@ -414,6 +974,63 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                             </div>
                         )}
 
+                        {/* ---- YOUR ITEMS (All owned copies) ---- */}
+                        {yourItems.length > 0 && (
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                                        Your Items ({yourItems.length + 1} total)
+                                    </div>
+                                    <button
+                                        onClick={() => startCompare(item)}
+                                        className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded transition-colors uppercase tracking-wider font-bold"
+                                    >
+                                        <GitCompare size={10} />
+                                        Compare
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-[repeat(auto-fill,_52px)] gap-1.5">
+                                    {yourItems.map(ownedItem => {
+                                        const ownedDef = manifest[ownedItem.itemHash];
+                                        const ownedPower = ownedItem.instanceData?.primaryStat?.value;
+                                        const ownerName = ownedItem.owner === 'vault'
+                                            ? 'Vault'
+                                            : characters[ownedItem.owner]?.classType !== undefined
+                                                ? ['Titan', 'Hunter', 'Warlock'][characters[ownedItem.owner].classType] || 'Unknown'
+                                                : 'Unknown';
+                                        return (
+                                            <div
+                                                key={ownedItem.itemInstanceId}
+                                                className="relative group"
+                                                title={`${ownerName}${ownedPower ? ` • ${ownedPower}` : ''}`}
+                                            >
+                                                <div
+                                                    className="w-[52px] h-[52px] rounded border border-white/10 overflow-hidden"
+                                                    style={{ borderColor: `${rarityColor}40` }}
+                                                >
+                                                    {ownedDef?.displayProperties?.icon && (
+                                                        <BungieImage
+                                                            src={ownedDef.displayProperties.icon}
+                                                            className="w-full h-full"
+                                                        />
+                                                    )}
+                                                </div>
+                                                {ownedPower && (
+                                                    <div className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-mono font-bold text-white bg-black/70 leading-tight py-px">
+                                                        {ownedPower}
+                                                    </div>
+                                                )}
+                                                {/* Owner indicator */}
+                                                <div className="absolute -top-1 -right-1 text-[8px] bg-black/80 text-gray-400 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                    {ownerName}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* ---- EXTERNAL LINKS ---- */}
                         <div className="flex gap-2 pt-2 border-t border-white/[0.06]">
                             <a
@@ -438,6 +1055,74 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
 
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * StatRow — A single stat line with segmented color-coded bar.
+ * Ported from DIM's ItemStat.tsx StatBar pattern.
+ * Colors: gray=base, blue=parts, green=traits, purple=mods, gold=masterwork
+ */
+const StatRow: React.FC<{ stat: import('../../lib/destiny/stat-manager').CalculatedStat }> = ({ stat }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    // Determine if stat label should be gold (masterwork affected)
+    const hasMasterwork = stat.segments.some(([, t]) => t === 'masterwork');
+    const hasModBonus = stat.segments.some(([v, t]) => t === 'mod' && v > 0);
+
+    return (
+        <div className="flex items-center gap-2">
+            <div
+                className="w-28 text-right text-xs truncate shrink-0"
+                style={{ color: hasMasterwork ? '#ceae33' : hasModBonus ? '#a855f7' : '#9ca3af' }}
+            >
+                {stat.label}
+            </div>
+            <div className="w-8 text-right text-xs font-bold text-white tabular-nums font-mono shrink-0">
+                {stat.displayValue}
+            </div>
+            <div className="flex-1 h-[6px] bg-white/[0.06] rounded-full overflow-hidden flex items-center relative">
+                {stat.statHash === StatHashes.RecoilDirection ? (
+                    <div className="w-full">
+                        <RecoilStat value={stat.displayValue} />
+                    </div>
+                ) : stat.isBar ? (
+                    <div
+                        className="relative h-full w-full flex"
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                    >
+                        {stat.segments.map(([val, segType], i) => {
+                            if (val <= 0) return null;
+                            const pct = Math.min((val / stat.maximumValue) * 100, 100);
+                            return (
+                                <div
+                                    key={i}
+                                    className="h-full transition-all"
+                                    style={{
+                                        width: `${pct}%`,
+                                        backgroundColor: SEGMENT_COLORS[segType],
+                                        borderRadius: i === 0 ? '9999px 0 0 9999px' :
+                                            i === stat.segments.length - 1 ? '0 9999px 9999px 0' : '0',
+                                    }}
+                                />
+                            );
+                        })}
+
+                        {/* Hover tooltip */}
+                        {showTooltip && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-[#1a1a1e] border border-white/10 rounded-md px-3 py-2 shadow-xl pointer-events-none whitespace-nowrap">
+                                <StatBarTooltip
+                                    segments={stat.segments}
+                                    statLabel={stat.label}
+                                    displayValue={stat.displayValue}
+                                />
+                            </div>
+                        )}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

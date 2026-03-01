@@ -66,12 +66,14 @@ const CATEGORY_WEAPON_MODS_INTRINSIC = SocketCategoryHashes.WeaponModsIntrinsic;
  * @param item - Live item data from API
  * @param definition - Item manifest definition
  * @param definitions - All manifest definitions (for plugs)
+ * @param socketOverrides - Optional map of socketIndex → plugHash for perk swap preview
  * @returns Categorized sockets ready for UI display
  */
 export function categorizeSockets(
     item: any,
     definition: any,
-    definitions: Record<string, any>
+    definitions: Record<string, any>,
+    socketOverrides?: Record<number, number>
 ): CategorizedSockets {
     const result: CategorizedSockets = {
         intrinsic: null,
@@ -116,8 +118,8 @@ export function categorizeSockets(
         // Skip invisible sockets
         if (socket.isVisible === false) return;
 
-        // Must have a plug hash
-        const plugHash = socket.plugHash;
+        // Must have a plug hash (use override if available)
+        const plugHash = socketOverrides?.[index] ?? socket.plugHash;
         if (!plugHash) return;
 
         // Get plug definition

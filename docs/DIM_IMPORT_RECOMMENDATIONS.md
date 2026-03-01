@@ -144,11 +144,36 @@ Shows what items can infuse into what.
 
 **Status:** Not implemented.
 
+### 9. Item Detail Overlay (Armory View) ✅
+
+**Source:** `app/armory/`, `app/item-popup/`
+
+Full item breakdown modal with stats, perks, lore, and advanced metadata. DIM splits this across Armory (full page) and Item Popup (floating). We unified both into a single overlay modal.
+
+**Status:** IMPLEMENTED — v0.28.0 (base) + v0.29.0 (advanced metadata)
+
+- ✅ **Screenshot Header**: Full-width weapon screenshot with gradient overlay, season watermark
+- ✅ **Segmented Stat Bars**: Color-coded segments (base/parts/traits/mod/masterwork) with hover tooltips
+- ✅ **Key Stats on Intrinsic**: Inline RPM/Impact display on frame perk
+- ✅ **Socket Override / Perk Swap Preview**: Click alternative perks to preview stat changes live
+- ✅ **SVG Perk Circles**: DIM-accurate circular perk rendering with enhanced perk gold treatment
+- ✅ **Perk Grid/List Toggle**: Two view modes with full perk descriptions in list mode
+- ✅ **"Your Items" Grid**: All owned copies with power, owner tooltip, Compare button
+- ✅ **Season Info**: Watermark-to-season mapping (80 URLs, 28 seasons)
+- ✅ **Kill Tracker**: PvP/PvE/Gambit classification from 10 known objective hashes
+- ✅ **Crafted Weapon Info**: Shaped badge with level + progress bar
+- ✅ **Deepsight Pattern Progress**: Pattern completion via DestinyRecordDefinition lookup
+- ✅ **Exotic Catalyst Progress**: Objective bars via exotic-to-catalyst-record mapping
+- ✅ **Armor Energy Meter**: 10-slot used/available/locked bar from instanceData.energy
+- ✅ **Lore & Flavor Text**: Full lore from DestinyLoreDefinition, source from DestinyCollectibleDefinition
+- ✅ **External Links**: light.gg and D2 Foundry
+- ❌ **Wishlist Badge in Overlay**: Show wishlist match status in the overlay (data exists, UI not wired)
+
 ---
 
 ## Low Priority (Nice to Have)
 
-- ❌ **Armory/Database** (`app/armory/`) — All possible rolls for a weapon
+- 🚧 **Armory/Database** (`app/armory/`) — All possible rolls for a weapon. Partial: Item Detail Overlay covers most of the Armory view (stats, perks, perk swap preview, lore, season info). Missing: community roll ratings, all possible random rolls grid.
 - ❌ **Farming Mode** (`app/farming/`) — Auto-move to vault during activities
 
 ---
@@ -177,13 +202,15 @@ Shows what items can infuse into what.
 | Masterwork Detection | ✅ | Medium |
 | Organizer View | ❌ | Medium |
 | Infusion Finder | ❌ | Medium |
-| Armory/Database | ❌ | Low |
+| Item Detail Overlay | ✅ | Medium |
+| Armory/Database | 🚧 | Low |
 | Farming Mode | ❌ | Low |
 
 ---
 
 ## Recommended Next Steps
 
-1. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
-2. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
-3. **Organizer View** — Sortable table for bulk vault management
+1. **Wishlist Badge in Overlay** — Wire existing wishlist data into the Item Detail Overlay
+2. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
+3. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
+4. **Organizer View** — Sortable table for bulk vault management

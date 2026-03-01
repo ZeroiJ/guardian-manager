@@ -2,6 +2,152 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.29.0] - 2026-03-01
+
+### Item Detail Overlay — Advanced Item Metadata (Features 8-12)
+
+Added five new data-rich features to the Item Detail Overlay: kill tracker, crafted weapon info, deepsight pattern progress, exotic catalyst progress, and armor energy meter.
+
+#### New Features
+
+- **Kill Tracker Display**:
+  - Detects kill tracker socket via `socketTypeHash === 1282012138` from manifest socket entries
+  - Reads `plugObjectives[0].progress` from live Bungie component 302 socket data
+  - Classifies kills into PvP (red badge), PvE (blue badge), or Gambit (green badge) using 10 known objective hashes ported from DIM
+  - Displays as color-coded inline badge with icon, formatted count, and activity label
+
+- **Crafted Weapon Info ("Shaped" Badge)**:
+  - Detects crafted weapons via `item.state & 8` (ItemState.Crafted bitmask)
+  - Finds crafted socket category (hash `3583996951`) and reads plug objectives for weapon level
+  - Distinguishes level value from crafted date via value-range heuristic (Unix timestamps > 2020)
+  - Shows amber "Shaped" badge with level number and progress bar toward next level
+
+- **Deepsight / Pattern Progress**:
+  - Loads full `DestinyRecordDefinition` table to find records with `toastStyle === CraftingRecipeUnlocked` (value 3)
+  - Builds name-to-record-hash lookup map (same approach as DIM's `patterns.ts`)
+  - Reads incomplete objectives from `profileRecords.data.records[hash]`
+  - Shows cyan "Pattern" badge with X/Y progress and visual progress bar
+
+- **Exotic Catalyst Progress**:
+  - Uses static `exotic-to-catalyst-record.json` (112 entries, copied from DIM's `data/d2/`)
+  - Looks up catalyst record hash from exotic item hash, reads profile/character records
+  - Checks `DestinyRecordState` flags: ObjectiveNotCompleted (4), Obscured (16), RecordRedeemed (2)
+  - Shows yellow progress section with objective bars (only for unlocked, incomplete catalysts)
+
+- **Armor Energy Meter**:
+  - Reads `item.instanceData.energy` (type added in v0.28.0)
+  - Renders 10-slot bar (11 for T5 armor): filled blue = used, outlined blue = available, dim = locked
+  - Shows used/available counts below the meter
+  - Positioned before stats section for armor items
+
+#### Overlay Layout Order (Updated)
+1. Screenshot header (with season info)
+2. Source string
+3. **Kill Tracker + Crafted + Deepsight badges** (new — inline row)
+4. Intrinsic frame perk (with key stats)
+5. Perks (grid/list with socket overrides + SVG PerkCircles)
+6. **Catalyst progress** (new — after perks, exotics only)
+7. Mods
+8. **Energy meter** (new — before stats, armor only)
+9. Stats (segmented color-coded bars)
+10. Cosmetics
+11. Flavor text / Lore
+12. Your Items grid
+13. External links
+
+#### Files Added
+
+- `src/lib/destiny/item-info.ts` — Pure utility module: `getKillTracker()`, `getCraftedInfo()`, `getArmorEnergy()`, `getCatalystInfo()`, `getDeepsightInfo()`
+- `src/data/exotic-to-catalyst-record.json` — Static mapping of exotic item hash to catalyst record hash (112 entries, from DIM)
+
+#### Files Modified
+
+- `src/components/inventory/ItemDetailOverlay.tsx` — Integrated all 5 features with new imports, derived data hooks, and UI sections
+
+## [0.28.0] - 2026-03-01
+
+### Item Detail Overlay — Full Item Breakdown Modal (Features 1-7)
+
+Added a large, centered overlay modal that shows a weapon or armor's complete breakdown — similar to DIM's Armory view. Includes segmented stat bars, key stats, perk swap preview, SVG perk circles, season info, and "Your Items" grid.
+
+#### New Features
+
+- **Item Detail Overlay (`ItemDetailOverlay.tsx`)**:
+  - Opens when clicking the item name in the existing floating popup header
+  - Large centered modal at `z-[200]` with dark backdrop and blur
+  - Closes via backdrop click, Escape key, or X button
+
+- **Weapon Screenshot Header**:
+  - Full-width 16:9 weapon screenshot from `definition.screenshot`
+  - Gradient overlay for text readability
+  - Item icon with rarity-colored border, name (gold for exotics), damage type icon, item type, power level
+  - Season watermark in corner from `definition.iconWatermark`
+  - Graceful fallback header when no screenshot exists (armor, etc.)
+
+- **Season Info** (`season-info.ts`):
+  - Watermark-to-season mapping covering 80 URLs across 28 seasons
+  - Displays season name, number, and Destiny year in the screenshot header
+
+- **Segmented Stat Bars**:
+  - Each stat bar decomposed into color-coded segments: gray=base, blue=parts (barrels/mags), green=traits (perks), purple=mods, gold=masterwork
+  - Computed from socket `investmentStats` via `classifyPlug()` and `getSegmentedSocketBonuses()`
+  - Hover tooltips show per-segment breakdown with sign-prefixed deltas
+
+- **Key Stats on Intrinsic Frame**:
+  - First 2 stats displayed inline (e.g., "900 rpm / 21 impact")
+  - Excludes swords, LFRs, and Blast Radius
+
+- **Socket Override System (Perk Swap Preview)**:
+  - Hydrated `reusablePlugs` from Bungie component 305 onto `GuardianItem`
+  - `getSocketAlternatives()` enumerates available plugs per socket (4 fallback sources)
+  - Click a perk to preview stat changes; click original to remove override
+  - Live stat recalculation via modified `calculateStats()` and `categorizeSockets()`
+  - Amber highlight for overridden perks, reset button to clear all overrides
+
+- **SVG Perk Circles** (`PerkCircle.tsx`):
+  - SVG viewBox 0 0 100 100 with circular mask clipping
+  - State-dependent fills: blue=plugged, gold=selected, semi-transparent blue=notSelected
+  - Enhanced perk gold gradient + diamond arrow indicator
+  - `isEnhancedPerk()` detection (tierType=0 + Frames/Origins/weapon component PCH)
+  - Hover highlight ring, `cannotRoll` dashed stroke
+
+- **Perk List View Toggle**:
+  - Grid (default) and List modes with toggle buttons
+  - List mode shows perk icon, name, type, and full description
+  - Both modes support socket override clicking
+
+- **"Your Items" Section**:
+  - Grid of all owned copies of the same weapon/armor
+  - Shows power level, owner on hover (character class or Vault)
+  - Compare button triggers existing comparison system
+
+- **Intrinsic Frame Perk**:
+  - Displays the weapon/armor frame with icon, name (gold text), type label, and full description
+
+- **Lore & Flavor Text**:
+  - Flavor text displayed as italic quote with left border accent
+  - Full lore text fetched from `DestinyLoreDefinition` table, scrollable if long
+
+- **Source Info**:
+  - Source string from `DestinyCollectibleDefinition.sourceString`
+
+- **External Links**:
+  - Quick links to light.gg and D2 Foundry for the item hash
+
+#### Files Added
+
+- `src/components/inventory/ItemDetailOverlay.tsx` — Full item detail overlay modal (~920 lines)
+- `src/components/item/PerkCircle.tsx` — SVG perk circle component
+- `src/lib/destiny/season-info.ts` — Watermark-to-season mapping utility
+
+#### Files Modified
+
+- `src/components/inventory/ItemDetailModal.tsx` — Added click handler on item name to open overlay
+- `src/lib/destiny/stat-manager.ts` — Added `StatSegment`, `classifyPlug()`, `getSegmentedSocketBonuses()`, `applySocketOverridesToItem()`, `getSocketAlternatives()`, `PlugAlternative`/`SocketAlternatives` types; `calculateStats()` now accepts optional `socketOverrides`
+- `src/lib/destiny/socket-helper.ts` — `categorizeSockets()` accepts optional `socketOverrides`, resolves plug hash from override first
+- `src/services/profile/types.ts` — Added `reusablePlugs` field to `GuardianItem`, added `energy` to `instanceData` type
+- `src/store/useInventoryStore.ts` — Hydrates `reusablePlugs` from component 305 data onto items
+
 ## [0.27.0] - 2026-03-01
 
 ### Inline Mod Slots, Masterwork Borders & ModPicker UX
