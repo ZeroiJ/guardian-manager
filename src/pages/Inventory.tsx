@@ -11,6 +11,7 @@ import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useProfile } from "@/hooks/useProfile";
 import { useInventoryStore } from "@/store/useInventoryStore";
+import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useDefinitions } from "@/hooks/useDefinitions";
 import { filterItems } from "@/lib/search/itemFilter";
@@ -108,6 +109,10 @@ export default function Inventory() {
       setManifest(definitions);
     }
   }, [definitions, setManifest]);
+
+  // Pre-load wishlist in background so it's ready when user opens item details
+  const wishlistInit = useWishlistStore((s) => s.init);
+  useEffect(() => { wishlistInit(); }, [wishlistInit]);
 
   // Compare: find all items matching the session filter
   const compareItems = useMemo(() => {

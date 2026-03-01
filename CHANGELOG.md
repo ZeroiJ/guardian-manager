@@ -2,6 +2,70 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.30.0] - 2026-03-01
+
+### Wishlist System — Full Implementation & Overlay Integration (Feature 14/14)
+
+Built a complete wishlist system from scratch and integrated it into the Item Detail Overlay, completing all 14 planned overlay features.
+
+#### New Features
+
+- **Wishlist Parser** (`src/lib/wishlist/parser.ts`):
+  - Parses DIM's `dimwishlist:item=HASH&perks=HASH1,HASH2#notes:text` format
+  - Supports trash list rolls (negative item hash), wildcard rolls (`-69420`), and block notes (`//notes:`)
+  - Parses legacy Banshee-44.com and DestinyTracker URL formats
+  - Title/description metadata extraction from file headers
+  - Deduplication across multiple wishlist files via roll hashing
+
+- **Wishlist Matcher** (`src/lib/wishlist/matcher.ts`):
+  - Expert mode matching: ALL recommended perks must exist somewhere across the item's plug options (active + alternatives from component 305 + manifest plug sets)
+  - Per-perk highlighting: `isPerkWishlisted()` checks individual perk hashes against all matching rolls
+  - `matchItemAll()` returns every matching roll (not just first), enabling multi-roll note display
+  - Supports both exact item hash and wildcard (`-69420`) lookups
+
+- **Wishlist Store** (`src/store/useWishlistStore.ts`):
+  - Zustand store with `init()`, `setSource()`, and `refresh()` actions
+  - Auto-fetches Voltron community wishlist from `raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/voltron.txt`
+  - Caches raw wishlist text in localStorage to avoid re-fetching on page reload
+  - 24-hour stale threshold triggers background re-fetch
+  - GitHub URL normalization (`github.com/blob/` → `raw.githubusercontent.com/`)
+  - Pre-built `rollsByHash` Map for O(1) item lookups
+
+- **Overlay Integration**:
+  - **Verdict Banner**: Green thumbs-up "Wishlist Roll" or red thumbs-down "Trash List Roll" banner at the top of the overlay content area, with curator notes and "+N more matching rolls" count
+  - **Grid Mode Perk Dots**: Small green/red dots on the top-right of SVG PerkCircles indicating wishlisted/trash perks
+  - **List Mode Perk Badges**: Inline ThumbsUp/ThumbsDown icons next to perk names, with green/red tinted perk card borders for wishlisted perks
+  - **Early Loading**: Wishlist store initialized on Inventory page mount (background fetch), so data is ready before user opens any overlay
+
+#### Overlay Layout Order (Final — All 14 Features)
+1. Screenshot header (with season info)
+2. Source string
+3. **Wishlist verdict banner** (new)
+4. Kill Tracker + Crafted + Deepsight badges
+5. Intrinsic frame perk (with key stats)
+6. Perks (grid/list with socket overrides + SVG PerkCircles + **wishlist indicators**)
+7. Catalyst progress (exotics only)
+8. Mods
+9. Energy meter (armor only)
+10. Stats (segmented color-coded bars)
+11. Cosmetics
+12. Flavor text / Lore
+13. Your Items grid
+14. External links
+
+#### Files Added
+
+- `src/lib/wishlist/types.ts` — Data structures: `WishListRoll`, `WishListMatch`, `WishListInfo`, `WishListAndInfo`
+- `src/lib/wishlist/parser.ts` — Multi-format wishlist parser with deduplication (~190 lines)
+- `src/lib/wishlist/matcher.ts` — Item matching and per-perk highlighting (~200 lines)
+- `src/lib/wishlist/index.ts` — Barrel re-export
+- `src/store/useWishlistStore.ts` — Zustand store with fetch, cache, and refresh lifecycle (~210 lines)
+
+#### Files Modified
+
+- `src/components/inventory/ItemDetailOverlay.tsx` — Added wishlist verdict banner, per-perk wish/trash indicators on grid and list mode PerkCircles, WishlistDot helper component
+- `src/pages/Inventory.tsx` — Added early wishlist store initialization on page mount
+
 ## [0.29.0] - 2026-03-01
 
 ### Item Detail Overlay — Advanced Item Metadata (Features 8-12)

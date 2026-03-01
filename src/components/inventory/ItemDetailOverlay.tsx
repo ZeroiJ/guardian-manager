@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap } from 'lucide-react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats, getSocketAlternatives, type StatSegment, type StatSegmentType, type SocketAlternatives } from '../../lib/destiny/stat-manager';
@@ -10,6 +10,9 @@ import { BungieImage, bungieNetPath } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes, PlugCategoryHashes } from '../../lib/destiny-constants';
 import { useInventoryStore } from '../../store/useInventoryStore';
+import { useWishlistStore } from '../../store/useWishlistStore';
+import { matchItemAll, isPerkWishlisted } from '../../lib/wishlist';
+import type { WishListMatch } from '../../lib/wishlist';
 import { getItemSeasonInfo } from '../../lib/destiny/season-info';
 import { getKillTracker, getCraftedInfo, getArmorEnergy, getCatalystInfo, getDeepsightInfo } from '../../lib/destiny/item-info';
 import catalystMapping from '../../data/exotic-to-catalyst-record.json';
@@ -113,6 +116,18 @@ const StatBarTooltip: React.FC<{ segments: StatSegment[]; statLabel: string; dis
         </div>
     );
 };
+
+/**
+ * WishlistDot — Small indicator dot below a perk circle showing wishlist/trash status.
+ */
+const WishlistDot: React.FC<{ type: 'wish' | 'trash' }> = ({ type }) => (
+    <div
+        className={`w-2.5 h-2.5 rounded-full border border-[#0d0d0f] absolute -right-0.5 -top-0.5 ${
+            type === 'wish' ? 'bg-green-400' : 'bg-red-400'
+        }`}
+        title={type === 'wish' ? 'Wishlist perk' : 'Trash list perk'}
+    />
+);
 
 // ============================================================================
 // COMPONENT
@@ -290,6 +305,29 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
         () => getDeepsightInfo(item, definition, profileRecords, patternRecordMap),
         [item, definition, profileRecords, patternRecordMap]
     );
+
+    // --- Wishlist Matching ---
+    const wishlistInit = useWishlistStore(s => s.init);
+    const rollsByHash = useWishlistStore(s => s.rollsByHash);
+    const wishlistLoaded = useWishlistStore(s => s.loaded);
+    const wishlistRollCount = useWishlistStore(s => s.rollCount);
+
+    // Initialize wishlist store on first overlay open
+    useEffect(() => { wishlistInit(); }, [wishlistInit]);
+
+    // Match this item against all wishlist rolls
+    const wishlistMatches: WishListMatch[] = useMemo(
+        () => wishlistLoaded ? matchItemAll(item, definition, definitions, rollsByHash) : [],
+        [item, definition, definitions, rollsByHash, wishlistLoaded]
+    );
+
+    // Primary verdict: first wish match, or first trash match
+    const wishlistVerdict = useMemo(() => {
+        const wished = wishlistMatches.find(m => !m.isUndesirable);
+        if (wished) return wished;
+        const trash = wishlistMatches.find(m => m.isUndesirable);
+        return trash ?? null;
+    }, [wishlistMatches]);
 
     // --- Socket Override State (for perk swap preview) ---
     const [socketOverrides, setSocketOverrides] = useState<Record<number, number>>({});
@@ -503,6 +541,41 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                             </div>
                         )}
 
+                        {/* ---- WISHLIST VERDICT BANNER ---- */}
+                        {wishlistVerdict && (
+                            <div
+                                className={`flex items-start gap-2.5 p-3 rounded-lg border text-sm ${
+                                    wishlistVerdict.isUndesirable
+                                        ? 'bg-red-400/[0.04] border-red-400/[0.15]'
+                                        : 'bg-green-400/[0.04] border-green-400/[0.15]'
+                                }`}
+                            >
+                                {wishlistVerdict.isUndesirable ? (
+                                    <ThumbsDown size={16} className="text-red-400 shrink-0 mt-0.5" />
+                                ) : (
+                                    <ThumbsUp size={16} className="text-green-400 shrink-0 mt-0.5" />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <div className={`font-bold text-xs ${
+                                        wishlistVerdict.isUndesirable ? 'text-red-300' : 'text-green-300'
+                                    }`}>
+                                        {wishlistVerdict.isUndesirable ? 'Trash List Roll' : 'Wishlist Roll'}
+                                    </div>
+                                    {wishlistVerdict.notes && (
+                                        <div className="text-[11px] text-gray-400 leading-relaxed mt-1 whitespace-pre-line">
+                                            {wishlistVerdict.notes}
+                                        </div>
+                                    )}
+                                    {/* Show additional matching notes if multiple rolls matched */}
+                                    {wishlistMatches.length > 1 && (
+                                        <div className="text-[10px] text-gray-500 mt-1.5">
+                                            +{wishlistMatches.length - 1} more matching {wishlistMatches.length - 1 === 1 ? 'roll' : 'rolls'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* ---- KILL TRACKER / CRAFTED / DEEPSIGHT BADGES ---- */}
                         {(killTracker || craftedInfo || (deepsightInfo && !deepsightInfo.patternComplete)) && (
                             <div className="flex flex-wrap items-center gap-3">
@@ -673,8 +746,9 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
 
                                             // No alternatives — render single SVG perk circle (not clickable)
                                             if (!alts || alts.length <= 1) {
+                                                const wlStatus = isPerkWishlisted(socket.plugHash, wishlistMatches);
                                                 return (
-                                                    <div key={socket.socketIndex} className="flex flex-col items-center gap-1">
+                                                    <div key={socket.socketIndex} className="flex flex-col items-center gap-1 relative">
                                                         <PerkCircle
                                                             plugDef={socket.plugDef}
                                                             size={40}
@@ -682,6 +756,8 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                             isEnhanced={isEnhancedPerk(socket.plugDef)}
                                                             title={socket.plugDef?.displayProperties?.name || ''}
                                                         />
+                                                        {wlStatus.isWished && <WishlistDot type="wish" />}
+                                                        {wlStatus.isTrash && <WishlistDot type="trash" />}
                                                     </div>
                                                 );
                                             }
@@ -694,11 +770,12 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                         const isOriginal = alt.plugHash === originalPlugHash;
                                                         const isOverridden = hasOverrides && socketOverrides[socket.socketIndex] !== undefined;
                                                         const wasOriginal = isOriginal && isOverridden && !isActive;
+                                                        const wlStatus = isPerkWishlisted(alt.plugHash, wishlistMatches);
 
                                                         return (
                                                             <div
                                                                 key={alt.plugHash}
-                                                                className={`transition-opacity ${
+                                                                className={`relative transition-opacity ${
                                                                     isActive ? 'opacity-100' :
                                                                     wasOriginal ? 'opacity-50' :
                                                                     'opacity-40 hover:opacity-80'
@@ -715,6 +792,12 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                                     onClick={() => handlePlugClick(socket.socketIndex, alt.plugHash)}
                                                                     title={alt.plugDef?.displayProperties?.name || ''}
                                                                 />
+                                                                {wlStatus.isWished && (
+                                                                    <div className="absolute -right-0.5 -top-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border border-[#0d0d0f]" title="Wishlist perk" />
+                                                                )}
+                                                                {wlStatus.isTrash && (
+                                                                    <div className="absolute -right-0.5 -top-0.5 w-2.5 h-2.5 rounded-full bg-red-400 border border-[#0d0d0f]" title="Trash list perk" />
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
@@ -735,6 +818,8 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                             const dp = activeDef?.displayProperties || socket.plugDef?.displayProperties;
                                             if (!dp?.icon) return null;
 
+                                            const activeWl = isPerkWishlisted(activePlugHash, wishlistMatches);
+
                                             return (
                                                 <div key={socket.socketIndex}>
                                                     {/* Active perk (full detail) */}
@@ -742,6 +827,10 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                         className={`flex items-start gap-2.5 p-2 rounded-lg border transition-colors ${
                                                             socketOverrides[socket.socketIndex] !== undefined
                                                                 ? 'bg-amber-400/[0.03] border-amber-400/[0.15]'
+                                                                : activeWl.isWished
+                                                                ? 'bg-green-400/[0.03] border-green-400/[0.12]'
+                                                                : activeWl.isTrash
+                                                                ? 'bg-red-400/[0.03] border-red-400/[0.12]'
                                                                 : 'bg-white/[0.03] border-white/[0.08]'
                                                         }`}
                                                     >
@@ -749,8 +838,10 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                             <BungieImage src={dp.icon} className="w-full h-full" />
                                                         </div>
                                                         <div className="min-w-0 flex-1">
-                                                            <div className="text-xs font-bold text-white leading-tight">
+                                                            <div className="flex items-center gap-1.5 text-xs font-bold text-white leading-tight">
                                                                 {dp.name}
+                                                                {activeWl.isWished && <ThumbsUp size={10} className="text-green-400" />}
+                                                                {activeWl.isTrash && <ThumbsDown size={10} className="text-red-400" />}
                                                             </div>
                                                             {(activeDef?.itemTypeDisplayName || socket.plugDef?.itemTypeDisplayName) && (
                                                                 <div className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5">
@@ -773,10 +864,11 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                                 const isOriginal = alt.plugHash === originalPlugHash;
                                                                 const isOverridden = socketOverrides[socket.socketIndex] !== undefined;
                                                                 const wasOriginal = isOriginal && isOverridden && !isActive;
+                                                                const altWl = isPerkWishlisted(alt.plugHash, wishlistMatches);
                                                                 return (
                                                                     <div
                                                                         key={alt.plugHash}
-                                                                        className={`transition-opacity ${
+                                                                        className={`relative transition-opacity ${
                                                                             isActive ? 'opacity-100' :
                                                                             wasOriginal ? 'opacity-50' :
                                                                             'opacity-40 hover:opacity-80'
@@ -793,6 +885,12 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                                             onClick={() => handlePlugClick(socket.socketIndex, alt.plugHash)}
                                                                             title={alt.plugDef?.displayProperties?.name || ''}
                                                                         />
+                                                                        {altWl.isWished && (
+                                                                            <div className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-green-400 border border-[#0d0d0f]" title="Wishlist perk" />
+                                                                        )}
+                                                                        {altWl.isTrash && (
+                                                                            <div className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-red-400 border border-[#0d0d0f]" title="Trash list perk" />
+                                                                        )}
                                                                     </div>
                                                                 );
                                                             })}
