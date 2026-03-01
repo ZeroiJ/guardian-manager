@@ -2,6 +2,38 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.27.0] - 2026-03-01
+
+### Inline Mod Slots, Masterwork Borders & ModPicker UX
+
+UI/UX improvements to the Loadout Editor and inventory item display.
+
+#### New Features
+
+- **Inline Mod Slots Under Armor Pieces**:
+  - Each armor slot (Helmet, Gauntlets, Chest, Legs, Class Item) now shows 4 mod boxes directly below the armor icon (1 general + 3 slot-specific)
+  - Clicking a mod box opens the ModPicker pre-filtered to the correct armor slot tab
+  - Removed the separate "Armor Mods" button — mod selection is now fully integrated
+
+- **Selected Armor Display in ModPicker**:
+  - ModPicker now shows the equipped armor piece (icon + name) at the top of each slot tab
+  - Helps identify which armor you're selecting mods for
+  - Added `targetBucket` prop to auto-select the correct tab when opened from a mod box
+  - Added `loadoutItems` prop to display the armor piece context
+
+- **Masterwork Gold Borders**:
+  - Masterworked items now display a gold border (`#eade8b`) instead of rarity color
+  - Uses Bungie API `item.state` bitmask (`& 4`) for detection — same approach as DIM
+  - Gold background tint and inner glow overlay on masterworked items
+  - Power level badge: solid gold with dark text for masterworked, dark with white text for normal
+  - Compact bottom-right corner badge for power level (reduced from full-width strip)
+
+#### Files Modified
+
+- `src/components/inventory/InventoryItem.tsx` - Masterwork detection, gold border, gold power badge
+- `src/components/loadouts/LoadoutEditorDrawer.tsx` - Inline mod slots UI, removed Armor Mods button
+- `src/components/loadouts/ModPicker.tsx` - `targetBucket` and `loadoutItems` props, armor piece display
+
 ## [0.26.0] - 2026-02-27
 
 ### Loadout Editor: Armor Mods & Selection Improvements
