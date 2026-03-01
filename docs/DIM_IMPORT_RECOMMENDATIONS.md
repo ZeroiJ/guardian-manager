@@ -8,8 +8,6 @@ Analysis of which DIM features to port to Guardian Nexus, prioritized by value a
 
 ## High Priority (Immediate Value)
 
-## High Priority (Immediate Value)
-
 ### 1. Interaction Model (Click-to-Move) ✅
 
 **Source:** `app/item-popup/`
@@ -98,7 +96,7 @@ Comprehensive dashboard for Ranks, Challenges, and Triumphs.
 
 Save/restore full equipment sets with one click.
 
-**Status:** PARTIAL — Core functionality implemented in v0.24.0-v0.25.0
+**Status:** PARTIAL — Core functionality implemented in v0.24.0-v0.27.0
 
 - ✅ **Loadout Card**: Standalone "Tactical Briefing" card component with class-colored accents
 - ✅ **Loadout Page**: `/loadouts` hub with card grid, equip/delete actions
@@ -108,12 +106,29 @@ Save/restore full equipment sets with one click.
 - ✅ **Subclass Configuration**: `SubclassPlugDrawer` for configuring abilities, aspects, and fragments
 - ✅ **Socket Overrides**: Save subclass plug selections with loadout
 - ✅ **Manifest Integration**: `DestinyPlugSetDefinition` loading for plug set lookups
+- ✅ **Inline Mod Slots**: 4 mod boxes per armor piece (1 general + 3 slot-specific) shown directly in editor
+- ✅ **ModPicker Categorization**: Tabbed by slot (Helmet, Gauntlets, Chest, Legs, Class Item, General)
+- ✅ **ModPicker Armor Context**: Shows selected armor piece at top of each tab
+- ✅ **ModPicker Auto-Tab**: `targetBucket` prop auto-selects the correct slot tab when opened from a mod box
 - 🚧 **Equip Action**: Basic equip flow wired up
 - ❌ **Loadout Sharing**: DIM-style share codes
 - ❌ **Auto-Equip**: One-click equip from saved loadouts
 - ❌ **Loadout Analyzer**: What-if scenarios
 
-### 6. Organizer View ❌
+### 6. Masterwork Detection & Display ✅
+
+**Source:** `app/inventory/store/masterwork.ts`, `app/utils/socket-utils.ts`
+
+DIM uses socket plug analysis to determine masterwork status and display gold borders.
+
+**Status:** IMPLEMENTED — Using Bungie API `item.state` bitmask (`& 4`):
+
+- ✅ **Gold Border**: Masterworked items show `#eade8b` border instead of rarity color
+- ✅ **Gold Background**: Warm golden tint behind masterworked item icons
+- ✅ **Gold Power Badge**: Solid gold compact badge with dark text (bottom-right corner)
+- ✅ **Normal Items**: Dark badge with white text, rarity-based border unchanged
+
+### 7. Organizer View ❌
 
 **Source:** `app/organizer/`
 
@@ -121,7 +136,7 @@ Sortable table view with bulk actions for 500+ vault items.
 
 **Status:** Not implemented.
 
-### 7. Infusion Finder ❌
+### 8. Infusion Finder ❌
 
 **Source:** `app/infuse/`
 
@@ -153,11 +168,13 @@ Shows what items can infuse into what.
 
 | Feature | Status | Priority |
 |---------|--------|----------|
+| Interaction Model | ✅ | High |
 | Wishlist System | ✅ | High |
 | Item Comparisons | ✅ | High |
 | Search Filters | ✅ | High |
 | Progress Page | 🚧 | High |
 | Loadout System | 🚧 | Medium |
+| Masterwork Detection | ✅ | Medium |
 | Organizer View | ❌ | Medium |
 | Infusion Finder | ❌ | Medium |
 | Armory/Database | ❌ | Low |
