@@ -8,6 +8,7 @@ import { ItemSocket } from '../item/ItemSocket';
 import { BungieImage } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes } from '../../lib/destiny-constants';
+import { ItemDetailOverlay } from './ItemDetailOverlay';
 import clsx from 'clsx';
 import {
     useFloating,
@@ -97,6 +98,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     const itemOwner = item.owner || 'unknown';
     const [isTransferring, setIsTransferring] = useState(false);
+    const [showOverlay, setShowOverlay] = useState(false);
 
     // Move Handler
     const handleMove = (targetId: string, isVault: boolean) => {
@@ -143,7 +145,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                         {/* HEADER using ItemPopupHeader styles */}
                         <div className={clsx(headerStyles.header, headerStyles[rarity])}>
-                            <h1 className={headerStyles.title}>
+                            <h1
+                                className={clsx(headerStyles.title, 'cursor-pointer hover:underline')}
+                                onClick={() => setShowOverlay(true)}
+                                title="View full item details"
+                            >
                                 {definition.displayProperties.name}
                             </h1>
                             <div className={headerStyles.subtitle}>
@@ -408,6 +414,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Full Item Detail Overlay */}
+            {showOverlay && (
+                <ItemDetailOverlay
+                    item={item}
+                    definition={definition}
+                    definitions={definitions}
+                    onClose={() => setShowOverlay(false)}
+                />
+            )}
         </FloatingPortal>
     );
 };
