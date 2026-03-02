@@ -266,44 +266,61 @@ app.get("/api/profile", async (c: any) => {
     `[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`,
   );
 
-  // Component numbers (from bungie-api-ts DestinyComponentType enum):
-  // 100=Profiles, 102=ProfileInventories, 104=ProfileProgression,
-  // 200=Characters, 201=CharacterInventories, 202=CharacterProgressions, 205=CharacterEquipment,
-  // 300=ItemInstances, 301=ItemObjectives, 302=ItemPerks, 304=ItemStats, 305=ItemSockets,
-  // 309=ItemPlugObjectives, 310=ItemReusablePlugs,
-  // 700=PresentationNodes, 900=Records, 1100=Metrics, 1200=StringVariables
-  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,202,205,300,301,302,304,305,309,310,700,900,1100,1200`;
+  // Component numbers:
+  // Core Profile: 100,102,104,200,201,202,205,700,900,1100,1200
+  // Item Details: 300,301,302,304,305,309,310
+  
+  // Bungie silently drops heavy components (309, 310) if requested alongside
+  // the entire profile. We must split into two parallel requests.
+  const coreComponents = "100,102,104,200,201,202,205,700,900,1100,1200";
+  const itemComponentsList = "300,301,302,304,305,309,310";
 
-  // 2. Fetch Profile (using potentially new access_token)
-  const profileRes = await fetch(profileUrl, {
-    headers: {
-      "X-API-Key": config.apiKey,
-      Authorization: `Bearer ${access_token}`,
-    },
-  });
+  const coreUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=${coreComponents}`;
+  const itemUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=${itemComponentsList}`;
 
-  // Note: If profile fails with 401 here, we *could* retry again, but it's unlikely if we just refreshed.
-  // For simplicity, we assume if Memberships worked, this will work.
-  // If it fails with 401, it might be a weird edge case, safe to return 401.
+  // 2. Fetch Profile and Items in parallel
+  console.log('[Profile API] Fetching core profile and item details in parallel...');
+  const [coreRes, itemRes] = await Promise.all([
+    fetch(coreUrl, {
+      headers: { "X-API-Key": config.apiKey, Authorization: `Bearer ${access_token}` },
+    }),
+    fetch(itemUrl, {
+      headers: { "X-API-Key": config.apiKey, Authorization: `Bearer ${access_token}` },
+    })
+  ]);
 
-  if (!profileRes.ok) {
-    const errorText = await profileRes.text();
-    console.error(
-      `[Profile API] Failed to fetch profile: ${profileRes.status} - ${errorText}`,
-    );
-    return c.text(
-      `Failed to fetch profile: ${errorText}`,
-      profileRes.status as any,
-    );
+  if (!coreRes.ok) {
+    const errorText = await coreRes.text();
+    console.error(`[Profile API] Failed to fetch core profile: ${coreRes.status} - ${errorText}`);
+    return c.text(`Failed to fetch profile: ${errorText}`, coreRes.status as any);
   }
 
-  // Stream the raw Bungie response through WITHOUT parsing.
-  // Previous approach (JSON.parse -> extract .Response -> JSON.stringify) was
-  // suspected of dropping large itemComponents (302/304/305) due to memory
-  // pressure on the Cloudflare Worker. The client will now unwrap .Response.
-  console.log('[Profile API] Streaming raw Bungie response to client');
+  if (!itemRes.ok) {
+    // If item details fail but core succeeds, that's weird, but we should fail the whole thing
+    const errorText = await itemRes.text();
+    console.error(`[Profile API] Failed to fetch item details: ${itemRes.status} - ${errorText}`);
+    return c.text(`Failed to fetch item details: ${errorText}`, itemRes.status as any);
+  }
 
-  return new Response(profileRes.body, {
+  // We need to parse them to merge them, so we can't stream directly anymore.
+  // However, since we're splitting the load, memory pressure should be much lower.
+  const coreData = await coreRes.json() as any;
+  const itemData = await itemRes.json() as any;
+
+  if (coreData.ErrorCode !== 1) {
+    return c.json(coreData); // Pass bungie error through
+  }
+
+  // Merge itemComponents into the core response
+  if (itemData.Response && itemData.Response.itemComponents) {
+    coreData.Response.itemComponents = itemData.Response.itemComponents;
+  }
+
+  console.log('[Profile API] Merged profile and item responses. itemComponents keys:', 
+    coreData.Response?.itemComponents ? Object.keys(coreData.Response.itemComponents) : 'NONE');
+
+  // Return the merged object. Client still expects the Bungie envelope { Response: ... }
+  return new Response(JSON.stringify(coreData), {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
