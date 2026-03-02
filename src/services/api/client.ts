@@ -52,9 +52,25 @@ export class APIClient {
     /**
      * Fetches the full Destiny profile for the authenticated user.
      * Proxies through our Cloudflare Worker to include metadata.
+     * 
+     * The proxy now streams the raw Bungie response (no parse/re-serialize)
+     * to avoid dropping large itemComponents on the Worker. We unwrap
+     * the Bungie envelope (.Response) here on the client.
      */
     static async getProfile(): Promise<DestinyProfileResponse> {
-        return this.request<DestinyProfileResponse>('/api/profile');
+        const envelope = await this.request<{ Response: DestinyProfileResponse; ErrorCode: number; Message: string }>('/api/profile');
+        
+        // Handle both formats: raw Bungie envelope or pre-unwrapped .Response
+        if ('Response' in envelope && 'ErrorCode' in envelope) {
+            if (envelope.ErrorCode !== 1) {
+                throw new Error(`Bungie API error ${envelope.ErrorCode}: ${envelope.Message}`);
+            }
+            console.log('[APIClient] Unwrapped Bungie envelope for profile');
+            return envelope.Response;
+        }
+        
+        // Fallback: proxy already unwrapped (shouldn't happen with current code)
+        return envelope as unknown as DestinyProfileResponse;
     }
 
     /**

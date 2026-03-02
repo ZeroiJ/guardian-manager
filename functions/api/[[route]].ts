@@ -291,24 +291,16 @@ app.get("/api/profile", async (c: any) => {
     );
   }
 
-  // Read raw response text first to preserve full fidelity
-  const profileText = await profileRes.text();
-  console.log('[Profile API] Raw response size:', profileText.length, 'bytes');
-  
-  const profileData = JSON.parse(profileText) as any;
+  // Stream the raw Bungie response through WITHOUT parsing.
+  // Previous approach (JSON.parse -> extract .Response -> JSON.stringify) was
+  // suspected of dropping large itemComponents (302/304/305) due to memory
+  // pressure on the Cloudflare Worker. The client will now unwrap .Response.
+  console.log('[Profile API] Streaming raw Bungie response to client');
 
-  // DEBUG: Log itemComponents keys to verify which components Bungie returned
-  const resp = profileData.Response;
-  if (resp?.itemComponents) {
-    console.log('[Profile API] itemComponents keys:', Object.keys(resp.itemComponents));
-  } else {
-    console.log('[Profile API] NO itemComponents in response. Top keys:', Object.keys(resp || {}));
-  }
-
-  // Pass through the Response object directly
-  return new Response(JSON.stringify(resp), {
+  return new Response(profileRes.body, {
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
     },
   });
 });

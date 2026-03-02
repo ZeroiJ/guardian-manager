@@ -32,6 +32,17 @@ export function useProfile() {
                 APIClient.getMetadata()
             ]);
 
+            // DEBUG: Log which itemComponents arrived (diagnosing missing 302/304/305)
+            const ic = (bp as any)?.itemComponents;
+            console.log('[useProfile] itemComponents keys:', ic ? Object.keys(ic) : 'NONE');
+            if (ic) {
+                for (const [k, v] of Object.entries(ic)) {
+                    const val = v as any;
+                    const count = val?.data ? Object.keys(val.data).length : 0;
+                    console.log(`[useProfile]   ${k}: ${count} entries`);
+                }
+            }
+
             // HYDRATE THE ENGINE
             hydrate(bp, md);
 
