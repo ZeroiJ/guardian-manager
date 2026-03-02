@@ -268,12 +268,14 @@ app.get("/api/profile", async (c: any) => {
 
   // Component numbers:
   // Core Profile: 100,102,104,200,201,202,205,700,900,1100,1200
-  // Item Details: 300,301,302,304,305,309,310
+  // Item Details: 102,201,205,300,301,302,304,305,309,310
   
   // Bungie silently drops heavy components (309, 310) if requested alongside
   // the entire profile. We must split into two parallel requests.
+  // CRITICAL: The item details request MUST include the inventory components (102, 201, 205) 
+  // otherwise Bungie doesn't know *which* items to fetch components for!
   const coreComponents = "100,102,104,200,201,202,205,700,900,1100,1200";
-  const itemComponentsList = "300,301,302,304,305,309,310";
+  const itemComponentsList = "102,201,205,300,301,302,304,305,309,310";
 
   const coreUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=${coreComponents}`;
   const itemUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=${itemComponentsList}`;
