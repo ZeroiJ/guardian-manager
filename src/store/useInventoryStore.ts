@@ -69,6 +69,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         const socketsData = bungieProfile.itemComponents?.sockets?.data || {};
         const objectivesData = bungieProfile.itemComponents?.objectives?.data || {};
         const reusablePlugsData = bungieProfile.itemComponents?.reusablePlugs?.data || {};
+        // Component 302: per-plug objectives (kill trackers, crafted level, catalyst progress)
+        const plugObjectivesData = bungieProfile.itemComponents?.plugObjectives?.data || {};
 
         // Profile Inventory (Vault)
         if (bungieProfile.profileInventory?.data?.items) {
@@ -95,10 +97,27 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             const socketData = item.itemInstanceId ? socketsData[item.itemInstanceId] : undefined;
             const objectives = item.itemInstanceId ? objectivesData[item.itemInstanceId] : undefined;
             const reusablePlugs = item.itemInstanceId ? reusablePlugsData[item.itemInstanceId] : undefined;
+            // Component 302: per-plug objectives keyed by plug hash
+            const plugObjForItem = item.itemInstanceId ? plugObjectivesData[item.itemInstanceId] : undefined;
             const instanceId = item.itemInstanceId;
 
             const tag = instanceId ? (metadata.tags?.[instanceId]) : undefined;
             const note = instanceId ? (metadata.notes?.[instanceId]) : undefined;
+
+            // Merge plugObjectives onto each socket so socket.plugObjectives is available
+            // Component 302 shape: { objectivesPerPlug: { [plugHash]: Objective[] } }
+            let hydratedSockets: any[] | undefined;
+            if (socketData?.sockets) {
+                const objPerPlug = plugObjForItem?.objectivesPerPlug;
+                if (objPerPlug) {
+                    hydratedSockets = socketData.sockets.map((s: any) => ({
+                        ...s,
+                        plugObjectives: s.plugHash ? (objPerPlug[s.plugHash] || undefined) : undefined,
+                    }));
+                } else {
+                    hydratedSockets = socketData.sockets;
+                }
+            }
 
             return {
                 ...item,
@@ -107,7 +126,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
                     isEquipped: item.isEquipped
                 },
                 stats: stats?.stats || item.stats,
-                sockets: socketData ? { sockets: socketData.sockets } : undefined,
+                sockets: hydratedSockets ? { sockets: hydratedSockets } : undefined,
                 reusablePlugs: reusablePlugs?.plugs || undefined,
                 objectives: objectives || undefined,
                 owner: item.owner,

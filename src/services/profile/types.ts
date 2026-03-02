@@ -46,7 +46,13 @@ export interface GuardianItem {
     stats?: Record<string | number, { statHash: number; value: number }>;
     /** Per-instance sockets from itemComponents.sockets.data[instanceId] */
     sockets?: {
-        sockets: Array<{ plugHash?: number; isEnabled?: boolean; isVisible?: boolean }>;
+        sockets: Array<{
+            plugHash?: number;
+            isEnabled?: boolean;
+            isVisible?: boolean;
+            /** Per-plug objectives from component 302 (kill trackers, crafted level, catalyst progress) */
+            plugObjectives?: Array<{ objectiveHash: number; progress?: number; completionValue?: number; complete?: boolean }>;
+        }>;
     };
     /** Per-instance reusable plugs from itemComponents.reusablePlugs.data[instanceId] (component 305)
      *  Keyed by socket index → array of available plug hashes with insert/enable state. */
