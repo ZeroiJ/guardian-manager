@@ -291,16 +291,21 @@ app.get("/api/profile", async (c: any) => {
     );
   }
 
-  const profileData = (await profileRes.json()) as any;
+  // Read raw response text first to preserve full fidelity
+  const profileText = await profileRes.text();
+  console.log('[Profile API] Raw response size:', profileText.length, 'bytes');
+  
+  const profileData = JSON.parse(profileText) as any;
 
   // DEBUG: Log itemComponents keys to verify which components Bungie returned
   const resp = profileData.Response;
   if (resp?.itemComponents) {
     console.log('[Profile API] itemComponents keys:', Object.keys(resp.itemComponents));
+  } else {
+    console.log('[Profile API] NO itemComponents in response. Top keys:', Object.keys(resp || {}));
   }
 
-  // Return the full Bungie response as a streaming JSON response to avoid
-  // re-serialization issues with large payloads
+  // Pass through the Response object directly
   return new Response(JSON.stringify(resp), {
     headers: {
       'Content-Type': 'application/json',
