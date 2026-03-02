@@ -82,7 +82,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
                     src={bungieNetPath(watermarkIcon)}
                     alt=""
                     className="absolute inset-0 w-full h-full pointer-events-none"
-                    style={{ opacity: 0.4 }}
+                    style={{ opacity: 0.7 }}
                     loading="lazy"
                 />
             )}

@@ -72,6 +72,16 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         // Component 302: per-plug objectives (kill trackers, crafted level, catalyst progress)
         const plugObjectivesData = bungieProfile.itemComponents?.plugObjectives?.data || {};
 
+        // DEBUG: Verify component 302 data shape (remove after confirming)
+        console.log('[InventoryStore] itemComponents keys:', Object.keys(bungieProfile.itemComponents || {}));
+        console.log('[InventoryStore] plugObjectives raw:', bungieProfile.itemComponents?.plugObjectives);
+        const plugObjKeys = Object.keys(plugObjectivesData);
+        console.log('[InventoryStore] plugObjectives data entries:', plugObjKeys.length);
+        if (plugObjKeys.length > 0) {
+            const sampleKey = plugObjKeys[0];
+            console.log('[InventoryStore] plugObjectives sample entry:', sampleKey, JSON.stringify(plugObjectivesData[sampleKey]).slice(0, 500));
+        }
+
         // Profile Inventory (Vault)
         if (bungieProfile.profileInventory?.data?.items) {
             const items = bungieProfile.profileInventory.data.items.map((i: any) => ({ ...i, isEquipped: false, owner: 'vault' }));
