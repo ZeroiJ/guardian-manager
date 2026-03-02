@@ -292,9 +292,20 @@ app.get("/api/profile", async (c: any) => {
   }
 
   const profileData = (await profileRes.json()) as any;
-  // ... (rest of logic) ...
 
-  return c.json(profileData.Response);
+  // DEBUG: Log itemComponents keys to verify which components Bungie returned
+  const resp = profileData.Response;
+  if (resp?.itemComponents) {
+    console.log('[Profile API] itemComponents keys:', Object.keys(resp.itemComponents));
+  }
+
+  // Return the full Bungie response as a streaming JSON response to avoid
+  // re-serialization issues with large payloads
+  return new Response(JSON.stringify(resp), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 });
 
 app.get("/api/manifest/version", async (c: any) => {
