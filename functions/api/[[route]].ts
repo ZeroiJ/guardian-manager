@@ -318,9 +318,6 @@ app.get("/api/profile", async (c: any) => {
     coreData.Response.itemComponents = itemData.Response.itemComponents;
   }
 
-  console.log('[Profile API] Merged profile and item responses. itemComponents keys:', 
-    coreData.Response?.itemComponents ? Object.keys(coreData.Response.itemComponents) : 'NONE');
-
   // Return the merged object. Client still expects the Bungie envelope { Response: ... }
   return new Response(JSON.stringify(coreData), {
     headers: {
