@@ -266,7 +266,13 @@ app.get("/api/profile", async (c: any) => {
     `[Profile API] Using membership: Type=${membershipType}, ID=${membershipId}`,
   );
 
-  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,202,205,300,302,304,305,700,900,1100,1200`;
+  // Component numbers (from bungie-api-ts DestinyComponentType enum):
+  // 100=Profiles, 102=ProfileInventories, 104=ProfileProgression,
+  // 200=Characters, 201=CharacterInventories, 202=CharacterProgressions, 205=CharacterEquipment,
+  // 300=ItemInstances, 301=ItemObjectives, 302=ItemPerks, 304=ItemStats, 305=ItemSockets,
+  // 309=ItemPlugObjectives, 310=ItemReusablePlugs,
+  // 700=PresentationNodes, 900=Records, 1100=Metrics, 1200=StringVariables
+  const profileUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=100,102,104,200,201,202,205,300,301,302,304,305,309,310,700,900,1100,1200`;
 
   // 2. Fetch Profile (using potentially new access_token)
   const profileRes = await fetch(profileUrl, {
