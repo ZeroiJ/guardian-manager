@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { BungieImage, bungieNetPath } from '../ui/BungieImage';
 
@@ -8,12 +10,30 @@ const ITEM_STATE_CRAFTED = 8;
 interface InventoryItemProps {
     item: any;
     definition: any;
+    draggable?: boolean;
     onClick?: (event: React.MouseEvent) => void;
 }
 
-export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, onClick }) => {
+export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, draggable = true, onClick }) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Draggable setup
+    // We can only drag items that have an instanceId and are not equipped
+    const isEquipped = item?.instanceData?.isEquipped;
+    const canDrag = draggable && item?.itemInstanceId && !isEquipped;
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: item?.itemInstanceId || `fallback-${item?.itemHash}`,
+        data: { item, definition },
+        disabled: !canDrag
+    });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0.4 : 1,
+        // When dragging, we don't want the original to respond to pointers
+        pointerEvents: isDragging ? 'none' as const : undefined,
+    };
 
     // Get icon from item or definition
     const icon = item?.icon || definition?.displayProperties?.icon;
@@ -30,7 +50,6 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
     const isCrafted = Boolean(item?.state & ITEM_STATE_CRAFTED);
 
     // Deepsight resonance: item has active deepsight (objectives incomplete on the item)
-    // Deepsight items have a red border on the item itself in Bungie — we show a cyan glow
     const hasDeepsight = Boolean(
         item?.objectives?.objectives?.some(
             (o: any) => !o.complete && o.visible !== false
@@ -59,8 +78,12 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
     return (
         <div
-            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200`}
+            ref={setNodeRef}
+            {...(canDrag ? listeners : {})}
+            {...(canDrag ? attributes : {})}
+            className="relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200"
             style={{
+                ...style,
                 borderColor: hasDeepsight ? '#22d3ee' : effectiveBorderColor,
                 backgroundColor: isMasterwork ? '#3d3523' : undefined,
                 boxShadow: hasDeepsight ? 'inset 0 0 10px rgba(34,211,238,0.25), 0 0 6px rgba(34,211,238,0.15)' : undefined,
@@ -73,7 +96,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             <BungieImage
                 src={icon}
                 alt={definition?.displayProperties?.name || "Item"}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full pointer-events-none"
             />
 
             {/* Season watermark overlay */}

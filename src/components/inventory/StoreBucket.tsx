@@ -1,7 +1,9 @@
 import React from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { InventoryItem } from './InventoryItem';
 
 interface StoreBucketProps {
+    storeId: string;
     bucketHash: number;
     equipment: any[];
     inventory: any[];
@@ -9,16 +11,23 @@ interface StoreBucketProps {
     onItemClick?: (item: any, definition: any, event: React.MouseEvent) => void;
 }
 
-export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment, inventory, definitions, onItemClick }) => {
-
+export const StoreBucket: React.FC<StoreBucketProps> = ({ storeId, bucketHash, equipment, inventory, definitions, onItemClick }) => {
     // 1. Strict Filter Logic
     const equippedItem = equipment.find(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
     const bucketItems = inventory.filter(i => definitions[i.itemHash]?.inventory?.bucketTypeHash === bucketHash);
 
+    // Droppable setup
+    const { setNodeRef, isOver } = useDroppable({
+        id: `${storeId}-${bucketHash}`,
+        data: { storeId, bucketHash }
+    });
+
     return (
         // Container: No fixed width, content-sized
-        <div className="flex items-start min-h-[68px] flex-shrink-0 gap-2">
-
+        <div 
+            ref={setNodeRef}
+            className={`flex items-start min-h-[68px] flex-shrink-0 gap-2 p-1 -m-1 rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
+        >
             {/* Equipped Item (Left) */}
             <div className="flex-shrink-0">
                 {equippedItem ? (
@@ -35,7 +44,7 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
             </div>
 
             {/* Inventory Grid (Right) - 3x3 grid, only actual items */}
-            <div className="grid grid-cols-3 gap-2 content-start">
+            <div className="grid grid-cols-3 gap-2 content-start min-w-[208px]">
                 {bucketItems.map((item, idx) => (
                     <InventoryItem
                         key={idx}
@@ -48,4 +57,3 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ bucketHash, equipment,
         </div>
     );
 };
-

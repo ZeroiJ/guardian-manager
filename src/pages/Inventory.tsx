@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { DndContext, DragOverlay, DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { Search, BookMarked } from "lucide-react";
 import { StoreHeader } from "@/components/inventory/StoreHeader";
 import { InventoryBucketLabel } from "@/components/inventory/InventoryBucketLabel";
@@ -19,6 +20,7 @@ import { calculateMaxPower } from "@/lib/destiny/powerUtils";
 import { CompareModal } from "@/components/CompareModal";
 import { Navigation } from "@/components/Navigation";
 import { LoadoutDrawer } from "@/components/loadouts/LoadoutDrawer";
+import { InventoryItem } from "@/components/inventory/InventoryItem";
 
 export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,6 +37,7 @@ export default function Inventory() {
     referenceElement: HTMLElement | null;
   } | null>(null);
   const [isLoadoutDrawerOpen, setIsLoadoutDrawerOpen] = useState(false);
+  const [activeDragItem, setActiveDragItem] = useState<any>(null);
 
   // Use the new Zipper hook
   const {
@@ -103,6 +106,7 @@ export default function Inventory() {
   const dupeInstanceIds = useInventoryStore((state) => state.dupeInstanceIds);
   const compareSession = useInventoryStore((state) => state.compareSession);
   const endCompare = useInventoryStore((state) => state.endCompare);
+  const moveItem = useInventoryStore((state) => state.moveItem);
 
   useEffect(() => {
     if (Object.keys(definitions).length > 0) {
@@ -177,6 +181,29 @@ export default function Inventory() {
       referenceElement: event.currentTarget as HTMLElement,
     });
     setIsSearchFocused(false);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const itemData = active.data.current?.item;
+    if (itemData) {
+      setActiveDragItem(itemData);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragItem(null);
+
+    if (over && over.data.current) {
+      const draggedItem = active.data.current?.item;
+      const targetStoreId = over.data.current.storeId;
+      const isVault = targetStoreId === "vault";
+
+      if (draggedItem && draggedItem.owner !== targetStoreId) {
+        moveItem(draggedItem.itemInstanceId, draggedItem.itemHash, targetStoreId, isVault);
+      }
+    }
   };
 
   if (loading) {
@@ -400,72 +427,89 @@ export default function Inventory() {
         onClose={() => setIsLoadoutDrawerOpen(false)}
       />
 
-      {/* Horizontal Content - THE FLOORS */}
-      {/* Horizontal Content - SLOT BASED ROWS */}
-      <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
-        {/* Floor 1: HEADERS (Emblems + Stats) */}
-        <div className="flex gap-2 min-w-max h-[160px] items-start">
-          {" "}
-          {/* Fixed height for alignment */}
-          {characters.map((char: any) => (
-            <div key={char.characterId} className="flex-shrink-0">
-              <StoreHeader storeId={char.characterId} character={char} />
+      {/* DndContext for Drag and Drop */}
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {/* Horizontal Content - THE FLOORS */}
+        {/* Horizontal Content - SLOT BASED ROWS */}
+        <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
+          {/* Floor 1: HEADERS (Emblems + Stats) */}
+          <div className="flex gap-2 min-w-max h-[160px] items-start">
+            {" "}
+            {/* Fixed height for alignment */}
+            {characters.map((char: any) => (
+              <div key={char.characterId} className="flex-shrink-0">
+                <StoreHeader storeId={char.characterId} character={char} />
+              </div>
+            ))}
+            <div className="flex-1 min-w-[300px] flex flex-col">
+              <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
             </div>
-          ))}
-          <div className="flex-1 min-w-[300px] flex flex-col">
-            <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
           </div>
-        </div>
 
-        {/* DYNAMIC ROWS Loop */}
-        {[
-          { label: "Kinetic Weapons", hash: BUCKETS.Kinetic },
-          { label: "Energy Weapons", hash: BUCKETS.Energy },
-          { label: "Power Weapons", hash: BUCKETS.Power },
-          { label: "Helmets", hash: BUCKETS.Helmet },
-          { label: "Arms", hash: BUCKETS.Gauntlets },
-          { label: "Chest", hash: BUCKETS.Chest },
-          { label: "Legs", hash: BUCKETS.Legs },
-          { label: "Class Items", hash: BUCKETS.Class },
-        ].map((row) => (
-          <div key={row.hash} className="flex flex-col w-full">
-            <InventoryBucketLabel label={row.label} />
-            <div className="flex gap-2 items-start">
-              {/* Characters */}
-              {characters.map((char: any) => {
-                const { equipment, inventory } = getItemsForCharacter(
-                  char.characterId,
-                );
-                return (
-                  <div
-                    key={char.characterId}
-                    className="w-[290px] flex-shrink-0"
-                  >
-                    <StoreBucket
-                      bucketHash={row.hash}
-                      equipment={equipment}
-                      inventory={inventory}
-                      definitions={definitions}
-                      onItemClick={handleItemClick}
-                    />
-                  </div>
-                );
-              })}
+          {/* DYNAMIC ROWS Loop */}
+          {[
+            { label: "Kinetic Weapons", hash: BUCKETS.Kinetic },
+            { label: "Energy Weapons", hash: BUCKETS.Energy },
+            { label: "Power Weapons", hash: BUCKETS.Power },
+            { label: "Helmets", hash: BUCKETS.Helmet },
+            { label: "Arms", hash: BUCKETS.Gauntlets },
+            { label: "Chest", hash: BUCKETS.Chest },
+            { label: "Legs", hash: BUCKETS.Legs },
+            { label: "Class Items", hash: BUCKETS.Class },
+          ].map((row) => (
+            <div key={row.hash} className="flex flex-col w-full">
+              <InventoryBucketLabel label={row.label} />
+              <div className="flex gap-2 items-start">
+                {/* Characters */}
+                {characters.map((char: any) => {
+                  const { equipment, inventory } = getItemsForCharacter(
+                    char.characterId,
+                  );
+                  return (
+                    <div
+                      key={char.characterId}
+                      className="w-[290px] flex-shrink-0"
+                    >
+                      <StoreBucket
+                        storeId={char.characterId}
+                        bucketHash={row.hash}
+                        equipment={equipment}
+                        inventory={inventory}
+                        definitions={definitions}
+                        onItemClick={handleItemClick}
+                      />
+                    </div>
+                  );
+                })}
 
-              {/* Vault */}
-              <div className="flex-1 min-w-[400px]">
-                <VirtualVaultGrid
-                  bucketHash={row.hash}
-                  items={vaultItems}
-                  definitions={definitions}
-                  onItemContextMenu={handleContextMenu}
-                  onItemClick={handleItemClick}
-                />
+                {/* Vault */}
+                <div className="flex-1 min-w-[400px]">
+                  <VirtualVaultGrid
+                    bucketHash={row.hash}
+                    items={vaultItems}
+                    definitions={definitions}
+                    onItemContextMenu={handleContextMenu}
+                    onItemClick={handleItemClick}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay dropAnimation={{ duration: 250, easing: 'ease-out' }}>
+          {activeDragItem ? (
+            <div className="opacity-90 scale-105 pointer-events-none drop-shadow-2xl">
+              <InventoryItem
+                item={activeDragItem}
+                definition={definitions[activeDragItem.itemHash]}
+                draggable={false}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Context Menu */}
       {contextMenu && (

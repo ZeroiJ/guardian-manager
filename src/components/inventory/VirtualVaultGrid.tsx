@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { InventoryItem } from './InventoryItem';
 import { groupItemsForDisplay, getSortedTypes, WEAPON_TYPE_ICONS } from '../../lib/destiny/sort-engine';
 import { Shield, Shirt, Footprints, Component, Ghost, User } from 'lucide-react';
@@ -20,14 +21,10 @@ const ARMOR_ICONS: Record<string, React.FC<any>> = {
     'Ghost': Ghost,
 };
 
-// Helper for sorting by power
 const calculatePower = (item: any, definitions: any) => {
     return (item.primaryStat?.value) || (definitions[item.itemHash]?.investmentStats?.find((s: any) => s.statTypeHash === 1935470627)?.value) || 0;
 };
 
-// ============================================================================
-// SEPARATOR TILE - 48x48 Inline Icon (Same size as items)
-// ============================================================================
 const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
     const iconUrl = WEAPON_TYPE_ICONS[type];
     const ArmorIcon = ARMOR_ICONS[type];
@@ -53,7 +50,6 @@ const ItemTile: React.FC<{
     definition: any;
     onClick?: (item: any, definition: any, e: React.MouseEvent) => void;
 }> = ({ item, definition, onClick }) => {
-
     return (
         <div className="w-16 h-16">
             <InventoryItem
@@ -65,10 +61,6 @@ const ItemTile: React.FC<{
     );
 };
 
-// ============================================================================
-// VAULT GROUP - Uses "display: contents" to be invisible to flex layout
-// This is the DIM Pattern #4!
-// ============================================================================
 const VaultGroup: React.FC<{
     typeName: string;
     items: any[];
@@ -76,19 +68,13 @@ const VaultGroup: React.FC<{
     onItemClick?: (item: any, definition: any, e: React.MouseEvent) => void;
     prefix: string;
 }> = ({ typeName, items, definitions, onItemClick, prefix }) => {
-    // Sort items by power descending
     const sortedItems = useMemo(() => {
         return [...items].sort((a, b) => calculatePower(b, definitions) - calculatePower(a, definitions));
     }, [items, definitions]);
 
     return (
-        // 🔥 THE MAGIC: display:contents makes this wrapper "invisible"
-        // Children flow directly into the parent flex container
         <div style={{ display: 'contents' }}>
-            {/* Separator Icon */}
             <SeparatorTile type={typeName} />
-
-            {/* Items */}
             {sortedItems.map(item => (
                 <ItemTile
                     key={`${prefix}${item.itemInstanceId || item.itemHash}`}
@@ -101,9 +87,6 @@ const VaultGroup: React.FC<{
     );
 };
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
 export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'Weapons' | 'Armor' | 'General'; bucketHash?: number }> = ({
     items,
     definitions,
@@ -112,21 +95,16 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     category,
     bucketHash
 }) => {
+    const groupedInventory = useMemo(() => groupItemsForDisplay(items, definitions), [items, definitions]);
 
-    // Group Items using Engine
-    const groupedInventory = useMemo(() => {
-        return groupItemsForDisplay(items, definitions);
-    }, [items, definitions]);
+    // Droppable for vault (bucket specific)
+    const { setNodeRef, isOver } = useDroppable({
+        id: bucketHash ? `vault-${bucketHash}` : 'vault-general',
+        data: { storeId: 'vault', bucketHash }
+    });
 
-    // ========================================================================
-    // SPECIFIC BUCKET MODE (Slot-Based View)
-    // ========================================================================
     if (bucketHash) {
-        const bucketItems = items.filter(item =>
-            definitions[item.itemHash]?.inventory?.bucketTypeHash === bucketHash
-        );
-
-        // Group by Item Type Display Name
+        const bucketItems = items.filter(item => definitions[item.itemHash]?.inventory?.bucketTypeHash === bucketHash);
         const groups: Record<string, any[]> = {};
         bucketItems.forEach(item => {
             const def = definitions[item.itemHash];
@@ -138,8 +116,10 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         const sortedTypes = getSortedTypes(groups);
 
         return (
-            <div className={`p-1 ${className} h-full`}>
-                {/* Single flex container - groups use display:contents */}
+            <div 
+                ref={setNodeRef}
+                className={`p-1 ${className || ''} h-full min-h-[68px] rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
+            >
                 <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
@@ -156,9 +136,10 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         );
     }
 
-    // ========================================================================
-    // CATEGORY MODE (Weapons / Armor / General)
-    // ========================================================================
+    // Keep the other modes unchanged (Weapons / Armor / General / Full)
+    // ... just returning the wrapper for completeness ...
+    
+    // (Rest of component is not strictly droppable in this simple implementation, or can map to `vault-general`)
     const deepMerge = (target: Record<string, any[]>, source: Record<string, any[]>) => {
         Object.keys(source).forEach(key => {
             if (target[key]) target[key] = [...target[key], ...source[key]];
@@ -176,7 +157,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         const sortedTypes = getSortedTypes(merged);
 
         return (
-            <div className={`p-1 ${className} h-full`}>
+            <div className={`p-1 ${className || ''} h-full`}>
                 <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
@@ -197,7 +178,7 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         const sortedTypes = getSortedTypes(groupedInventory.Armor);
 
         return (
-            <div className={`p-1 ${className} h-full`}>
+            <div className={`p-1 ${className || ''} h-full`}>
                 <div className="flex flex-wrap gap-2 content-start">
                     {sortedTypes.map(typeName => (
                         <VaultGroup
@@ -235,9 +216,6 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         );
     }
 
-    // ========================================================================
-    // DEFAULT: FULL VAULT VIEW - Continuous Snake via display:contents
-    // ========================================================================
     const mergedWeapons: Record<string, any[]> = {};
     deepMerge(mergedWeapons, groupedInventory.Kinetic);
     deepMerge(mergedWeapons, groupedInventory.Energy);
@@ -248,10 +226,8 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
     const generalTypes = getSortedTypes(groupedInventory.General);
 
     return (
-        <div className={`p-2 ${className} pb-32`}>
-            {/* SINGLE Continuous Grid - Groups use display:contents for snake flow */}
+        <div className={`p-2 ${className || ''} pb-32`}>
             <div className="flex flex-wrap gap-2 content-start">
-                {/* Weapons */}
                 {weaponTypes.map(typeName => (
                     <VaultGroup
                         key={`w-${typeName}`}
@@ -262,8 +238,6 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                         prefix="w-"
                     />
                 ))}
-
-                {/* Armor */}
                 {armorTypes.map(typeName => (
                     <VaultGroup
                         key={`a-${typeName}`}
@@ -274,8 +248,6 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
                         prefix="a-"
                     />
                 ))}
-
-                {/* General */}
                 {generalTypes.map(typeName => (
                     <VaultGroup
                         key={`g-${typeName}`}
@@ -290,5 +262,3 @@ export const VirtualVaultGrid: React.FC<VirtualVaultGridProps & { category?: 'We
         </div>
     );
 };
-
-
