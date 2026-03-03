@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { GuardianItem } from '../services/profile/types';
 import { TransferService } from '../services/inventory/transferService';
 import { APIClient } from '../services/api/client';
+import type { InGameLoadout } from '../lib/destiny/ingame-loadouts';
 
 // Subset of manifest data (names, icons, tierType)
 export interface ManifestDefinition {
@@ -35,10 +36,13 @@ interface InventoryState {
     manifest: Record<number, ManifestDefinition>;
     dupeInstanceIds: Set<string>;
     compareSession: CompareSession | null;
+    /** In-game loadouts per character (Component 205), keyed by characterId. */
+    inGameLoadouts: Record<string, InGameLoadout[]>;
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
     setManifest: (manifest: Record<number, ManifestDefinition>) => void;
+    setInGameLoadouts: (loadouts: Record<string, InGameLoadout[]>) => void;
     moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
     startCompare: (item: GuardianItem) => void;
@@ -53,6 +57,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     manifest: {},
     dupeInstanceIds: new Set(),
     compareSession: null,
+    inGameLoadouts: {},
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -157,6 +162,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     setManifest: (manifest) => {
         set({ manifest });
+    },
+
+    setInGameLoadouts: (loadouts) => {
+        set({ inGameLoadouts: loadouts });
     },
 
     moveItem: async (itemInstanceId, itemHash, targetOwnerId, isVault) => {

@@ -16,10 +16,10 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 
 | Feature | DIM Source Reference | Description | Effort |
 | :--- | :--- | :--- | :--- |
-| **Advanced Search & Filtering** | `src/app/search/` | 50+ search filters with full boolean query parsing (`is:weapon AND (is:crafted OR is:deepsight)`). We currently have ~10 basic filters. | High |
-| **Loadout Application Pipeline** | `src/app/loadout-drawer/loadout-apply.ts` | Complete equip logic (~800 lines) handling mod assignment, exotic conflict resolution, and detailed progress notifications. | High |
-| **In-Game Loadout Integration** | `src/app/loadout/ingame/` | Viewing, applying, and syncing with Destiny 2's native in-game loadout system. | Medium |
-| **Drag-and-Drop Inventory** | `src/app/inventory/` | Dragging items between characters/vault for quick transfers. | Medium |
+| ~~**Advanced Search & Filtering**~~ | `src/app/search/` | ~~50+ search filters with full boolean query parsing (`is:weapon AND (is:crafted OR is:deepsight)`). We currently have ~10 basic filters.~~ **DONE** — AST lexer/parser built in `query-parser.ts`, filter evaluator in `itemFilter.ts`. | ~~High~~ |
+| **Loadout Application Pipeline** | `src/app/loadout-drawer/loadout-apply.ts` | Complete equip logic (~800 lines) handling mod assignment, exotic conflict resolution, and detailed progress notifications. *Partially done* — basic equip pipeline exists in `equipManager.ts` but lacks exotic conflict resolution and dequip logic. | High |
+| ~~**In-Game Loadout Integration**~~ | `src/app/loadout/ingame/` | ~~Viewing, applying, and syncing with Destiny 2's native in-game loadout system.~~ **DONE** — Types & processing in `ingame-loadouts.ts`, `useInGameLoadouts` hook, `InGameLoadoutCard` UI, `applyInGameLoadout()` via worker proxy, integrated into `LoadoutDrawer`. | ~~Medium~~ |
+| ~~**Drag-and-Drop Inventory**~~ | `src/app/inventory/` | ~~Dragging items between characters/vault for quick transfers.~~ **DONE** — `@dnd-kit/core` in `Inventory.tsx` with `StoreBucket`/`VirtualVaultGrid` drop targets, `InventoryItem` draggable (equipped items excluded). | ~~Medium~~ |
 
 ### Tier 2: Major Systems (Medium-High Priority)
 
@@ -59,7 +59,7 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 
 | Feature | Current State | Required Upgrades (to match DIM) |
 | :--- | :--- | :--- |
-| **Search** | Text/name matching only. | Needs a parser (AST) for boolean logic, stat filters (`stat:recovery:>60`), and perk filters. |
+| ~~**Search**~~ | ~~Text/name matching only.~~ **DONE** — Full AST parser with boolean logic, stat filters, perk filters. | ~~Needs a parser (AST) for boolean logic, stat filters (`stat:recovery:>60`), and perk filters.~~ |
 | **Compare** | Basic 1v1 comparison. | Needs multi-item side-by-side comparison, auto-suggesting similar items. |
 | **Postmaster** | View only. | Needs a "Pull from Postmaster" button and "Collect All" functionality. |
 | **Notifications** | Simple toasts. | Needs persistent progress tracking (e.g., "Moving 5 items... 2/5 done") and undo actions. |

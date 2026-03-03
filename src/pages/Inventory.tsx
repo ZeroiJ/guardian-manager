@@ -15,6 +15,7 @@ import { useInventoryStore } from "@/store/useInventoryStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useDefinitions } from "@/hooks/useDefinitions";
+import { useInGameLoadouts } from "@/hooks/useInGameLoadouts";
 import { filterItems } from "@/lib/search/itemFilter";
 import { calculateMaxPower } from "@/lib/destiny/powerUtils";
 import { CompareModal } from "@/components/CompareModal";
@@ -52,6 +53,9 @@ export default function Inventory() {
     onRefresh: refresh,
     enabled: !profileLoading && !profileError,
   });
+
+  // Process in-game loadouts (Component 205 → enriched InGameLoadout[])
+  useInGameLoadouts();
 
   // Extract hashes for manifest lookup
   // Include both item hashes AND plug hashes from sockets (perks, mods, etc.)

@@ -25,6 +25,7 @@ import {
     Loader2,
     Package,
     Shield,
+    Gamepad2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -35,6 +36,8 @@ import {
 } from '@/store/loadoutStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { applyLoadout, ApplyLoadoutResult } from '@/lib/bungie/equipManager';
+import { InGameLoadoutCard } from './InGameLoadoutCard';
+import type { InGameLoadout } from '@/lib/destiny/ingame-loadouts';
 
 // ============================================================================
 // TYPES
@@ -501,6 +504,7 @@ export const LoadoutDrawer: React.FC<LoadoutDrawerProps> = ({ isOpen, onClose })
     const renameLoadout = useLoadoutStore((s) => s.renameLoadout);
 
     const characters = useInventoryStore((s) => s.characters);
+    const inGameLoadouts = useInventoryStore((s) => s.inGameLoadouts);
 
     const [equipState, setEquipState] = useState<EquipState>({ status: 'idle' });
     const drawerRef = useRef<HTMLDivElement>(null);
@@ -625,6 +629,55 @@ export const LoadoutDrawer: React.FC<LoadoutDrawerProps> = ({ isOpen, onClose })
 
                     {/* Capture Panel */}
                     <CapturePanel characters={characters} onCapture={handleCapture} />
+
+                    <Divider />
+
+                    {/* In-Game Loadouts (Component 205) */}
+                    {(() => {
+                        const allInGame = Object.entries(inGameLoadouts);
+                        const totalInGame = allInGame.reduce((sum, [, arr]) => sum + arr.length, 0);
+                        if (totalInGame === 0) return null;
+
+                        const charList = Object.values(characters) as any[];
+                        const classNames: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+
+                        return (
+                            <div className="p-4 space-y-3">
+                                <h3 className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold font-rajdhani flex items-center gap-1.5">
+                                    <Gamepad2 size={10} />
+                                    In-Game ({totalInGame})
+                                </h3>
+
+                                {allInGame.map(([characterId, charLoadouts]) => {
+                                    if (charLoadouts.length === 0) return null;
+                                    const char = characters[characterId] as any;
+                                    const className = char ? classNames[char.classType] ?? 'Guardian' : 'Unknown';
+
+                                    return (
+                                        <div key={characterId} className="space-y-1.5">
+                                            {charList.length > 1 && (
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    {char?.emblemPath && (
+                                                        <img
+                                                            src={`https://www.bungie.net${char.emblemPath}`}
+                                                            className="w-4 h-4 rounded-sm object-cover bg-gray-800"
+                                                            alt=""
+                                                        />
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-rajdhani">
+                                                        {className}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {charLoadouts.map((loadout) => (
+                                                <InGameLoadoutCard key={loadout.id} loadout={loadout} />
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
 
                     <Divider />
 
