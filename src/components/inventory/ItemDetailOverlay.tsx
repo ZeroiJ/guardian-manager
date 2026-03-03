@@ -16,6 +16,7 @@ import type { WishListMatch } from '../../lib/wishlist';
 import { getItemSeasonInfo } from '../../lib/destiny/season-info';
 import { getKillTracker, getCraftedInfo, getArmorEnergy, getCatalystInfo, getDeepsightInfo } from '../../lib/destiny/item-info';
 import catalystMapping from '../../data/exotic-to-catalyst-record.json';
+import { KillTrackerBadge, CraftedWeaponBadge, DeepsightBadge, CatalystProgress } from '../item/ItemPopupInfo';
 
 // ============================================================================
 // TYPES
@@ -580,78 +581,13 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                         {(killTracker || craftedInfo || (deepsightInfo && !deepsightInfo.patternComplete)) && (
                             <div className="flex flex-wrap items-center gap-3">
                                 {/* Kill tracker */}
-                                {killTracker && (
-                                    <div
-                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs"
-                                        style={{
-                                            backgroundColor: killTracker.activityType === 'pvp' ? 'rgba(239, 68, 68, 0.06)'
-                                                : killTracker.activityType === 'gambit' ? 'rgba(34, 197, 94, 0.06)'
-                                                : 'rgba(96, 165, 250, 0.06)',
-                                            borderColor: killTracker.activityType === 'pvp' ? 'rgba(239, 68, 68, 0.15)'
-                                                : killTracker.activityType === 'gambit' ? 'rgba(34, 197, 94, 0.15)'
-                                                : 'rgba(96, 165, 250, 0.15)',
-                                        }}
-                                    >
-                                        {killTracker.activityType === 'pvp' ? (
-                                            <Crosshair size={12} className="text-red-400" />
-                                        ) : killTracker.activityType === 'gambit' ? (
-                                            <Sword size={12} className="text-green-400" />
-                                        ) : (
-                                            <Sword size={12} className="text-blue-400" />
-                                        )}
-                                        <span className="text-gray-300 font-mono tabular-nums font-bold">
-                                            {killTracker.count.toLocaleString()}
-                                        </span>
-                                        <span className="text-gray-500">{killTracker.label} kills</span>
-                                    </div>
-                                )}
+                                {killTracker && <KillTrackerBadge data={killTracker} />}
 
                                 {/* Crafted weapon badge */}
-                                {craftedInfo && (
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-amber-400/[0.06] border border-amber-400/[0.15] text-xs">
-                                        <Sparkles size={12} className="text-amber-400" />
-                                        <span className="text-amber-300 font-bold">Shaped</span>
-                                        {craftedInfo.level !== null && (
-                                            <span className="text-gray-400">
-                                                Lv. <span className="font-mono tabular-nums text-white">{craftedInfo.level}</span>
-                                            </span>
-                                        )}
-                                        {craftedInfo.progress !== null && craftedInfo.progress < 1 && (
-                                            <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden ml-1">
-                                                <div
-                                                    className="h-full bg-amber-400/60 rounded-full transition-all"
-                                                    style={{ width: `${(craftedInfo.progress * 100).toFixed(1)}%` }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                {craftedInfo && <CraftedWeaponBadge data={craftedInfo} />}
 
                                 {/* Deepsight pattern progress */}
-                                {deepsightInfo && !deepsightInfo.patternComplete && deepsightInfo.objectives.length > 0 && (
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-cyan-400/[0.06] border border-cyan-400/[0.15] text-xs">
-                                        <FlaskConical size={12} className="text-cyan-400" />
-                                        <span className="text-cyan-300 font-bold">Pattern</span>
-                                        {deepsightInfo.objectives.map((obj, i) => {
-                                            const pct = obj.completionValue
-                                                ? Math.min(100, ((obj.progress ?? 0) / obj.completionValue) * 100)
-                                                : 0;
-                                            return (
-                                                <div key={i} className="flex items-center gap-1">
-                                                    <span className="text-gray-400 font-mono tabular-nums">
-                                                        {obj.progress ?? 0}/{obj.completionValue ?? '?'}
-                                                    </span>
-                                                    <div className="w-12 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-cyan-400/60 rounded-full"
-                                                            style={{ width: `${pct}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                {deepsightInfo && <DeepsightBadge data={deepsightInfo} />}
                             </div>
                         )}
 
@@ -905,40 +841,8 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                         )}
 
                         {/* ---- CATALYST PROGRESS (Exotic Weapons) ---- */}
-                        {catalystInfo && catalystInfo.unlocked && !catalystInfo.complete && catalystInfo.objectives.length > 0 && (
-                            <div>
-                                <div className="flex items-center gap-1.5 mb-2">
-                                    <Zap size={12} className="text-yellow-400" />
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                                        Catalyst Progress
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5 p-3 rounded-lg bg-yellow-400/[0.02] border border-yellow-400/[0.08]">
-                                    {catalystInfo.objectives.map((obj, i) => {
-                                        const progress = obj.progress ?? 0;
-                                        const completionValue = obj.completionValue ?? 1;
-                                        const pct = Math.min(100, (progress / completionValue) * 100);
-                                        return (
-                                            <div key={i} className="space-y-1">
-                                                <div className="flex items-center justify-between text-xs">
-                                                    <span className="text-gray-400">
-                                                        Objective {catalystInfo.objectives.length > 1 ? i + 1 : ''}
-                                                    </span>
-                                                    <span className="text-gray-300 font-mono tabular-nums">
-                                                        {progress.toLocaleString()} / {completionValue.toLocaleString()}
-                                                    </span>
-                                                </div>
-                                                <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-yellow-400/60 rounded-full transition-all"
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                        {catalystInfo && (
+                            <CatalystProgress data={catalystInfo} variant="full" />
                         )}
 
                         {/* ---- MODS ROW ---- */}

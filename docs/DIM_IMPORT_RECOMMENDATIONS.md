@@ -167,7 +167,7 @@ Full item breakdown modal with stats, perks, lore, and advanced metadata. DIM sp
 - ✅ **Armor Energy Meter**: 10-slot used/available/locked bar from instanceData.energy
 - ✅ **Lore & Flavor Text**: Full lore from DestinyLoreDefinition, source from DestinyCollectibleDefinition
 - ✅ **External Links**: light.gg and D2 Foundry
-- ❌ **Wishlist Badge in Overlay**: Show wishlist match status in the overlay (data exists, UI not wired)
+- ✅ **Wishlist Badge in Overlay**: Show wishlist match status in the overlay with detailed verdict banners
 
 ---
 
@@ -210,7 +210,6 @@ Full item breakdown modal with stats, perks, lore, and advanced metadata. DIM sp
 
 ## Recommended Next Steps
 
-1. **Wishlist Badge in Overlay** — Wire existing wishlist data into the Item Detail Overlay
-2. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
-3. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
-4. **Organizer View** — Sortable table for bulk vault management
+1. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
+2. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
+3. **Organizer View** — Sortable table for bulk vault management

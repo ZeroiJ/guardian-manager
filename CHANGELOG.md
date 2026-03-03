@@ -2,6 +2,36 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.31.0] - 2026-03-03
+
+### 🎨 Item Popup UI Overhaul (DIM Parity)
+
+Completely redesigned the floating \`ItemDetailModal.tsx\` to perfectly match DIM's classic Item Popup layout and information density.
+
+#### New Features
+
+- **Segmented Stat Bars**:
+  - Upgraded the simple stat bars in the popup to use the same color-coded segmentation engine (base/parts/traits/mod/masterwork) as the full Item Detail Overlay.
+- **Advanced Metadata Badges**:
+  - Extracted shared badge components (\`KillTrackerBadge\`, \`CraftedWeaponBadge\`, \`DeepsightBadge\`, \`CatalystProgress\`) into a new reusable \`ItemPopupInfo.tsx\` module.
+  - Wired live Bungie profile data directly into the floating popup, rendering the badges directly under the notes section exactly like DIM.
+- **Layout Restructuring**:
+  - Sidebar Actions: Moved the action menu (Lock, Tag, Compare) from a right-side strip to a left-side panel that includes wide buttons and "Equip on:" / "Pull to:" character icon rows.
+  - Tabs: Added "Overview" and "Triage" tab styling (UI only for now).
+  - Intrinsic Frame: Pinned the intrinsic frame perk toward the bottom of the content area with the weapon's RPM/Impact data inline.
+  - Sockets Grid: Consolidated all weapon perks, armor mods, cosmetics, and the catalyst socket into a dense bottom-footer grid.
+- **Floating UI Positioning**:
+  - Added \`data-popper-placement\` logic to the floating UI configuration so the internal layout accurately flips the sidebar to the opposite side if the popup collides with the screen edge.
+
+#### Files Added
+
+- \`src/components/item/ItemPopupInfo.tsx\` — Reusable metadata badges for kill trackers, crafting, and catalysts.
+
+#### Files Modified
+
+- \`src/components/inventory/ItemDetailModal.tsx\` — Massive layout and CSS rewrite, integrated live metadata hooks and segmented stat bars.
+- \`src/components/inventory/ItemDetailOverlay.tsx\` — Extracted metadata UI components to the shared \`ItemPopupInfo\` file.
+
 ## [0.30.0] - 2026-03-01
 
 ### Wishlist System — Full Implementation & Overlay Integration (Feature 14/14)
