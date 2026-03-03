@@ -8,6 +8,10 @@ import { ItemSocket } from '../item/ItemSocket';
 import { BungieImage } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes } from '../../lib/destiny-constants';
+import { getKillTracker, getCraftedInfo, getCatalystInfo, getDeepsightInfo } from '../../lib/destiny/item-info';
+import catalystMapping from '../../data/exotic-to-catalyst-record.json';
+import { KillTrackerBadge, CraftedWeaponBadge, DeepsightBadge, CatalystProgress } from '../item/ItemPopupInfo';
+
 import { ItemDetailOverlay } from './ItemDetailOverlay';
 import clsx from 'clsx';
 import {
@@ -33,6 +37,15 @@ interface ItemDetailModalProps {
     // moveItem: removed (using store)
     characters: any[];
 }
+
+
+const SEGMENT_COLORS: Record<string, string> = {
+    base: '#888888',
+    parts: '#68a8e0',
+    traits: '#5ac467',
+    mod: '#a855f7',
+    masterwork: '#ceae33',
+};
 
 const tierTypeToRarity: Record<number, string> = {
     6: 'exotic',
@@ -93,6 +106,43 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const isExotic = tierType === 6;
     const itemTypeDisplayName = definition.itemTypeDisplayName;
     const rarity = tierTypeToRarity[tierType] || 'common';
+
+    
+    // --- Item Info Features (Kill Tracker, Crafted, Energy, Catalyst, Deepsight) ---
+    const killTracker = useMemo(() => getKillTracker(item, definition), [item, definition]);
+    const craftedInfo = useMemo(() => getCraftedInfo(item, definition), [item, definition]);
+
+    const profile = useInventoryStore(s => s.profile);
+    const profileRecords = useMemo(() => profile?.profileRecords?.data, [profile]);
+    const characterRecords = useMemo(() => profile?.characterRecords?.data, [profile]);
+
+    const catalystInfo = useMemo(() => {
+        if (!isExotic) return null;
+        return getCatalystInfo(
+            item?.itemHash,
+            profileRecords,
+            characterRecords,
+            catalystMapping as Record<string, number>,
+        );
+    }, [item?.itemHash, isExotic, profileRecords, characterRecords]);
+
+    const recordHashes = useMemo(() => [] as number[], []); // Empty = load full table
+    const { definitions: recordDefs } = useDefinitions('DestinyRecordDefinition', recordHashes);
+    const patternRecordMap = useMemo(() => {
+        const map: Record<string, number> = {};
+        for (const [hash, record] of Object.entries(recordDefs)) {
+            const rec = record as any;
+            if (rec?.completionInfo?.toastStyle === 3 && rec?.displayProperties?.name) {
+                map[rec.displayProperties.name] = Number(hash);
+            }
+        }
+        return map;
+    }, [recordDefs]);
+
+    const deepsightInfo = useMemo(
+        () => getDeepsightInfo(item, definition, profileRecords, patternRecordMap),
+        [item, definition, profileRecords, patternRecordMap]
+    );
 
     const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
     const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
@@ -181,26 +231,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 <RefreshCw size={14} /> <span>Add notes</span>
                             </div>
 
-                            {/* Objectives (Pattern, Kill Tracker) */}
-                            {item.itemComponents?.objectives?.data?.objectives && (
-                                <div className="border-b border-[#333] p-2 space-y-1">
-                                    {item.itemComponents.objectives.data.objectives.map((obj: any, idx: number) => {
-                                        const objDef = definitions.DestinyObjectiveDefinition?.[obj.objectiveHash];
-                                        if (!objDef) return null;
-                                        return (
-                                            <div key={idx} className="flex justify-between items-center text-xs">
-                                                <div className="flex items-center gap-1.5">
-                                                    {objDef.displayProperties?.icon && (
-                                                        <BungieImage src={objDef.displayProperties.icon} className="w-4 h-4" />
-                                                    )}
-                                                    <span className="text-gray-300">{objDef.progressDescription || 'Objective'}</span>
-                                                </div>
-                                                <div className="text-gray-400">
-                                                    {objDef.completionValue > 1 ? `${obj.progress}/${objDef.completionValue}` : obj.progress}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                            {/* Pattern / Crafted / Kill Tracker / Catalyst Badges */}
+                            {(killTracker || craftedInfo || deepsightInfo || catalystInfo) && (
+                                <div className="p-2 border-b border-[#333] flex flex-wrap gap-2">
+                                    {craftedInfo && <CraftedWeaponBadge data={craftedInfo} />}
+                                    {deepsightInfo && <DeepsightBadge data={deepsightInfo} />}
+                                    {killTracker && <KillTrackerBadge data={killTracker} />}
+                                    {catalystInfo && <CatalystProgress data={catalystInfo} />}
                                 </div>
                             )}
 
@@ -217,22 +254,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                 <div className="w-full"><RecoilStat value={stat.displayValue} /></div>
                                             ) : stat.isBar ? (
                                                 <div className="w-full h-[12px] bg-[#333] flex">
-                                                    <div
-                                                        className="h-full bg-white"
-                                                        style={{ width: `${Math.min(100, (stat.baseValue / stat.maximumValue) * 100)}%` }}
-                                                    />
-                                                    {stat.bonusValue > 0 && (
+                                                    {stat.segments.map(([value, type], i) => (
                                                         <div
-                                                            className="h-full bg-orange-400"
-                                                            style={{ width: `${Math.min(100, (stat.bonusValue / stat.maximumValue) * 100)}%` }}
+                                                            key={i}
+                                                            className="h-full"
+                                                            style={{
+                                                                width: `${Math.min(100, (value / stat.maximumValue) * 100)}%`,
+                                                                backgroundColor: SEGMENT_COLORS[type],
+                                                            }}
                                                         />
-                                                    )}
-                                                    {stat.bonusValue < 0 && (
-                                                        <div
-                                                            className="h-full bg-red-600"
-                                                            style={{ width: `${Math.min(100, (Math.abs(stat.bonusValue) / stat.maximumValue) * 100)}%` }}
-                                                        />
-                                                    )}
+                                                    ))}
                                                 </div>
                                             ) : null}
                                         </div>
@@ -248,7 +279,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             <BungieImage src={sockets.intrinsic.plugDef.displayProperties.icon} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="leading-tight">
-                                            <div className="font-bold text-[13px] text-[#eee]">{sockets.intrinsic.plugDef.displayProperties.name}</div>
+                                            <div className="font-bold text-[13px] text-[#e2bf36]">{sockets.intrinsic.plugDef.displayProperties.name}</div>
                                             {calculatedStats.find(s => s.statHash === StatHashes.RoundsPerMinute) && calculatedStats.find(s => s.statHash === StatHashes.Impact) ? (
                                                 <div className="text-[11px] text-gray-400 mt-0.5">
                                                     {calculatedStats.find(s => s.statHash === StatHashes.RoundsPerMinute)?.displayValue} rpm / {calculatedStats.find(s => s.statHash === StatHashes.Impact)?.displayValue} impact
@@ -275,11 +306,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                     isActive={socket.isEnabled}
                                                 />
                                             ))}
-                                            <div className="flex flex-col gap-1 ml-auto">
-                                                 <div className="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs text-gray-400 hover:text-white cursor-pointer bg-black/50">
-                                                     <LayoutGrid size={12} />
-                                                 </div>
-                                            </div>
+                                            
                                         </div>
                                     )}
 
