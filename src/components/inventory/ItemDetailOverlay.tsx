@@ -17,6 +17,7 @@ import { getItemSeasonInfo } from '../../lib/destiny/season-info';
 import { getKillTracker, getCraftedInfo, getArmorEnergy, getCatalystInfo, getDeepsightInfo } from '../../lib/destiny/item-info';
 import catalystMapping from '../../data/exotic-to-catalyst-record.json';
 import { KillTrackerBadge, CraftedWeaponBadge, DeepsightBadge, CatalystProgress } from '../item/ItemPopupInfo';
+import { TriagePanel } from '../item/TriagePanel';
 
 // ============================================================================
 // TYPES
@@ -1032,6 +1033,13 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                 </div>
                             </div>
                         )}
+
+                        {/* ---- TRIAGE (Vault Cleaning Intelligence) ---- */}
+                        <TriagePanel
+                            item={item}
+                            allItems={allItems}
+                            manifest={manifest}
+                        />
 
                         {/* ---- EXTERNAL LINKS ---- */}
                         <div className="flex gap-2 pt-2 border-t border-white/[0.06]">

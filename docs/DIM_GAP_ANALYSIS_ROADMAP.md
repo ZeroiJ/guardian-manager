@@ -26,21 +26,22 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 | Feature | DIM Source Reference | Description | Effort |
 | :--- | :--- | :--- | :--- |
 | **Loadout Optimizer / Armor Builder** | `src/app/loadout-builder/` | Web Worker-powered armor optimization engine to hit specific stat tiers. | Very High |
-| **Vendors Page** | `src/app/vendors/` | Viewing all vendor inventories, bounties, and engram focusing options. | High |
-| **Collections, Triumphs & Metrics** | `src/app/records/` | Browsing game records, titles, and collectible checklists. | High |
-| **Item Triage / Vault Cleaning** | `src/app/item-triage/` | Tools for identifying duplicate or low-stat rolls to dismantle. | Medium |
-| **Organizer / Spreadsheet View** | `src/app/organizer/` | Table-based view for mass-comparing and tagging items. | Medium |
+| **Loadout Optimizer / Armor Builder** | `src/app/loadout-builder/` | Web Worker-powered armor optimization engine to hit specific stat tiers. | Very High |
+| ~~**Vendors Page**~~ | `src/app/vendors/` | ~~Viewing all vendor inventories, bounties, and engram focusing options.~~ **DONE** — Worker endpoints for `GetVendors`/`GetVendor`, Zustand vendor store with two-phase loading, full Vendors page with character tabs, vendor groups, collapsible cards, sale items with cost badges. | ~~High~~ |
+| ~~**Collections, Triumphs & Metrics**~~ | `src/app/records/` | ~~Browsing game records, titles, and collectible checklists.~~ **DONE** — Presentation node tree builder (`buildPresentationNodeTree`), scope resolution, seal/gilding tracking. Collections page with Triumphs/Collections/Seals/Metrics tabs, breadcrumb navigation, progress bars. | ~~High~~ |
+| ~~**Item Triage / Vault Cleaning**~~ | `src/app/item-triage/` | ~~Tools for identifying duplicate or low-stat rolls to dismantle.~~ **DONE** — Factor-based similarity, strict armor dominance, notable stat highlighting (82%/90% thresholds), artifice bonus. TriagePanel integrated into ItemDetailOverlay. | ~~Medium~~ |
+| ~~**Organizer / Spreadsheet View**~~ | `src/app/organizer/` | ~~Table-based view for mass-comparing and tagging items.~~ **DONE** — CSS-grid spreadsheet with 25+ columns, category tree (17 weapon types + armor), multi-column sort, bulk actions, progressive rendering, CSV export, column visibility toggles. | ~~Medium~~ |
 
 ### Tier 3: Enhancements & Power User Tools (Medium Priority)
 
 | Feature | DIM Source Reference | Description | Effort |
 | :--- | :--- | :--- | :--- |
-| **Infusion Finder** | `src/app/infuse/` | Recommending items to use as infusion fuel to raise power level. | Low |
-| **Farming Mode** | `src/app/farming/` | Automatically moving engrams/items to the vault to keep character space clear during activities. | Low |
+| ~~**Infusion Finder**~~ | `src/app/infuse/` | ~~Recommending items to use as infusion fuel to raise power level.~~ **DONE** — Pure logic in `infusionFinder.ts`, modal UI in `InfusionFinder.tsx`, integrated into `ItemDetailModal`. | ~~Low~~ |
+| ~~**Farming Mode**~~ | `src/app/farming/` | ~~Automatically moving engrams/items to the vault to keep character space clear during activities.~~ **DONE** — Store state + `toggleFarmingMode()` action, `useFarmingMode.ts` auto-move hook, top bar toggle UI. | ~~Low~~ |
 | **Socket Stripping** | `src/app/strip-sockets/` | Removing all mods from armor to prepare for new builds. | Low |
 | **Fashion System** | `src/app/loadout/fashion/` | Saving and applying specific shaders and ornaments within loadouts. | Medium |
-| **Keyboard Shortcuts** | `src/app/hotkeys/` | Global keybinds for searching, moving, and navigating. | Low |
-| **Bulk Actions** | `src/app/inventory/bulk-actions.tsx` | Locking, unlocking, or moving multiple selected items at once. | Low |
+| ~~**Keyboard Shortcuts**~~ | `src/app/hotkeys/` | ~~Global keybinds for searching, moving, and navigating.~~ **DONE** — `useHotkeys.ts` hook with `/`, `Ctrl+K`, `Escape`, `R`, `L`, `1-4` bindings, input-focus suppression. | ~~Low~~ |
+| ~~**Bulk Actions**~~ | `src/app/inventory/bulk-actions.tsx` | ~~Locking, unlocking, or moving multiple selected items at once.~~ **DONE** — `useBulkSelectStore.ts` for selection, `BulkActionBar.tsx` floating action bar with lock/unlock/vault/transfer, Ctrl+Click on `InventoryItem`. | ~~Low~~ |
 
 ### Tier 4: Polish & Ecosystem (Low Priority)
 
@@ -61,7 +62,7 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 | :--- | :--- | :--- |
 | ~~**Search**~~ | ~~Text/name matching only.~~ **DONE** — Full AST parser with boolean logic, stat filters, perk filters. | ~~Needs a parser (AST) for boolean logic, stat filters (`stat:recovery:>60`), and perk filters.~~ |
 | **Compare** | Basic 1v1 comparison. | Needs multi-item side-by-side comparison, auto-suggesting similar items. |
-| **Postmaster** | View only. | Needs a "Pull from Postmaster" button and "Collect All" functionality. |
+| ~~**Postmaster**~~ | ~~View only.~~ **DONE** — Pull from Postmaster + Collect All implemented via worker endpoint, TransferService routing, context menu, and per-character Collect All button. | ~~Needs a "Pull from Postmaster" button and "Collect All" functionality.~~ |
 | **Notifications** | Simple toasts. | Needs persistent progress tracking (e.g., "Moving 5 items... 2/5 done") and undo actions. |
 | **Settings** | Very minimal. | Needs extensive display, sorting, and behavior toggles. |
 | ~~**Profile Loading**~~ | ~~Full network fetch on every load + naive 90s setInterval polling.~~ **DONE** — IDB profile caching (stale-while-revalidate), timestamp guard, smart setTimeout polling with tab-focus refresh. | ~~Needs IDB profile caching (stale-while-revalidate), timestamp-based skip, smart polling with setTimeout. **See Phase 1.5 plan.**~~ |
@@ -74,8 +75,8 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 *Focus on making basic use as smooth as DIM.*
 1. ~~Build the advanced search parser (Boolean logic, basic filters like `is:weapon`).~~ **DONE**
 2. ~~Add Drag-and-Drop support for items across the main inventory grid.~~ **DONE**
-3. Add Postmaster interactions (pulling items).
-4. Implement Keyboard Shortcuts.
+3. ~~Add Postmaster interactions (pulling items).~~ **DONE** — Worker endpoint, store actions (`pullFromPostmaster`, `pullAllFromPostmaster`), TransferService postmaster routing, Collect All UI.
+4. ~~Implement Keyboard Shortcuts.~~ **DONE** — `useHotkeys.ts` hook with `/`, `Ctrl+K`, `Escape`, `R`, `L`, `1-4` bindings.
 
 ### Phase 2: The Loadout Upgrade
 *Focus on robust buildcrafting.*
@@ -83,11 +84,11 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 2. ~~Integrate in-game loadouts (view and apply).~~ **DONE**
 3. Add socket stripping and basic fashion integration.
 
-### Phase 3: Advanced Tools
+### Phase 3: Advanced Tools (✅ COMPLETED)
 *Focus on power-user features.*
-1. Build the Organizer/Spreadsheet view.
-2. Implement Item Triage and bulk actions.
-3. Develop the Vendors and Records pages.
+1. ~~Build the Organizer/Spreadsheet view.~~ **DONE** — CSS-grid organizer with 25+ columns, category tree, multi-column sort, bulk actions, CSV export.
+2. ~~Implement Item Triage and bulk actions.~~ **DONE** — Triage panel with similarity, dominance, notable stats. Integrated into ItemDetailOverlay.
+3. ~~Develop the Vendors and Records pages.~~ **DONE** — Full Vendors page with two-phase loading. Collections page with Triumphs/Collections/Seals/Metrics tabs.
 
 ### Phase 4: The Final Frontier
 *Focus on the most complex, value-add features.*

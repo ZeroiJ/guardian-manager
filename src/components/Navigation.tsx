@@ -28,10 +28,22 @@ export function Navigation() {
                 </span>
             </Link>
             <Link
+                to="/organizer"
+                className={`transition-colors ${isActive('/organizer') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+            >
+                Organizer
+            </Link>
+            <Link
                 to="/vendors"
                 className={`transition-colors ${isActive('/vendors') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
             >
                 Vendors
+            </Link>
+            <Link
+                to="/collections"
+                className={`transition-colors ${isActive('/collections') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+            >
+                Collections
             </Link>
         </nav>
     );

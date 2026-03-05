@@ -358,14 +358,15 @@ app.get("/api/profile", async (c: any) => {
   );
 
   // Component numbers:
-  // Core Profile: 100,102,104,200,201,202,205,700,900,1100,1200
+  // Core Profile: 100,102,104,200,201,202,205,700,800,900,1100,1200
   // Item Details: 102,201,205,300,301,302,304,305,309,310
+  // 800 = Collectibles (profile + character level)
   
   // Bungie silently drops heavy components (309, 310) if requested alongside
   // the entire profile. We must split into two parallel requests.
   // CRITICAL: The item details request MUST include the inventory components (102, 201, 205) 
   // otherwise Bungie doesn't know *which* items to fetch components for!
-  const coreComponents = "100,102,104,200,201,202,205,700,900,1100,1200";
+  const coreComponents = "100,102,104,200,201,202,205,700,800,900,1100,1200";
   const itemComponentsList = "102,201,205,300,301,302,304,305,309,310";
 
   const coreUrl = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=${coreComponents}`;
@@ -1096,6 +1097,100 @@ app.post("/api/sync/full", async (c: any) => {
   } catch (err: any) {
     console.error("[Sync Full] Error:", err);
     return c.text(err.message || "Full sync failed", 500);
+  }
+});
+
+// ============================================================================
+// VENDORS
+// ============================================================================
+
+/**
+ * GET /api/vendors?membershipType=X&membershipId=Y&characterId=Z
+ *
+ * Fetches all vendors for a character.
+ * Bungie API: /Destiny2/{membershipType}/Profile/{membershipId}/Character/{characterId}/Vendors/
+ * Components: 400 (Vendors), 401 (VendorCategories), 402 (VendorSales)
+ */
+app.get("/api/vendors", async (c: any) => {
+  try {
+    const membershipType = c.req.query("membershipType");
+    const membershipId = c.req.query("membershipId");
+    const characterId = c.req.query("characterId");
+
+    if (!membershipType || !membershipId || !characterId) {
+      return c.text("Missing required query params: membershipType, membershipId, characterId", 400);
+    }
+
+    const components = "400,401,402";
+    const url = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/Character/${characterId}/Vendors/?components=${components}`;
+
+    console.log(`[Vendors] Fetching all vendors for character ${characterId}`);
+
+    const response = await authenticatedBungieFetch(c, url, { method: "GET" });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Vendors] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    // Stream raw Bungie response to client (client unwraps envelope)
+    const data = await response.text();
+    return new Response(data, {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[Vendors] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
+  }
+});
+
+/**
+ * GET /api/vendors/:vendorHash?membershipType=X&membershipId=Y&characterId=Z
+ *
+ * Fetches a single vendor with full item component data.
+ * Bungie API: /Destiny2/{membershipType}/Profile/{membershipId}/Character/{characterId}/Vendors/{vendorHash}/
+ * Components: 400,401,402 + 300 (ItemInstances), 302 (ItemPerks), 304 (ItemSockets), 305 (ReusablePlugs), 310 (ItemStats)
+ */
+app.get("/api/vendors/:vendorHash", async (c: any) => {
+  try {
+    const vendorHash = c.req.param("vendorHash");
+    const membershipType = c.req.query("membershipType");
+    const membershipId = c.req.query("membershipId");
+    const characterId = c.req.query("characterId");
+
+    if (!membershipType || !membershipId || !characterId || !vendorHash) {
+      return c.text("Missing required params for single vendor fetch", 400);
+    }
+
+    const components = "400,401,402,300,302,304,305,310";
+    const url = `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/Character/${characterId}/Vendors/${vendorHash}/?components=${components}`;
+
+    console.log(`[Vendor] Fetching vendor ${vendorHash} for character ${characterId}`);
+
+    const response = await authenticatedBungieFetch(c, url, { method: "GET" });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Vendor] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.text();
+    return new Response(data, {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[Vendor] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
   }
 });
 

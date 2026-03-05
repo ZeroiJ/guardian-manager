@@ -2,6 +2,57 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.34.0] - 2026-03-05
+
+### Tier 2 Feature Completion — Organizer, Triage, Vendors, Collections
+
+Four major systems built to close out Phase 3 of the DIM gap analysis roadmap. All four are lazy-loaded via `React.lazy()` for optimal bundle splitting.
+
+#### Organizer / Spreadsheet View (`/organizer`)
+
+- **Column system**: 25+ typed column definitions with value extractors, sort comparators, and CSV formatters. Columns grouped into core, weapon, armor stats, weapon stats, and meta categories.
+- **Category tree**: Hierarchical sidebar with 17 weapon types and armor organized by slot and class. Smart column switching between armor and weapon modes.
+- **CSS-grid spreadsheet**: Multi-column sort (shift+click), row selection (click, shift+range, checkbox select-all), progressive rendering starting at 50 rows with IntersectionObserver expansion.
+- **Bulk actions**: Tag (favorite/keep/infuse/junk/archive/clear), Lock, Unlock, Move (vault + per-character). Actions apply to all selected rows.
+- **CSV export**: Downloads filtered and sorted data with all visible columns.
+- **Column visibility toggle**: Show/hide columns by group with dropdown panel.
+- **Cell formatting**: Rarity border colors, damage element colors, stat gradient coloring (red→yellow→green), masterwork gold, tag emojis.
+
+#### Item Triage / Vault Cleaning
+
+- **Triage utility library** (`src/lib/triage/triage.ts`):
+  - `countSimilarItems()` — factor-based similarity counting (name, bucket, class).
+  - `compareArmorStats()` — per-stat comparison to best-in-slot for same class.
+  - `compareBetterWorse()` — strict dominance check (better or equal in ALL stats). Artifice armor receives +3 bonus to one stat.
+  - `getNotableStats()` — highlights stats ≥82% of best comparable item (≥90% for totals). Color coded via HSL gradient.
+  - `isArtificeArmor()` — detects artifice via empty plug hash 4173924323.
+- **TriagePanel component** in item detail overlay with loadout count, similar items count (warning coloring), better/worse dominance counts, notable stat bars, and full armor stat comparison table (You vs Best).
+
+#### Vendors Page (`/vendors`)
+
+- **Worker endpoints**: `GET /api/vendors` (all vendors, components 400,401,402) and `GET /api/vendors/:vendorHash` (single vendor with item details, components 400,401,402,300,302,304,305,310).
+- **API client methods**: `getVendors()` and `getVendor()` added to `APIClient`.
+- **Vendor store** (`src/store/vendorStore.ts`): Zustand store with two-phase loading (bulk vendors → individual vendor item details), per-character caching.
+- **Vendors page**: Character selector tabs, vendor groups (from Bungie vendor group definitions), collapsible vendor cards with icon/subtitle/refresh countdown, sale items organized by display categories with item tiles and cost badges, hide-owned toggle, sale status badges (Owned, Unavailable, Already Held).
+
+#### Collections, Triumphs & Metrics (`/collections`)
+
+- **Profile API update**: Component 800 (Collectibles) added to core profile request in worker.
+- **Presentation node tree builder** (`src/lib/records/presentation-nodes.ts`):
+  - `buildPresentationNodeTree()` — recursive tree builder from root hash with completion tracking.
+  - `getRootNodeHashes()` — extracts collection/triumph/seal/metric root hashes from profile response.
+  - Scope resolution: character-scoped records use first character; character-scoped collectibles take best (least "not acquired") across all characters.
+  - Title/seal resolution with gilding tracking via `completionRecordHash` → `gildingTrackingRecordHash`.
+  - State bit flags: `Invisible`, `RecordRedeemed`, `ObjectiveNotCompleted`, `NotAcquired`.
+  - Full type system: `PresentationNode`, `RecordNode`, `CollectibleNode`, `MetricNode`, `TitleInfo`, `ObjectiveProgress`.
+- **Collections page**: Tab bar (Triumphs, Collections, Seals, Metrics), breadcrumb navigation for nested nodes, node cards with progress bars, seal cards with special styling (purple completed, gold gilded with count), record rows with objectives and score, collectible tiles with acquired/locked state, metric rows with progress bars.
+
+#### Infrastructure
+
+- **Routing**: Three new lazy-loaded routes (`/organizer`, `/vendors`, `/collections`) in `App.tsx`.
+- **Navigation**: "Organizer" and "Collections" links added to `Navigation.tsx`.
+- **Bundle splitting**: Organizer (22.5 kB), Vendors (12.6 kB), Collections (19.4 kB) as separate chunks.
+
 ## [0.33.0] - 2026-03-05
 
 ### Phase 1 Completion + Tier 3 Quick Wins

@@ -191,4 +191,51 @@ export class APIClient {
             headers: { 'Content-Type': 'application/json' }
         });
     }
+
+    // ========================================================================
+    // VENDORS
+    // ========================================================================
+
+    /**
+     * Fetches all vendor data for a character (lightweight — no item components).
+     * Returns the raw Bungie envelope; caller should unwrap .Response.
+     */
+    static async getVendors(
+        membershipType: number,
+        membershipId: string,
+        characterId: string,
+    ): Promise<any> {
+        const params = new URLSearchParams({
+            membershipType: String(membershipType),
+            membershipId,
+            characterId,
+        });
+        const envelope = await this.request<any>(`/api/vendors?${params}`);
+        if (envelope?.ErrorCode && envelope.ErrorCode !== 1) {
+            throw new Error(`Bungie API error ${envelope.ErrorCode}: ${envelope.Message}`);
+        }
+        return envelope?.Response ?? envelope;
+    }
+
+    /**
+     * Fetches a single vendor with full item component data (perks, stats, sockets).
+     * Used for vendors that sell armor/weapons where stats matter.
+     */
+    static async getVendor(
+        membershipType: number,
+        membershipId: string,
+        characterId: string,
+        vendorHash: number,
+    ): Promise<any> {
+        const params = new URLSearchParams({
+            membershipType: String(membershipType),
+            membershipId,
+            characterId,
+        });
+        const envelope = await this.request<any>(`/api/vendors/${vendorHash}?${params}`);
+        if (envelope?.ErrorCode && envelope.ErrorCode !== 1) {
+            throw new Error(`Bungie API error ${envelope.ErrorCode}: ${envelope.Message}`);
+        }
+        return envelope?.Response ?? envelope;
+    }
 }
