@@ -297,17 +297,16 @@ export default function Inventory() {
     // We filter from the SEARCH results
     const charItems = filteredItems.filter((i) => i.owner === charId);
 
-    // Find Postmaster items (Standard bucket check)
-    // Need to check definition for bucket hash
+    // Find Postmaster items — check the item's RUNTIME bucketHash (where it currently sits),
+    // not the definition's bucketTypeHash (which is the item's canonical slot type).
+    // A weapon in the postmaster has bucketHash=215593132 but bucketTypeHash=1498876634 (kinetic), etc.
     const postmasterItems = charItems.filter((i) => {
-      const def = definitions[i.itemHash];
-      return def?.inventory?.bucketTypeHash === 215593132; // BUCKETS.Postmaster
+      return i.bucketHash === 215593132; // BUCKETS.Postmaster (runtime location)
     });
 
     const inventoryItems = charItems.filter((i) => {
-      const def = definitions[i.itemHash];
-      // Exclude postmaster
-      return def?.inventory?.bucketTypeHash !== 215593132;
+      // Exclude postmaster items by runtime bucket
+      return i.bucketHash !== 215593132;
     });
 
     // Calculate Max Power

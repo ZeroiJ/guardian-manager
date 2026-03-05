@@ -3,10 +3,101 @@ import { handle } from "hono/cloudflare-pages";
 import { setCookie, getCookie } from "hono/cookie";
 import { getBungieConfig, Env } from "../config";
 import { getManifestMetadata, getManifestTablePath } from "../manifest";
+import { refreshBungieTokens } from "../lib/auth";
 
 export const runtime = "edge";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// ============================================================================
+// HELPER: Authenticated Bungie API fetch with auto-refresh on 401
+// ============================================================================
+
+/**
+ * Makes an authenticated request to the Bungie API, automatically refreshing
+ * the OAuth token on 401 and retrying once.
+ *
+ * @returns The Bungie API Response (caller must handle .json() / error checking)
+ */
+async function authenticatedBungieFetch(
+  c: any,
+  bungieUrl: string,
+  options: { method: string; body?: string },
+): Promise<Response> {
+  const config = getBungieConfig(c.env);
+  const authCookie = getCookie(c, "bungie_auth");
+  if (!authCookie) throw new AuthError("No auth cookie");
+
+  let session: any;
+  try {
+    session = JSON.parse(authCookie);
+  } catch {
+    throw new AuthError("Invalid auth cookie");
+  }
+
+  let access_token = session.t || session.access_token;
+
+  const makeRequest = () =>
+    fetch(bungieUrl, {
+      method: options.method,
+      headers: {
+        "X-API-Key": config.apiKey,
+        Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
+      },
+      ...(options.body ? { body: options.body } : {}),
+    });
+
+  let response = await makeRequest();
+
+  // If 401, attempt token refresh and retry once
+  if (response.status === 401) {
+    console.warn(`[AuthFetch] 401 on ${bungieUrl} — attempting token refresh...`);
+
+    const refreshToken = session.r || session.refresh_token;
+    if (!refreshToken) throw new AuthError("Session expired — no refresh token");
+
+    try {
+      const newTokens = await refreshBungieTokens(refreshToken, c.env);
+      console.log("[AuthFetch] Token refresh successful");
+
+      access_token = newTokens.access_token;
+
+      // Update cookie with new tokens
+      const newSession = {
+        t: newTokens.access_token,
+        r: newTokens.refresh_token,
+        m: newTokens.membership_id,
+        e: Date.now() + newTokens.expires_in * 1000,
+      };
+
+      const isSecure = c.req.url.startsWith("https");
+      setCookie(c, "bungie_auth", JSON.stringify(newSession), {
+        path: "/",
+        secure: isSecure,
+        httpOnly: true,
+        maxAge: 3600 * 24 * 90,
+        sameSite: "Lax",
+      });
+
+      // Retry with fresh token
+      response = await makeRequest();
+    } catch (refreshErr) {
+      console.error("[AuthFetch] Token refresh failed:", refreshErr);
+      throw new AuthError("Session expired — please login again");
+    }
+  }
+
+  return response;
+}
+
+/** Sentinel error class so route handlers can distinguish auth failures. */
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthError";
+  }
+}
 
 // Middleware to inject Enviroment Bindings
 app.use("*", async (c: any, next: any) => {
@@ -389,36 +480,27 @@ app.get("/api/image", async (c: any) => {
 });
 
 app.post("/api/actions/transfer", async (c: any) => {
-  const config = getBungieConfig(c.env);
-  const authCookie = getCookie(c, "bungie_auth");
-  if (!authCookie) return c.text("Unauthorized", 401);
+  try {
+    const body = (await c.req.json()) as any;
 
-  const session = JSON.parse(authCookie);
-  // Read access_token from 't'
-  const access_token = session.t || session.access_token;
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Items/TransferItem/",
+      { method: "POST", body: JSON.stringify(body) },
+    );
 
-  const body = (await c.req.json()) as any;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Transfer] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
 
-  const response = await fetch(
-    "https://www.bungie.net/Platform/Destiny2/Actions/Items/TransferItem/",
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": config.apiKey,
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    },
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    return c.text(errorText, response.status as any);
+    const data = await response.json();
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[Transfer] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
   }
-
-  const data = await response.json();
-  return c.json(data);
 });
 
 app.get("/api/metadata", async (c: any) => {
@@ -494,161 +576,117 @@ app.post("/api/metadata", async (c: any) => {
 });
 
 app.post("/api/actions/insertPlugFree", async (c: any) => {
-  const config = getBungieConfig(c.env);
-  const authCookie = getCookie(c, "bungie_auth");
-  if (!authCookie) return c.text("Unauthorized", 401);
-
-  let session;
   try {
-    session = JSON.parse(authCookie);
-  } catch {
-    return c.text("Invalid auth cookie", 401);
+    const body = (await c.req.json()) as any;
+
+    if (!body.itemId || !body.plug || !body.characterId || body.membershipType === undefined) {
+      return c.text("Missing required fields for insertPlugFree", 400);
+    }
+
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Items/InsertSocketPlugFree/",
+      { method: "POST", body: JSON.stringify(body) },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[InsertPlugFree] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.json();
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[InsertPlugFree] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
   }
-
-  const access_token = session.t || session.access_token;
-
-  const body = (await c.req.json()) as any;
-
-  if (!body.itemId || !body.plug || !body.characterId || body.membershipType === undefined) {
-    return c.text("Missing required fields for insertPlugFree", 400);
-  }
-
-  const response = await fetch(
-    "https://www.bungie.net/Platform/Destiny2/Actions/Items/InsertSocketPlugFree/",
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": config.apiKey,
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    },
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[InsertPlugFree] Bungie API error ${response.status}: ${errorText}`);
-    return c.text(errorText, response.status as any);
-  }
-
-  const data = await response.json();
-  return c.json(data);
 });
 
 app.post("/api/actions/equip", async (c: any) => {
-  const config = getBungieConfig(c.env);
-  const authCookie = getCookie(c, "bungie_auth");
-  if (!authCookie) return c.text("Unauthorized", 401);
-
-  let session;
   try {
-    session = JSON.parse(authCookie);
-  } catch {
-    return c.text("Invalid auth cookie", 401);
-  }
+    const body = (await c.req.json()) as any;
 
-  const access_token = session.t || session.access_token;
+    // Validate required fields
+    if (!body.itemIds || !Array.isArray(body.itemIds) || body.itemIds.length === 0) {
+      return c.text("itemIds array is required", 400);
+    }
+    if (!body.characterId) {
+      return c.text("characterId is required", 400);
+    }
+    if (body.membershipType === undefined || body.membershipType === null) {
+      return c.text("membershipType is required", 400);
+    }
 
-  const body = (await c.req.json()) as any;
-
-  // Validate required fields
-  if (
-    !body.itemIds ||
-    !Array.isArray(body.itemIds) ||
-    body.itemIds.length === 0
-  ) {
-    return c.text("itemIds array is required", 400);
-  }
-  if (!body.characterId) {
-    return c.text("characterId is required", 400);
-  }
-  if (body.membershipType === undefined || body.membershipType === null) {
-    return c.text("membershipType is required", 400);
-  }
-
-  console.log(
-    `[EquipItems] Equipping ${body.itemIds.length} items on character ${body.characterId}`,
-  );
-
-  const response = await fetch(
-    "https://www.bungie.net/Platform/Destiny2/Actions/Items/EquipItems/",
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": config.apiKey,
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        itemIds: body.itemIds,
-        characterId: body.characterId,
-        membershipType: body.membershipType,
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(
-      `[EquipItems] Bungie API error ${response.status}: ${errorText}`,
+    console.log(
+      `[EquipItems] Equipping ${body.itemIds.length} items on character ${body.characterId}`,
     );
-    return c.text(errorText, response.status as any);
-  }
 
-  const data = await response.json();
-  console.log(`[EquipItems] Success`);
-  return c.json(data);
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Items/EquipItems/",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          itemIds: body.itemIds,
+          characterId: body.characterId,
+          membershipType: body.membershipType,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[EquipItems] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.json();
+    console.log(`[EquipItems] Success`);
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[EquipItems] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
+  }
 });
 
 
 app.post("/api/actions/equipLoadout", async (c: any) => {
-  const config = getBungieConfig(c.env);
-  const authCookie = getCookie(c, "bungie_auth");
-  if (!authCookie) return c.text("Unauthorized", 401);
-
-  let session;
   try {
-    session = JSON.parse(authCookie);
-  } catch {
-    return c.text("Invalid auth cookie", 401);
-  }
+    const body = (await c.req.json()) as any;
 
-  const access_token = session.t || session.access_token;
-  const body = (await c.req.json()) as any;
-
-  if (body.loadoutIndex === undefined || !body.characterId || !body.membershipType) {
-    return c.text("Missing required fields (loadoutIndex, characterId, membershipType)", 400);
-  }
-
-  console.log(`[EquipLoadout] Equipping loadout index ${body.loadoutIndex} on character ${body.characterId}`);
-
-  const response = await fetch(
-    "https://www.bungie.net/Platform/Destiny2/Actions/Loadouts/EquipLoadout/",
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": config.apiKey,
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        loadoutIndex: body.loadoutIndex,
-        characterId: body.characterId,
-        membershipType: body.membershipType,
-      }),
+    if (body.loadoutIndex === undefined || !body.characterId || !body.membershipType) {
+      return c.text("Missing required fields (loadoutIndex, characterId, membershipType)", 400);
     }
-  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[EquipLoadout] Bungie API error ${response.status}: ${errorText}`);
-    return c.text(errorText, response.status as any);
+    console.log(`[EquipLoadout] Equipping loadout index ${body.loadoutIndex} on character ${body.characterId}`);
+
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Loadouts/EquipLoadout/",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          loadoutIndex: body.loadoutIndex,
+          characterId: body.characterId,
+          membershipType: body.membershipType,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[EquipLoadout] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.json();
+    console.log(`[EquipLoadout] Success`);
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[EquipLoadout] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
   }
-
-  const data = await response.json();
-  console.log(`[EquipLoadout] Success`);
-  return c.json(data);
 });
 
 // Catch-all 404 handler

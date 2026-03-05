@@ -71,15 +71,15 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 
 ### Phase 1: Foundation & Friction Removal
 *Focus on making basic use as smooth as DIM.*
-1. Build the advanced search parser (Boolean logic, basic filters like `is:weapon`).
-2. Add Drag-and-Drop support for items across the main inventory grid.
+1. ~~Build the advanced search parser (Boolean logic, basic filters like `is:weapon`).~~ **DONE**
+2. ~~Add Drag-and-Drop support for items across the main inventory grid.~~ **DONE**
 3. Add Postmaster interactions (pulling items).
 4. Implement Keyboard Shortcuts.
 
 ### Phase 2: The Loadout Upgrade
 *Focus on robust buildcrafting.*
-1. Re-write the loadout application pipeline to handle mods and exotics safely.
-2. Integrate in-game loadouts (view and apply).
+1. Re-write the loadout application pipeline to handle mods and exotics safely. *(In progress — basic pipeline exists, needs exotic conflict resolution & dequip logic.)*
+2. ~~Integrate in-game loadouts (view and apply).~~ **DONE**
 3. Add socket stripping and basic fashion integration.
 
 ### Phase 3: Advanced Tools
