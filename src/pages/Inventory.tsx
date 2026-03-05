@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { DndContext, DragOverlay, DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, DragEndEvent, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { Search, BookMarked } from "lucide-react";
 import { StoreHeader } from "@/components/inventory/StoreHeader";
 import { InventoryBucketLabel } from "@/components/inventory/InventoryBucketLabel";
@@ -177,6 +177,16 @@ export default function Inventory() {
       definition,
     });
   };
+
+  // DnD sensors: require pointer to move 8px before drag activates,
+  // so that a normal click/tap fires onClick (opens item popup) undisturbed.
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 150, tolerance: 5 },
+  });
+  const sensors = useSensors(pointerSensor, touchSensor);
 
   const handleItemClick = (
     item: any,
@@ -435,7 +445,7 @@ export default function Inventory() {
       />
 
       {/* DndContext for Drag and Drop */}
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Horizontal Content - THE FLOORS */}
         {/* Horizontal Content - SLOT BASED ROWS */}
         <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
