@@ -46,7 +46,7 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 
 | Feature | DIM Source Reference | Description | Effort |
 | :--- | :--- | :--- | :--- |
-| **Cross-Device Sync** | `src/app/dim-api/` | Cloud syncing for custom tags, notes, and settings. **PROMOTED — see Phase 1.5 plan below.** | High |
+| ~~**Cross-Device Sync**~~ | `src/app/dim-api/` | ~~Cloud syncing for custom tags, notes, and settings.~~ **DONE** — D1-backed sync engine with loadouts, settings, and incremental delta sync via sync tokens. See Phase 1.5 below. | ~~High~~ |
 | **Item Feed** | `src/app/item-feed/` | Real-time log of newly acquired items. | Low |
 | **Hashtag Notes** | `src/app/inventory/note-hashtags.ts` | Adding `#pvp` or `#keep` text notes to items. | Low |
 | **Clarity Integration** | `src/app/clarity/` | Sourcing community-sourced detailed perk stats (numbers/percentages). | Medium |
@@ -64,7 +64,7 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 | **Postmaster** | View only. | Needs a "Pull from Postmaster" button and "Collect All" functionality. |
 | **Notifications** | Simple toasts. | Needs persistent progress tracking (e.g., "Moving 5 items... 2/5 done") and undo actions. |
 | **Settings** | Very minimal. | Needs extensive display, sorting, and behavior toggles. |
-| **Profile Loading** | Full network fetch on every load + naive 90s setInterval polling. | Needs IDB profile caching (stale-while-revalidate), timestamp-based skip, smart polling with setTimeout. **See Phase 1.5 plan.** |
+| ~~**Profile Loading**~~ | ~~Full network fetch on every load + naive 90s setInterval polling.~~ **DONE** — IDB profile caching (stale-while-revalidate), timestamp guard, smart setTimeout polling with tab-focus refresh. | ~~Needs IDB profile caching (stale-while-revalidate), timestamp-based skip, smart polling with setTimeout. **See Phase 1.5 plan.**~~ |
 
 ---
 
@@ -92,13 +92,13 @@ This document provides a comprehensive audit of Destiny Item Manager (DIM) sourc
 ### Phase 4: The Final Frontier
 *Focus on the most complex, value-add features.*
 1. **Loadout Optimizer**: Tackle the Web Worker-based armor builder. This is a massive project requiring substantial UI and background processing architecture.
-2. ~~Cross-device sync via a custom backend or indexedDB sync solutions.~~ **PROMOTED to Phase 1.5** — see detailed plan below.
+2. ~~Cross-device sync via a custom backend or indexedDB sync solutions.~~ **DONE** — Implemented in Phase 1.5 (v0.32.0). D1-backed sync engine with loadouts, settings, incremental delta sync.
 
 ---
 
-## Phase 1.5: Profile Caching & Cloud Sync (NEXT UP)
+## Phase 1.5: Profile Caching & Cloud Sync (✅ COMPLETED)
 
-*Focus on instant cold-load UX and cross-device data persistence. These two systems are the next priority.*
+*Focus on instant cold-load UX and cross-device data persistence. Both systems are fully implemented and shipped in v0.32.0.*
 
 ### Background: What DIM Does
 
@@ -110,26 +110,26 @@ DIM runs its own API server that stores tags, notes, loadouts, settings, and sea
 
 ### Current State (Guardian Nexus)
 
-- **ZERO profile caching**: Every page load = full network fetch. Every 90s poll = full network fetch. No IDB storage of profile data.
+- ~~**ZERO profile caching**~~ **DONE** — Raw profile cached in IDB via `idb-keyval`. Two-phase load in `useProfile.ts` (cache first, network second). Timestamp guard in `hydrate()` skips reprocessing when data isn't newer.
 - Manifest definitions ARE cached (IDB + memory via ManifestManager) — good reference pattern.
-- `useAutoRefresh` is a naive `setInterval(90s)` with visibility + in-flight guards. No timestamp comparison, no smart skip.
-- Tags/notes already stored in D1 via Cloudflare Worker, but loadouts are localStorage-only (not synced cross-device).
+- ~~`useAutoRefresh` is a naive `setInterval(90s)` with visibility + in-flight guards. No timestamp comparison, no smart skip.~~ **DONE** — Rewritten to `setTimeout` with smart skip (tab hidden, mid-drag, in-flight) and tab re-focus immediate refresh.
+- ~~Tags/notes already stored in D1 via Cloudflare Worker, but loadouts are localStorage-only (not synced cross-device).~~ **DONE** — Loadouts and settings now synced to D1 via sync engine. Legacy localStorage data migrated on first sync.
 - `idb-keyval` already a dependency.
 
 ---
 
-### Implementation Plan A: Profile Caching (Stale-While-Revalidate)
+### Implementation Plan A: Profile Caching (Stale-While-Revalidate) ✅
 
 **Goal:** Instant UI on cold load by serving cached Bungie profile from IDB, then seamlessly swapping in fresh data from the network.
 
-#### Step 1: Profile Cache Service (`src/services/profile/profileCache.ts`)
+#### ~~Step 1: Profile Cache Service (`src/services/profile/profileCache.ts`)~~ ✅
 - Create IDB read/write utilities for the raw Bungie profile response.
 - Store under key `profile-${membershipId}` in a dedicated IDB store (reuse `idb-keyval` or create a new DB).
 - Store alongside the profile: `responseMintedTimestamp`, `secondaryComponentsMintedTimestamp`, and a `cachedAt` wall-clock timestamp.
 - Provide `getCache(membershipId)` → `CachedProfile | null` and `setCache(membershipId, profile)` → `void`.
 - Add a `clearCache(membershipId)` for logout/account-switch.
 
-#### Step 2: Two-Phase Load in `useProfile.ts`
+#### ~~Step 2: Two-Phase Load in `useProfile.ts`~~ ✅
 - **Phase 1 (Cache):** On mount, call `profileCache.getCache()`. If hit, immediately call `inventoryStore.hydrate(cachedProfile)`. Set a `fromCache: true` flag so the UI can optionally show a "refreshing..." indicator.
 - **Phase 2 (Network):** Fire the network request to `/api/profile`. On success:
   - Compare `responseMintedTimestamp` from network vs. cached.
@@ -137,12 +137,12 @@ DIM runs its own API server that stores tags, notes, loadouts, settings, and sea
   - If network is same/older: skip reprocessing (no-op). Just update the "last checked" time.
 - **Error fallback:** If network fails but cache exists, keep showing cached data with a warning banner.
 
-#### Step 3: Timestamp Guard in `useInventoryStore.hydrate()`
+#### ~~Step 3: Timestamp Guard in `useInventoryStore.hydrate()`~~ ✅
 - Add a `lastMintedTimestamp` field to the store.
 - At the top of `hydrate()`, compare incoming `responseMintedTimestamp` against `lastMintedTimestamp`. If not newer, return early (skip all item processing).
 - This prevents wasted reprocessing on every 90s poll when nothing changed.
 
-#### Step 4: Smart Polling in `useAutoRefresh.ts`
+#### ~~Step 4: Smart Polling in `useAutoRefresh.ts`~~ ✅
 - Replace `setInterval` with `setTimeout` that re-arms after each refresh completes (prevents overlapping requests on slow connections).
 - Add skip conditions:
   - Tab hidden (`document.visibilityState === 'hidden'`)
@@ -156,33 +156,33 @@ DIM runs its own API server that stores tags, notes, loadouts, settings, and sea
 - Use `navigator.locks.request('profile-fetch', ...)` so only one tab hits Bungie at a time.
 - Lower priority — implement after the core cache works.
 
-**Files to create:**
-- `src/services/profile/profileCache.ts`
+**Files created:**
+- `src/services/profile/profileCache.ts` ✅
 
-**Files to modify:**
-- `src/hooks/useProfile.ts` — two-phase load
-- `src/hooks/useAutoRefresh.ts` — setTimeout + smart skip
-- `src/store/useInventoryStore.ts` — timestamp guard in `hydrate()`
+**Files modified:**
+- `src/hooks/useProfile.ts` — two-phase load ✅
+- `src/hooks/useAutoRefresh.ts` — setTimeout + smart skip ✅
+- `src/store/useInventoryStore.ts` — timestamp guard in `hydrate()` ✅
 
 ---
 
-### Implementation Plan B: Cloud Sync (Cross-Device)
+### Implementation Plan B: Cloud Sync (Cross-Device) ✅
 
 **Goal:** Sync loadouts, settings, searches, and tags/notes across devices using our existing Cloudflare Worker + D1 backend.
 
-#### Step 1: Extend D1 Schema for Loadouts & Settings
+#### ~~Step 1: Extend D1 Schema for Loadouts & Settings~~ ✅
 - Add `loadouts` table: `(id TEXT PK, membership_id TEXT, name TEXT, class_type INT, data JSON, updated_at INT, deleted INT DEFAULT 0)`.
 - Add `settings` table: `(membership_id TEXT PK, data JSON, updated_at INT)`.
 - Add `sync_tokens` table: `(membership_id TEXT PK, last_sync_token TEXT, updated_at INT)` — for incremental sync.
 - Tags/notes table already exists — verify it has `updated_at` for incremental sync.
 
-#### Step 2: Worker Sync Endpoints (`functions/api/[[route]].ts`)
+#### ~~Step 2: Worker Sync Endpoints (`functions/api/[[route]].ts`)~~ ✅
 - `POST /api/sync/export` — Client pushes local changes (loadouts, tags, settings). Body: `{ loadouts: [...], tags: [...], settings: {...}, syncToken?: string }`.
 - `POST /api/sync/import` — Client pulls remote changes since last sync. Body: `{ syncToken?: string }`. Response: `{ loadouts: [...], tags: [...], settings: {...}, newSyncToken: string }`.
 - `POST /api/sync/full` — Full bidirectional sync (used on first load or conflict resolution).
 - Sync token = last `updated_at` timestamp seen by client. Server returns only rows with `updated_at > syncToken`.
 
-#### Step 3: Sync Queue in Zustand (`src/store/syncStore.ts`)
+#### ~~Step 3: Sync Queue in Zustand (`src/store/syncStore.ts`)~~ ✅
 - Create a new Zustand store for the sync engine.
 - **Queue:** Array of pending changes `{ type: 'loadout' | 'tag' | 'setting', action: 'upsert' | 'delete', payload: ... }`.
 - **Debounced flush:** After any enqueue, start a 1s debounce timer. On flush, compact the queue (dedupe by type+id, keep latest), then POST to `/api/sync/export`.
@@ -190,41 +190,43 @@ DIM runs its own API server that stores tags, notes, loadouts, settings, and sea
 - **Import on load:** On app init (after auth), call `/api/sync/import` with stored syncToken. Merge remote changes into local stores.
 - **Conflict resolution:** Last-write-wins based on `updated_at`. Simple and predictable.
 
-#### Step 4: Migrate `loadoutStore.ts` from localStorage to D1
+#### ~~Step 4: Migrate `loadoutStore.ts` from localStorage to D1~~ ✅
 - Remove `localStorage.getItem/setItem` calls for loadouts.
 - On loadout create/update/delete, push change to syncStore queue (which handles persistence).
 - On app init, hydrate loadoutStore from sync import response.
 - Keep a local IDB fallback for offline use (write to IDB + queue for server sync when back online).
 
-#### Step 5: Settings Persistence
+#### ~~Step 5: Settings Persistence~~ ✅
 - Create `src/store/settingsStore.ts` (or extend existing) with display preferences, sort options, behavior toggles.
 - On change, push to syncStore queue.
 - On app init, merge from sync import.
 
-#### Step 6: Incremental Sync Loop
+#### ~~Step 6: Incremental Sync Loop~~ ✅
 - After initial sync, periodically check for remote changes (every 5 min or on tab focus).
 - Use sync tokens so the server only returns deltas.
 - Merge incoming changes into local stores without disrupting the user.
 
-**Files to create:**
-- `src/store/syncStore.ts` — Sync engine with queue, flush, import
-- `src/services/sync/syncClient.ts` — HTTP client for sync endpoints
-- D1 migration SQL file for new tables
+**Files created:**
+- `src/store/syncStore.ts` — Sync engine with queue, flush, import ✅
+- `src/services/sync/syncClient.ts` — HTTP client for sync endpoints ✅
+- `src/store/settingsStore.ts` — Persistent user preferences ✅
+- `src/hooks/useCloudSync.ts` — Sync lifecycle orchestration ✅
+- `migrations/0001_cloud_sync.sql` — D1 migration for new tables ✅
 
-**Files to modify:**
-- `functions/api/[[route]].ts` — Add sync endpoints
-- `src/store/loadoutStore.ts` — Remove localStorage, integrate with syncStore
-- `src/hooks/useProfile.ts` or app init — Trigger initial sync on auth
+**Files modified:**
+- `functions/api/[[route]].ts` — Added sync endpoints ✅
+- `src/store/loadoutStore.ts` — Removed localStorage, integrated with syncStore ✅
+- `src/pages/Inventory.tsx` — Added `useCloudSync` hook call ✅
 
 ---
 
 ### Implementation Order
 
-1. **Profile Caching Steps 1-3** — Biggest UX win. Instant cold load.
-2. **Profile Caching Step 4** — Smart polling. Reduces wasted API calls.
-3. **Cloud Sync Steps 1-2** — D1 schema + worker endpoints.
-4. **Cloud Sync Steps 3-4** — Sync engine + loadout migration.
-5. **Cloud Sync Steps 5-6** — Settings + incremental sync.
+1. ~~**Profile Caching Steps 1-3** — Biggest UX win. Instant cold load.~~ ✅
+2. ~~**Profile Caching Step 4** — Smart polling. Reduces wasted API calls.~~ ✅
+3. ~~**Cloud Sync Steps 1-2** — D1 schema + worker endpoints.~~ ✅
+4. ~~**Cloud Sync Steps 3-4** — Sync engine + loadout migration.~~ ✅
+5. ~~**Cloud Sync Steps 5-6** — Settings + incremental sync.~~ ✅
 6. **Profile Caching Step 5** — Cross-tab coordination (optional polish).
 
 ---
