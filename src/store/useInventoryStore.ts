@@ -44,15 +44,21 @@ interface InventoryState {
      * Used to skip reprocessing when poll returns identical data.
      */
     lastMintedTimestamp: string | null;
+    /** Farming mode: auto-move engrams + consumables to vault. */
+    farmingMode: { active: boolean; characterId: string | null };
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
     setManifest: (manifest: Record<number, ManifestDefinition>) => void;
     setInGameLoadouts: (loadouts: Record<string, InGameLoadout[]>) => void;
     moveItem: (itemInstanceId: string, itemHash: number, targetOwnerId: string, isVault: boolean) => Promise<void>;
+    setLockState: (itemInstanceId: string, locked: boolean) => Promise<void>;
+    pullFromPostmaster: (itemInstanceId: string, itemHash: number, characterId: string) => Promise<void>;
+    pullAllFromPostmaster: (characterId: string) => Promise<{ success: number; failed: number }>;
     updateMetadata: (itemInstanceId: string, type: 'tag' | 'note', value: string | null) => Promise<void>;
     startCompare: (item: GuardianItem) => void;
     endCompare: () => void;
+    toggleFarmingMode: (characterId?: string) => void;
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
@@ -65,6 +71,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     compareSession: null,
     inGameLoadouts: {},
     lastMintedTimestamp: null,
+    farmingMode: { active: false, characterId: null },
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
@@ -244,6 +251,88 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         }
     },
 
+    setLockState: async (itemInstanceId, locked) => {
+        const currentItems = get().items;
+        const itemIndex = currentItems.findIndex(i => i.itemInstanceId === itemInstanceId);
+        if (itemIndex === -1) return;
+
+        const item = currentItems[itemIndex];
+        const previousItems = [...currentItems];
+
+        // Optimistic update: toggle bit 0 of item.state
+        const newItems = [...currentItems];
+        newItems[itemIndex] = {
+            ...item,
+            state: locked ? (item.state | 1) : (item.state & ~1),
+        };
+        set({ items: newItems });
+
+        try {
+            const profile = get().profile;
+            const membershipType = profile?.profile?.data?.userInfo?.membershipType || 3;
+            // Lock API requires a real characterId (not 'vault')
+            const characterId = item.owner === 'vault'
+                ? Object.keys(get().characters)[0]
+                : item.owner;
+
+            await APIClient.setLockState(itemInstanceId, characterId, membershipType, locked);
+            console.log(`[InventoryStore] Lock state set: ${itemInstanceId} → ${locked}`);
+        } catch (err) {
+            console.error('[InventoryStore] SetLockState failed, reverting:', err);
+            set({ items: previousItems });
+        }
+    },
+
+    pullFromPostmaster: async (itemInstanceId, itemHash, characterId) => {
+        const currentItems = get().items;
+        const itemIndex = currentItems.findIndex(i => i.itemInstanceId === itemInstanceId);
+        if (itemIndex === -1) return;
+
+        const previousItems = [...currentItems];
+        const newItems = [...currentItems];
+
+        // Optimistic: move from postmaster (bucket 215593132) to character inventory
+        const def = get().manifest[itemHash];
+        const trueBucket = def?.inventory?.bucketTypeHash || 215593132;
+        newItems[itemIndex] = {
+            ...newItems[itemIndex],
+            bucketHash: trueBucket,
+            instanceData: { ...newItems[itemIndex].instanceData, isEquipped: false },
+        };
+        set({ items: newItems });
+
+        try {
+            const profile = get().profile;
+            const membershipType = profile?.profile?.data?.userInfo?.membershipType || 3;
+            await APIClient.pullFromPostmaster(itemHash, itemInstanceId, characterId, membershipType);
+            console.log(`[InventoryStore] Pulled from postmaster: ${itemInstanceId}`);
+        } catch (err) {
+            console.error('[InventoryStore] PullFromPostmaster failed, reverting:', err);
+            set({ items: previousItems });
+        }
+    },
+
+    pullAllFromPostmaster: async (characterId) => {
+        const items = get().items;
+        const postmasterItems = items.filter(
+            i => i.bucketHash === 215593132 && i.owner === characterId && i.itemInstanceId
+        );
+
+        let success = 0;
+        let failed = 0;
+
+        for (const item of postmasterItems) {
+            try {
+                await get().pullFromPostmaster(item.itemInstanceId!, item.itemHash, characterId);
+                success++;
+            } catch {
+                failed++;
+            }
+        }
+
+        return { success, failed };
+    },
+
     updateMetadata: async (itemInstanceId, type, value) => {
         const currentMeta = get().metadata;
         if (!currentMeta) return;
@@ -311,5 +400,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     /** End the compare session (close the sheet). */
     endCompare: () => {
         set({ compareSession: null });
+    },
+
+    /**
+     * Toggle farming mode on/off for a character.
+     * When toggled ON, characterId is required.
+     * When toggled OFF (or toggled with no arg while active), it deactivates.
+     */
+    toggleFarmingMode: (characterId?: string) => {
+        const current = get().farmingMode;
+        if (current.active) {
+            // Turn off
+            set({ farmingMode: { active: false, characterId: null } });
+            console.log('[InventoryStore] Farming mode OFF');
+        } else if (characterId) {
+            // Turn on
+            set({ farmingMode: { active: true, characterId } });
+            console.log(`[InventoryStore] Farming mode ON for character ${characterId}`);
+        }
     },
 }));

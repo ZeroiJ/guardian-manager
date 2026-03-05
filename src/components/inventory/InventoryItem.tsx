@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { RARITY_COLORS, MASTERWORK_GOLD } from '../../data/constants';
 import { BungieImage, bungieNetPath } from '../ui/BungieImage';
+import { useBulkSelectStore } from '../../store/useBulkSelectStore';
 
 /** ItemState bitmask constants from Bungie API */
 const ITEM_STATE_CRAFTED = 8;
@@ -27,6 +28,28 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
         data: { item, definition },
         disabled: !canDrag
     });
+
+    // Bulk selection
+    const bulkActive = useBulkSelectStore((s) => s.active);
+    const isSelected = useBulkSelectStore((s) => item?.itemInstanceId ? s.selectedIds.has(item.itemInstanceId) : false);
+    const bulkToggle = useBulkSelectStore((s) => s.toggle);
+
+    const handleClick = (e: React.MouseEvent) => {
+        // Ctrl/Cmd+Click or Meta+Click: toggle bulk selection
+        if ((e.ctrlKey || e.metaKey) && item?.itemInstanceId) {
+            e.stopPropagation();
+            bulkToggle(item.itemInstanceId);
+            return;
+        }
+        // If bulk mode is active and user clicks (no modifier), toggle this item
+        if (bulkActive && item?.itemInstanceId) {
+            e.stopPropagation();
+            bulkToggle(item.itemInstanceId);
+            return;
+        }
+        // Normal click: open item popup
+        onClick?.(e);
+    };
 
     const style = {
         transform: CSS.Translate.toString(transform),
@@ -81,14 +104,14 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             ref={setNodeRef}
             {...(canDrag ? listeners : {})}
             {...(canDrag ? attributes : {})}
-            className="relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200"
+            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200 ${isSelected ? 'ring-2 ring-[#f5dc56] ring-offset-1 ring-offset-black' : ''}`}
             style={{
                 ...style,
                 borderColor: hasDeepsight ? '#22d3ee' : effectiveBorderColor,
                 backgroundColor: isMasterwork ? '#3d3523' : undefined,
                 boxShadow: hasDeepsight ? 'inset 0 0 10px rgba(34,211,238,0.25), 0 0 6px rgba(34,211,238,0.15)' : undefined,
             }}
-            onClick={onClick}
+            onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
@@ -113,6 +136,15 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             {/* Masterwork golden hue overlay */}
             {isMasterwork && (
                 <div className="absolute inset-0 pointer-events-none z-[1]" style={{ boxShadow: 'inset 0 0 12px rgba(234, 222, 139, 0.25)' }} />
+            )}
+
+            {/* Bulk selection checkbox */}
+            {(bulkActive || isSelected) && item?.itemInstanceId && (
+                <div className="absolute top-0 right-0 z-[3] pointer-events-none">
+                    <div className={`w-4 h-4 rounded-bl flex items-center justify-center text-[10px] font-bold ${isSelected ? 'bg-[#f5dc56] text-black' : 'bg-black/60 text-gray-400'}`}>
+                        {isSelected ? '\u2713' : ''}
+                    </div>
+                </div>
             )}
 
             {/* Crafted badge — top-left corner */}

@@ -503,6 +503,68 @@ app.post("/api/actions/transfer", async (c: any) => {
   }
 });
 
+app.post("/api/actions/setLockState", async (c: any) => {
+  try {
+    const body = (await c.req.json()) as any;
+
+    if (!body.itemId || body.membershipType === undefined || !body.characterId || body.state === undefined) {
+      return c.text("Missing required fields for setLockState", 400);
+    }
+
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Items/SetLockState/",
+      { method: "POST", body: JSON.stringify(body) },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[SetLockState] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.json();
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[SetLockState] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
+  }
+});
+
+app.post("/api/actions/pullFromPostmaster", async (c: any) => {
+  try {
+    const body = (await c.req.json()) as any;
+
+    if (!body.itemId || body.itemReferenceHash === undefined || !body.characterId || body.membershipType === undefined) {
+      return c.text("Missing required fields for pullFromPostmaster", 400);
+    }
+
+    const response = await authenticatedBungieFetch(c,
+      "https://www.bungie.net/Platform/Destiny2/Actions/Items/PullFromPostmaster/",
+      { method: "POST", body: JSON.stringify({
+        itemReferenceHash: body.itemReferenceHash,
+        stackSize: body.stackSize || 1,
+        itemId: body.itemId,
+        characterId: body.characterId,
+        membershipType: body.membershipType,
+      }) },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[PullFromPostmaster] Bungie API error ${response.status}: ${errorText}`);
+      return c.text(errorText, response.status as any);
+    }
+
+    const data = await response.json();
+    return c.json(data);
+  } catch (err: any) {
+    if (err instanceof AuthError) return c.text(err.message, 401);
+    console.error("[PullFromPostmaster] Unexpected error:", err);
+    return c.text(err.message || "Internal error", 500);
+  }
+});
+
 app.get("/api/metadata", async (c: any) => {
   const authCookie = getCookie(c, "bungie_auth");
   if (!authCookie) return c.json({ tags: {}, notes: {} });

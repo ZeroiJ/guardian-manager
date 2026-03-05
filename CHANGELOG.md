@@ -2,6 +2,76 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.33.0] - 2026-03-05
+
+### Phase 1 Completion + Tier 3 Quick Wins
+
+Six features implemented in one batch to close out Phase 1 of the DIM gap analysis roadmap and land several Tier 3 quick wins.
+
+#### Lock API (End-to-End)
+
+- **Worker endpoint**: `POST /api/actions/setLockState` proxies to Bungie's `SetLockState` API.
+- **APIClient method**: `APIClient.setLockState()` with full request shaping.
+- **Store action**: `useInventoryStore.setLockState()` with optimistic update (toggles bit 0 of `item.state`) and rollback on failure.
+- **Context menu wired**: `ItemContextMenu.tsx` calls real lock API (no longer stubbed), shows only for `lockable` items, displays `L` shortcut hint.
+
+#### Postmaster Pull / Collect All
+
+- **Worker endpoint**: `POST /api/actions/pullFromPostmaster` proxies to Bungie's `PullFromPostmaster` API.
+- **APIClient method**: `APIClient.pullFromPostmaster()` with `itemReferenceHash`, `stackSize`, `itemId`, `characterId`, `membershipType`.
+- **Store actions**: `pullFromPostmaster()` (single item with optimistic bucket update) and `pullAllFromPostmaster()` (sequential loop with success/fail counters).
+- **TransferService**: Detects `isPostmaster` flag and routes through `PullFromPostmaster` API, with follow-up transfers if target is vault or another character.
+- **UI**: Postmaster row added to main `Inventory.tsx` after Class Items row, with item tiles + "Collect All (N)" button per character. Context menu shows "Pull to Character" for postmaster items.
+
+#### Keyboard Shortcuts
+
+- **Generic hook**: `useHotkeys.ts` — registers keybindings on the document, suppresses shortcuts when input/textarea is focused (unless `global: true`), supports modifier keys.
+- **Bindings**: `/` and `Ctrl+K` (search focus), `Escape` (close popup / clear bulk selection / close drawer / clear search), `R` (refresh), `L` (lock selected item), `1-4` (page navigation).
+- **`HOTKEY_MAP`** constant for potential help overlay display.
+
+#### Infusion Finder
+
+- **Pure logic**: `infusionFinder.ts` — `findInfusionCandidates()` finds all items in the same bucket with higher power, respects class compatibility for armor, sorts by power descending.
+- **Modal component**: `InfusionFinder.tsx` — full-screen modal with candidate list, power delta display, owner labels, "Bring" button to transfer fuel to the target item's location.
+- **Integration**: "Find Infusion Fuel" button added to `ItemDetailModal` for any item with a power level.
+
+#### Farming Mode
+
+- **Store state**: `farmingMode: { active: boolean, characterId: string | null }` in `useInventoryStore` with `toggleFarmingMode()` action.
+- **Auto-move hook**: `useFarmingMode.ts` — watches inventory for engrams (bucket 375726501) and consumables (bucket 1469714392) on the farming character and auto-moves them to vault. Sequential API calls, respects farming mode toggle mid-batch.
+- **UI**: Green-highlighted "Farm" / "Farming" toggle button in the Inventory top bar with tooltip.
+
+#### Bulk Actions
+
+- **Selection store**: `useBulkSelectStore.ts` — dedicated Zustand store for multi-item selection (toggle, select, deselect, selectMany, clear, activate/deactivate).
+- **InventoryItem integration**: `Ctrl/Cmd+Click` toggles bulk selection. When bulk mode is active, normal clicks also toggle. Gold ring + checkmark indicator on selected items.
+- **Floating action bar**: `BulkActionBar.tsx` — fixed bottom bar with count badge, Lock/Unlock/Vault/Transfer actions, character dropdown for transfer targets, X to clear. Sequential API execution with processing state.
+- **Escape integration**: `Escape` key clears bulk selection (after closing any open popups).
+
+#### DnD Click Fix
+
+- `PointerSensor` with `distance: 8` and `TouchSensor` with `delay: 150, tolerance: 5` prevent drag activation from intercepting normal click/tap events.
+
+#### Files Added
+
+- `src/lib/destiny/infusionFinder.ts` — Infusion fuel candidate finder
+- `src/components/inventory/InfusionFinder.tsx` — Infusion finder modal
+- `src/hooks/useHotkeys.ts` — Global keyboard shortcut hook
+- `src/hooks/useFarmingMode.ts` — Farming mode auto-move hook
+- `src/store/useBulkSelectStore.ts` — Bulk selection state store
+- `src/components/inventory/BulkActionBar.tsx` — Floating bulk action bar
+
+#### Files Modified
+
+- `functions/api/[[route]].ts` — Added `setLockState` and `pullFromPostmaster` endpoints
+- `src/services/api/client.ts` — Added `setLockState()` and `pullFromPostmaster()` methods
+- `src/services/inventory/transferService.ts` — Added `isPostmaster` flag, postmaster-aware routing
+- `src/store/useInventoryStore.ts` — Added `setLockState`, `pullFromPostmaster`, `pullAllFromPostmaster`, `farmingMode`, `toggleFarmingMode`
+- `src/components/inventory/ItemContextMenu.tsx` — Wired lock API, added postmaster pull, shortcut hints
+- `src/components/inventory/ItemDetailModal.tsx` — Added infusion finder button + modal
+- `src/components/inventory/InventoryItem.tsx` — Bulk selection (Ctrl+click), selection indicator
+- `src/pages/Inventory.tsx` — DnD sensors, postmaster row, hotkeys, farming mode toggle, bulk action bar
+
 ## [0.32.0] - 2026-03-05
 
 ### Phase 1.5: Profile Caching + Cloud Sync

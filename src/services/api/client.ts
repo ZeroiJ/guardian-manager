@@ -145,4 +145,50 @@ export class APIClient {
             }
         });
     }
+
+    /**
+     * Sets the lock state of an item.
+     * Uses the Bungie API /Actions/Items/SetLockState/ endpoint.
+     */
+    static async setLockState(
+        itemId: string,
+        characterId: string,
+        membershipType: number,
+        locked: boolean
+    ): Promise<void> {
+        return this.request('/api/actions/setLockState', {
+            method: 'POST',
+            body: JSON.stringify({
+                itemId,
+                characterId,
+                membershipType,
+                state: locked,
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    /**
+     * Pulls an item from the postmaster to character inventory.
+     * Uses the Bungie API /Actions/Items/PullFromPostmaster/ endpoint.
+     */
+    static async pullFromPostmaster(
+        itemHash: number,
+        itemInstanceId: string,
+        characterId: string,
+        membershipType: number,
+        stackSize: number = 1
+    ): Promise<void> {
+        return this.request('/api/actions/pullFromPostmaster', {
+            method: 'POST',
+            body: JSON.stringify({
+                itemReferenceHash: itemHash,
+                stackSize,
+                itemId: itemInstanceId,
+                characterId,
+                membershipType,
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 }

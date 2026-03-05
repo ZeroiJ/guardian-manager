@@ -1,7 +1,8 @@
 import React from 'react';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '../ui/ContextMenu';
-import { Lock, Unlock, Star, Ban, Archive } from 'lucide-react';
+import { Lock, Unlock, Star, Ban, Archive, ArrowDown } from 'lucide-react';
 import { useProfile } from '../../hooks/useProfile';
+import { useInventoryStore } from '../../store/useInventoryStore';
 
 interface ItemContextMenuProps {
     x: number;
@@ -13,11 +14,14 @@ interface ItemContextMenuProps {
 
 export const ItemContextMenu: React.FC<ItemContextMenuProps> = ({ x, y, onClose, item, definition }) => {
     const { updateItemMetadata, moveItem, profile } = useProfile();
+    const setLockState = useInventoryStore(state => state.setLockState);
+    const pullFromPostmaster = useInventoryStore(state => state.pullFromPostmaster);
 
     if (!item) return null;
 
-    const isLocked = (item.state & 1) !== 0; // Bitmask check
+    const isLocked = (item.state & 1) !== 0;
     const currentTag = item.userTag;
+    const isPostmaster = item.bucketHash === 215593132;
 
     const handleTag = (tag: string | null) => {
         updateItemMetadata(item.itemInstanceId, 'tag', tag);
@@ -26,6 +30,20 @@ export const ItemContextMenu: React.FC<ItemContextMenuProps> = ({ x, y, onClose,
 
     const handleMove = (targetId: string, isVault: boolean = false) => {
         moveItem(item.itemInstanceId, item.itemHash, targetId, isVault);
+        onClose();
+    };
+
+    const handleLock = () => {
+        if (item.itemInstanceId) {
+            setLockState(item.itemInstanceId, !isLocked);
+        }
+        onClose();
+    };
+
+    const handlePull = () => {
+        if (item.itemInstanceId && item.owner) {
+            pullFromPostmaster(item.itemInstanceId, item.itemHash, item.owner);
+        }
         onClose();
     };
 
@@ -65,34 +83,52 @@ export const ItemContextMenu: React.FC<ItemContextMenuProps> = ({ x, y, onClose,
             <ContextMenuSeparator />
 
             {/* Lock / Unlock */}
-            {/* Note: This requires a Lock API call which we haven't implemented yet, stubbing for now */}
-            <ContextMenuItem 
-                icon={isLocked ? <Unlock size={14} /> : <Lock size={14} />} 
-                label={isLocked ? "Unlock" : "Lock"} 
-                onClick={() => console.log('TODO: Implement Lock API')} 
-            />
+            {item.lockable && item.itemInstanceId && (
+                <ContextMenuItem 
+                    icon={isLocked ? <Unlock size={14} /> : <Lock size={14} />} 
+                    label={isLocked ? "Unlock" : "Lock"} 
+                    shortcut="L"
+                    onClick={handleLock} 
+                />
+            )}
+
+            {/* Postmaster: Pull to character */}
+            {isPostmaster && item.itemInstanceId && (
+                <>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                        icon={<ArrowDown size={14} />}
+                        label="Pull to Character"
+                        onClick={handlePull}
+                    />
+                </>
+            )}
 
             <ContextMenuSeparator />
 
             {/* Move Actions */}
-            <div className="px-3 py-1 text-[10px] text-gray-500 uppercase tracking-widest font-bold">Transfer To</div>
-            
-            <ContextMenuItem 
-                icon={<Archive size={14} />} 
-                label="Vault" 
-                onClick={() => handleMove('vault', true)}
-                disabled={item.owner === 'vault'}
-            />
+            {!isPostmaster && (
+                <>
+                    <div className="px-3 py-1 text-[10px] text-gray-500 uppercase tracking-widest font-bold">Transfer To</div>
+                    
+                    <ContextMenuItem 
+                        icon={<Archive size={14} />} 
+                        label="Vault" 
+                        onClick={() => handleMove('vault', true)}
+                        disabled={item.owner === 'vault'}
+                    />
 
-            {characters.map((char: any) => (
-                <ContextMenuItem
-                    key={char.characterId}
-                    icon={<div className="w-3 h-3 rounded-full bg-cover" style={{ backgroundImage: `url(https://www.bungie.net${char.emblemPath})` }} />}
-                    label={['Titan', 'Hunter', 'Warlock'][char.classType]}
-                    onClick={() => handleMove(char.characterId)}
-                    disabled={item.owner === char.characterId}
-                />
-            ))}
+                    {characters.map((char: any) => (
+                        <ContextMenuItem
+                            key={char.characterId}
+                            icon={<div className="w-3 h-3 rounded-full bg-cover" style={{ backgroundImage: `url(https://www.bungie.net${char.emblemPath})` }} />}
+                            label={['Titan', 'Hunter', 'Warlock'][char.classType]}
+                            onClick={() => handleMove(char.characterId)}
+                            disabled={item.owner === char.characterId}
+                        />
+                    ))}
+                </>
+            )}
 
         </ContextMenu>
     );

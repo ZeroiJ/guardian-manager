@@ -13,6 +13,7 @@ import catalystMapping from '../../data/exotic-to-catalyst-record.json';
 import { KillTrackerBadge, CraftedWeaponBadge, DeepsightBadge, CatalystProgress } from '../item/ItemPopupInfo';
 
 import { ItemDetailOverlay } from './ItemDetailOverlay';
+import { InfusionFinder } from './InfusionFinder';
 import clsx from 'clsx';
 import {
     useFloating,
@@ -150,6 +151,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const itemOwner = item.owner || 'unknown';
     const [isTransferring, setIsTransferring] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
+    const [showInfusion, setShowInfusion] = useState(false);
 
     // Move Handler
     const handleMove = (targetId: string, isVault: boolean) => {
@@ -230,6 +232,19 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             <div className="p-2 border-b border-[#333] flex items-center gap-2 text-xs font-semibold text-gray-200 hover:bg-white/5 cursor-pointer transition-colors">
                                 <RefreshCw size={14} /> <span>Add notes</span>
                             </div>
+
+                            {/* Infusion Finder Button (only for infusable items with power) */}
+                            {power && (
+                                <div className="px-2 py-1.5 border-b border-[#333]">
+                                    <button
+                                        onClick={() => setShowInfusion(true)}
+                                        className="w-full flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-300 hover:text-[#f5dc56] hover:bg-white/5 rounded transition-colors"
+                                    >
+                                        <Maximize2 size={13} className="rotate-90" />
+                                        Find Infusion Fuel
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Pattern / Crafted / Kill Tracker / Catalyst Badges */}
                             {(killTracker || craftedInfo || deepsightInfo || catalystInfo) && (
@@ -347,6 +362,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     definition={definition}
                     definitions={definitions}
                     onClose={() => setShowOverlay(false)}
+                />
+            )}
+
+            {/* Infusion Finder Modal */}
+            {showInfusion && (
+                <InfusionFinder
+                    item={item}
+                    definition={definition}
+                    definitions={definitions}
+                    onClose={() => setShowInfusion(false)}
                 />
             )}
         </FloatingPortal>

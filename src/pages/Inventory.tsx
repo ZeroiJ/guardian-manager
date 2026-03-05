@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { DndContext, DragOverlay, DragEndEvent, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { Search, BookMarked } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, BookMarked, Sprout } from "lucide-react";
 import { StoreHeader } from "@/components/inventory/StoreHeader";
 import { InventoryBucketLabel } from "@/components/inventory/InventoryBucketLabel";
 import { StoreBucket } from "@/components/inventory/StoreBucket";
@@ -17,12 +18,16 @@ import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useDefinitions } from "@/hooks/useDefinitions";
 import { useInGameLoadouts } from "@/hooks/useInGameLoadouts";
 import { useCloudSync } from "@/hooks/useCloudSync";
+import { useHotkeys } from "@/hooks/useHotkeys";
+import { useFarmingMode } from "@/hooks/useFarmingMode";
+import { useBulkSelectStore } from "@/store/useBulkSelectStore";
 import { filterItems } from "@/lib/search/itemFilter";
 import { calculateMaxPower } from "@/lib/destiny/powerUtils";
 import { CompareModal } from "@/components/CompareModal";
 import { Navigation } from "@/components/Navigation";
 import { LoadoutDrawer } from "@/components/loadouts/LoadoutDrawer";
 import { InventoryItem } from "@/components/inventory/InventoryItem";
+import { BulkActionBar } from "@/components/inventory/BulkActionBar";
 
 export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,6 +120,12 @@ export default function Inventory() {
   const compareSession = useInventoryStore((state) => state.compareSession);
   const endCompare = useInventoryStore((state) => state.endCompare);
   const moveItem = useInventoryStore((state) => state.moveItem);
+  const pullAllFromPostmaster = useInventoryStore((state) => state.pullAllFromPostmaster);
+  const farmingMode = useInventoryStore((state) => state.farmingMode);
+  const toggleFarmingMode = useInventoryStore((state) => state.toggleFarmingMode);
+
+  // Farming mode auto-move hook
+  useFarmingMode();
 
   useEffect(() => {
     if (Object.keys(definitions).length > 0) {
@@ -148,6 +159,75 @@ export default function Inventory() {
 
   // Filter Items Logic
   const allItems = profile?.items || [];
+
+  // --- Keyboard Shortcuts ---
+  const navigate = useNavigate();
+  const setLockState = useInventoryStore((state) => state.setLockState);
+  const bulkClear = useBulkSelectStore((s) => s.clear);
+  const bulkActive = useBulkSelectStore((s) => s.active);
+
+  useHotkeys(useMemo(() => [
+    // Focus search: / or Ctrl+K
+    {
+      key: '/',
+      handler: () => {
+        const el = document.getElementById('search-items');
+        if (el) el.focus();
+      },
+      description: 'Focus search bar',
+    },
+    {
+      key: 'k',
+      ctrl: true,
+      handler: () => {
+        const el = document.getElementById('search-items');
+        if (el) el.focus();
+      },
+      description: 'Focus search bar',
+      global: true,
+    },
+    // Escape: close popup → clear bulk → clear search → close drawer
+    {
+      key: 'Escape',
+      handler: () => {
+        if (selectedItem) {
+          setSelectedItem(null);
+        } else if (contextMenu) {
+          setContextMenu(null);
+        } else if (bulkActive) {
+          bulkClear();
+        } else if (isLoadoutDrawerOpen) {
+          setIsLoadoutDrawerOpen(false);
+        } else if (searchQuery) {
+          setSearchQuery('');
+        }
+      },
+      description: 'Close popup / clear search',
+      global: true,
+    },
+    // Refresh: R
+    {
+      key: 'r',
+      handler: () => { if (!isRefreshing) triggerRefresh(); },
+      description: 'Refresh profile',
+    },
+    // Lock: L (when item popup is open)
+    {
+      key: 'l',
+      handler: () => {
+        if (selectedItem?.item?.itemInstanceId && selectedItem.item.lockable) {
+          const isLocked = (selectedItem.item.state & 1) !== 0;
+          setLockState(selectedItem.item.itemInstanceId, !isLocked);
+        }
+      },
+      description: 'Lock / unlock selected item',
+    },
+    // Navigation: 1-4
+    { key: '1', handler: () => navigate('/'), description: 'Go to Inventory' },
+    { key: '2', handler: () => navigate('/loadouts'), description: 'Go to Loadouts' },
+    { key: '3', handler: () => navigate('/progress'), description: 'Go to Progress' },
+    { key: '4', handler: () => navigate('/vendors'), description: 'Go to Vendors' },
+  ], [selectedItem, contextMenu, isLoadoutDrawerOpen, searchQuery, isRefreshing, triggerRefresh, setLockState, navigate, bulkActive, bulkClear]));
 
   // Dropdown (Live Search)
   const dropdownItems = useMemo(() => {
@@ -433,6 +513,26 @@ export default function Inventory() {
             <BookMarked size={13} />
             Quick Loadout
           </button>
+          <button
+            onClick={() => {
+              if (farmingMode.active) {
+                toggleFarmingMode();
+              } else {
+                // Use the first character as default farming character
+                const firstCharId = characters[0]?.characterId;
+                if (firstCharId) toggleFarmingMode(firstCharId);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded border transition-all text-xs font-bold uppercase tracking-widest font-rajdhani ${
+              farmingMode.active
+                ? 'border-green-500/50 text-green-400 bg-green-500/10 hover:bg-green-500/20'
+                : 'border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5'
+            }`}
+            title={farmingMode.active ? 'Stop farming mode' : 'Start farming mode (auto-vault engrams & consumables)'}
+          >
+            <Sprout size={13} />
+            {farmingMode.active ? 'Farming' : 'Farm'}
+          </button>
           <button className="hover:text-white">Settings</button>
           <div className="size-6 bg-gradient-to-tr from-[#f5dc56] to-[#f5dc56]/50 rounded-full border border-white/10" />
         </div>
@@ -512,6 +612,53 @@ export default function Inventory() {
               </div>
             </div>
           ))}
+
+          {/* Postmaster Row */}
+          {characters.some((char: any) => {
+            const { postmaster } = getItemsForCharacter(char.characterId);
+            return postmaster.length > 0;
+          }) && (
+            <div className="flex flex-col w-full">
+              <InventoryBucketLabel label="Postmaster" />
+              <div className="flex gap-2 items-start">
+                {characters.map((char: any) => {
+                  const { postmaster } = getItemsForCharacter(char.characterId);
+                  return (
+                    <div key={char.characterId} className="w-[290px] flex-shrink-0">
+                      {postmaster.length > 0 ? (
+                        <div className="bg-[#111] border border-white/5 rounded-sm p-2">
+                          <div className="flex flex-wrap gap-1">
+                            {postmaster.map((item: any) => {
+                              const def = definitions[item.itemHash];
+                              return (
+                                <InventoryItem
+                                  key={item.itemInstanceId || item.itemHash}
+                                  item={item}
+                                  definition={def}
+                                  draggable={false}
+                                  onClick={(e) => handleItemClick(item, def, e)}
+                                />
+                              );
+                            })}
+                          </div>
+                          <button
+                            className="mt-2 w-full text-xs py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-gray-300 hover:text-white transition-colors"
+                            onClick={() => pullAllFromPostmaster(char.characterId)}
+                          >
+                            Collect All ({postmaster.length})
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-8" />
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Empty vault column for alignment */}
+                <div className="flex-1 min-w-[400px]" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Drag Overlay */}
@@ -560,6 +707,9 @@ export default function Inventory() {
           onClose={endCompare}
         />
       )}
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar characters={characters} />
     </div>
   );
 }
