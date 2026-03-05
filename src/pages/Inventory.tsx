@@ -16,6 +16,7 @@ import { useWishlistStore } from "@/store/useWishlistStore";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useDefinitions } from "@/hooks/useDefinitions";
 import { useInGameLoadouts } from "@/hooks/useInGameLoadouts";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import { filterItems } from "@/lib/search/itemFilter";
 import { calculateMaxPower } from "@/lib/destiny/powerUtils";
 import { CompareModal } from "@/components/CompareModal";
@@ -56,6 +57,9 @@ export default function Inventory() {
 
   // Process in-game loadouts (Component 205 → enriched InGameLoadout[])
   useInGameLoadouts();
+
+  // Cloud sync — init on first authenticated load, periodic incremental sync
+  useCloudSync({ enabled: !profileLoading && !profileError && !!profile });
 
   // Extract hashes for manifest lookup
   // Include both item hashes AND plug hashes from sockets (perks, mods, etc.)

@@ -1,18 +1,25 @@
 /**
- * Loadout Store — Phase 5: The "Snapshot" Engine
+ * Loadout Store — Phase 5.1: Cloud-Synced Snapshot Engine
  *
  * Saves a snapshot of a character's currently equipped items.
- * Persisted to localStorage via Zustand `persist` middleware.
+ * Persisted to D1 via the Cloud Sync engine (syncStore).
+ *
+ * Migration from Phase 5:
+ *   - Removed Zustand `persist` middleware (no more localStorage).
+ *   - Every mutation enqueues a sync change via syncStore.
+ *   - hydrateFromSync() receives loadouts from the sync import response.
+ *   - On first load, any existing localStorage loadouts are migrated
+ *     to D1 via syncStore.initSync().
  *
  * Architecture inspired by DIM: src/app/loadout/loadout-types.ts
  */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { useInventoryStore } from './useInventoryStore';
 import { BucketHashes, EMPTY_PLUG_HASHES, SocketCategoryHashes } from '@/lib/destiny-constants';
 import { STAT_HASHES } from '@/data/constants';
 import type { ItemValidation, LoadoutValidation } from '@/components/loadouts/LoadoutCard';
 import type { GuardianItem } from '@/services/profile/types';
+import { useSyncStore, loadoutToSync } from './syncStore';
 
 // ============================================================================
 // TYPES
@@ -180,12 +187,41 @@ function captureFashionOverrides(
 }
 
 // ============================================================================
+// SYNC HELPERS
+// ============================================================================
+
+/**
+ * Enqueue a loadout upsert to the sync engine.
+ * Called after every local mutation for optimistic sync.
+ */
+function enqueueSyncUpsert(loadout: ILoadout): void {
+    useSyncStore.getState().enqueue({
+        key: `loadout:${loadout.id}`,
+        type: 'loadout',
+        action: 'upsert',
+        payload: loadoutToSync(loadout),
+    });
+}
+
+/**
+ * Enqueue a loadout deletion (soft-delete) to the sync engine.
+ */
+function enqueueSyncDelete(loadout: ILoadout): void {
+    useSyncStore.getState().enqueue({
+        key: `loadout:${loadout.id}`,
+        type: 'loadout',
+        action: 'delete',
+        payload: loadoutToSync(loadout, true),
+    });
+}
+
+// ============================================================================
 // STORE STATE & ACTIONS
 // ============================================================================
 
 /**
  * Predicted stat tiers for a loadout.
- * Each entry maps a stat name → its predicted tier (value / 10, floored).
+ * Each entry maps a stat name -> its predicted tier (value / 10, floored).
  */
 export interface LoadoutStatTiers {
     /** Individual stat values (raw totals from armor pieces) */
@@ -242,6 +278,51 @@ interface LoadoutState {
      * Add a completely new loadout (for create flow).
      */
     addLoadout: (loadout: ILoadout) => void;
+
+    /**
+     * Hydrate loadouts from sync import response.
+     * Merges server loadouts with local state. Server wins on conflicts.
+     * Deletes any loadouts marked as deleted on the server.
+     */
+    hydrateFromSync: (serverLoadouts: ILoadout[]) => void;
+}
+
+// ============================================================================
+// LOCAL STORAGE MIGRATION
+// ============================================================================
+
+/** Key used by the old Zustand `persist` middleware. */
+const LEGACY_STORAGE_KEY = 'guardian-nexus-loadouts';
+
+/**
+ * Read and clear legacy loadouts from localStorage (one-time migration).
+ * Returns the loadouts if found, or empty array.
+ */
+export function drainLegacyLoadouts(): ILoadout[] {
+    try {
+        const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (!raw) return [];
+
+        const parsed = JSON.parse(raw);
+        // Zustand persist stores { state: { loadouts: [...] }, version: 2 }
+        const state = parsed?.state ?? parsed;
+        const loadouts: ILoadout[] = Array.isArray(state?.loadouts)
+            ? state.loadouts
+            : [];
+
+        if (loadouts.length > 0) {
+            console.log(
+                `[LoadoutStore] Found ${loadouts.length} legacy loadouts in localStorage — migrating to D1`,
+            );
+            // Clear localStorage after reading — the sync engine will persist them to D1
+            localStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
+
+        return loadouts;
+    } catch (err) {
+        console.warn('[LoadoutStore] Failed to read legacy loadouts:', err);
+        return [];
+    }
 }
 
 // ============================================================================
@@ -249,215 +330,228 @@ interface LoadoutState {
 // ============================================================================
 
 export const useLoadoutStore = create<LoadoutState>()(
-    persist(
-        (set, get) => ({
-            loadouts: [],
-            selectedLoadoutId: null,
+    (set, get) => ({
+        loadouts: [],
+        selectedLoadoutId: null,
 
-            // ----------------------------------------------------------------
-            // setSelectedLoadout
-            // ----------------------------------------------------------------
-            setSelectedLoadout: (id) => {
-                set({ selectedLoadoutId: id });
-            },
+        // ----------------------------------------------------------------
+        // setSelectedLoadout
+        // ----------------------------------------------------------------
+        setSelectedLoadout: (id) => {
+            set({ selectedLoadoutId: id });
+        },
 
-            // ----------------------------------------------------------------
-            // saveCurrentLoadout
-            // ----------------------------------------------------------------
-            saveCurrentLoadout: (characterId, name) => {
-                // Read from the inventory store HEADLESSLY (no React hook context needed).
-                // This is the canonical Zustand pattern for cross-store reads.
-                const { items, manifest, characters } = useInventoryStore.getState();
+        // ----------------------------------------------------------------
+        // saveCurrentLoadout
+        // ----------------------------------------------------------------
+        saveCurrentLoadout: (characterId, name) => {
+            // Read from the inventory store HEADLESSLY (no React hook context needed).
+            // This is the canonical Zustand pattern for cross-store reads.
+            const { items, manifest, characters } = useInventoryStore.getState();
 
-                // 1. Collect all items that are currently equipped on this character.
-                const equippedItems = items.filter(
-                    (item) =>
-                        item.owner === characterId &&
-                        item.instanceData?.isEquipped === true &&
-                        item.itemInstanceId != null // Must be instanced to be equippable
+            // 1. Collect all items that are currently equipped on this character.
+            const equippedItems = items.filter(
+                (item) =>
+                    item.owner === characterId &&
+                    item.instanceData?.isEquipped === true &&
+                    item.itemInstanceId != null // Must be instanced to be equippable
+            );
+
+            if (equippedItems.length === 0) {
+                console.warn(
+                    `[LoadoutStore] No equipped items found for character ${characterId}. ` +
+                    `Is the profile loaded?`
                 );
+                return null;
+            }
 
-                if (equippedItems.length === 0) {
-                    console.warn(
-                        `[LoadoutStore] No equipped items found for character ${characterId}. ` +
-                        `Is the profile loaded?`
-                    );
-                    return null;
-                }
+            // 2. Map raw GuardianItems -> strict ILoadoutItem shape.
+            //    Capture socket overrides for subclass + cosmetics, and mods for armor.
+            const modsByBucket: Record<number, number[]> = {};
+            const loadoutItems: ILoadoutItem[] = equippedItems.map((item) => {
+                const def = manifest[item.itemHash];
+                const bucketHash =
+                    item.bucketHash ||
+                    (def?.inventory as any)?.bucketTypeHash ||
+                    0;
 
-                // 2. Map raw GuardianItems → strict ILoadoutItem shape.
-                //    Capture socket overrides for subclass + cosmetics, and mods for armor.
-                const modsByBucket: Record<number, number[]> = {};
-                const loadoutItems: ILoadoutItem[] = equippedItems.map((item) => {
-                    const def = manifest[item.itemHash];
-                    const bucketHash =
-                        item.bucketHash ||
-                        (def?.inventory as any)?.bucketTypeHash ||
-                        0;
-
-                    const loadoutItem: ILoadoutItem = {
-                        itemInstanceId: item.itemInstanceId!, // asserted non-null by filter above
-                        itemHash: item.itemHash,
-                        bucketHash,
-                        label: def?.displayProperties?.name,
-                        power: item.instanceData?.primaryStat?.value,
-                    };
-
-                    // Capture subclass socket overrides (Aspects, Fragments, Super, Abilities)
-                    if (bucketHash === BucketHashes.Subclass) {
-                        const overrides = captureSubclassSocketOverrides(item);
-                        if (overrides) {
-                            loadoutItem.socketOverrides = overrides;
-                        }
-                    }
-
-                    // Capture armor mods
-                    if (ARMOR_MOD_BUCKETS.has(bucketHash) && def) {
-                        const mods = captureArmorMods(item, def);
-                        if (mods.length > 0) {
-                            modsByBucket[bucketHash] = mods;
-                        }
-                    }
-
-                    // Capture fashion overrides (Ornaments + Shaders) for weapons and armor
-                    if (bucketHash !== BucketHashes.Subclass && def) {
-                        const fashionOverrides = captureFashionOverrides(item, def);
-                        if (fashionOverrides) {
-                            loadoutItem.socketOverrides = {
-                                ...loadoutItem.socketOverrides,
-                                ...fashionOverrides,
-                            };
-                        }
-                    }
-
-                    return loadoutItem;
-                });
-
-                // 3. Resolve the character class type from the characters map.
-                const character = characters[characterId];
-                const characterClass: number =
-                    character?.classType !== undefined ? (character.classType as number) : -1;
-
-                // 4. Sanitize and default the name.
-                const safeName = name.trim() || `Loadout ${get().loadouts.length + 1}`;
-
-                // 5. Assemble the loadout snapshot.
-                const newLoadout: ILoadout = {
-                    id: crypto.randomUUID(),
-                    name: safeName,
-                    characterId,
-                    characterClass,
-                    items: loadoutItems,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    modsByBucket: Object.keys(modsByBucket).length > 0 ? modsByBucket : undefined,
+                const loadoutItem: ILoadoutItem = {
+                    itemInstanceId: item.itemInstanceId!, // asserted non-null by filter above
+                    itemHash: item.itemHash,
+                    bucketHash,
+                    label: def?.displayProperties?.name,
+                    power: item.instanceData?.primaryStat?.value,
                 };
 
-                set((state) => ({
-                    // Prepend — newest loadouts appear at the top of the list.
-                    loadouts: [newLoadout, ...state.loadouts],
-                }));
+                // Capture subclass socket overrides (Aspects, Fragments, Super, Abilities)
+                if (bucketHash === BucketHashes.Subclass) {
+                    const overrides = captureSubclassSocketOverrides(item);
+                    if (overrides) {
+                        loadoutItem.socketOverrides = overrides;
+                    }
+                }
 
-                const fashionCount = loadoutItems.filter(i => i.socketOverrides && i.bucketHash !== BucketHashes.Subclass).length;
+                // Capture armor mods
+                if (ARMOR_MOD_BUCKETS.has(bucketHash) && def) {
+                    const mods = captureArmorMods(item, def);
+                    if (mods.length > 0) {
+                        modsByBucket[bucketHash] = mods;
+                    }
+                }
+
+                // Capture fashion overrides (Ornaments + Shaders) for weapons and armor
+                if (bucketHash !== BucketHashes.Subclass && def) {
+                    const fashionOverrides = captureFashionOverrides(item, def);
+                    if (fashionOverrides) {
+                        loadoutItem.socketOverrides = {
+                            ...loadoutItem.socketOverrides,
+                            ...fashionOverrides,
+                        };
+                    }
+                }
+
+                return loadoutItem;
+            });
+
+            // 3. Resolve the character class type from the characters map.
+            const character = characters[characterId];
+            const characterClass: number =
+                character?.classType !== undefined ? (character.classType as number) : -1;
+
+            // 4. Sanitize and default the name.
+            const safeName = name.trim() || `Loadout ${get().loadouts.length + 1}`;
+
+            // 5. Assemble the loadout snapshot.
+            const newLoadout: ILoadout = {
+                id: crypto.randomUUID(),
+                name: safeName,
+                characterId,
+                characterClass,
+                items: loadoutItems,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                modsByBucket: Object.keys(modsByBucket).length > 0 ? modsByBucket : undefined,
+            };
+
+            // 6. Optimistic UI update — loadout appears immediately.
+            set((state) => ({
+                loadouts: [newLoadout, ...state.loadouts],
+            }));
+
+            // 7. Enqueue sync — will flush to D1 after 1s debounce.
+            enqueueSyncUpsert(newLoadout);
+
+            const fashionCount = loadoutItems.filter(i => i.socketOverrides && i.bucketHash !== BucketHashes.Subclass).length;
+            console.log(
+                `[LoadoutStore] Snapshot saved: "${newLoadout.name}" ` +
+                `(${loadoutItems.length} items, char ${characterId})` +
+                (newLoadout.modsByBucket ? `, mods: ${Object.values(newLoadout.modsByBucket).flat().length}` : '') +
+                (fashionCount > 0 ? `, fashion: ${fashionCount} items` : '')
+            );
+
+            return newLoadout;
+        },
+
+        // ----------------------------------------------------------------
+        // deleteLoadout
+        // ----------------------------------------------------------------
+        deleteLoadout: (id) => {
+            const loadout = get().loadouts.find((l) => l.id === id);
+            set((state) => ({
+                loadouts: state.loadouts.filter((l) => l.id !== id),
+            }));
+            // Enqueue soft-delete to sync
+            if (loadout) {
+                enqueueSyncDelete(loadout);
+            }
+            console.log(`[LoadoutStore] Deleted loadout ${id}`);
+        },
+
+        // ----------------------------------------------------------------
+        // renameLoadout
+        // ----------------------------------------------------------------
+        renameLoadout: (id, name) => {
+            const trimmed = name.trim();
+            if (!trimmed) return;
+            set((state) => ({
+                loadouts: state.loadouts.map((l) =>
+                    l.id === id ? { ...l, name: trimmed, updatedAt: Date.now() } : l
+                ),
+            }));
+            // Enqueue updated loadout to sync
+            const updated = get().loadouts.find((l) => l.id === id);
+            if (updated) enqueueSyncUpsert(updated);
+        },
+
+        // ----------------------------------------------------------------
+        // updateNotes
+        // ----------------------------------------------------------------
+        updateNotes: (id, notes) => {
+            set((state) => ({
+                loadouts: state.loadouts.map((l) =>
+                    l.id === id ? { ...l, notes, updatedAt: Date.now() } : l
+                ),
+            }));
+            const updated = get().loadouts.find((l) => l.id === id);
+            if (updated) enqueueSyncUpsert(updated);
+        },
+
+        // ----------------------------------------------------------------
+        // updateItems
+        // ----------------------------------------------------------------
+        updateItems: (id, items, modsByBucket) => {
+            set((state) => ({
+                loadouts: state.loadouts.map((l) =>
+                    l.id === id ? { ...l, items, modsByBucket, updatedAt: Date.now() } : l
+                ),
+            }));
+            const updated = get().loadouts.find((l) => l.id === id);
+            if (updated) enqueueSyncUpsert(updated);
+        },
+
+        // ----------------------------------------------------------------
+        // addLoadout
+        // ----------------------------------------------------------------
+        addLoadout: (loadout) => {
+            set((state) => ({
+                loadouts: [loadout, ...state.loadouts],
+            }));
+            enqueueSyncUpsert(loadout);
+            console.log(`[LoadoutStore] Added loadout: "${loadout.name}" (${loadout.items.length} items)`);
+        },
+
+        // ----------------------------------------------------------------
+        // hydrateFromSync — Merge server loadouts into local state
+        // ----------------------------------------------------------------
+        hydrateFromSync: (serverLoadouts) => {
+            set((state) => {
+                // Build a map of existing local loadouts by ID
+                const localMap = new Map(state.loadouts.map((l) => [l.id, l]));
+
+                // Process server loadouts
+                for (const serverLoadout of serverLoadouts) {
+                    const local = localMap.get(serverLoadout.id);
+
+                    if (!local || serverLoadout.updatedAt >= local.updatedAt) {
+                        // Server is newer or loadout doesn't exist locally — use server version
+                        localMap.set(serverLoadout.id, serverLoadout);
+                    }
+                    // Otherwise keep local version (it has pending sync changes)
+                }
+
+                // Sort by updatedAt descending (newest first)
+                const merged = Array.from(localMap.values())
+                    .sort((a, b) => b.updatedAt - a.updatedAt);
+
                 console.log(
-                    `[LoadoutStore] Snapshot saved: "${newLoadout.name}" ` +
-                    `(${loadoutItems.length} items, char ${characterId})` +
-                    (newLoadout.modsByBucket ? `, mods: ${Object.values(newLoadout.modsByBucket).flat().length}` : '') +
-                    (fashionCount > 0 ? `, fashion: ${fashionCount} items` : '')
+                    `[LoadoutStore] hydrateFromSync: ${serverLoadouts.length} server → ` +
+                    `${merged.length} total loadouts`,
                 );
 
-                return newLoadout;
-            },
-
-            // ----------------------------------------------------------------
-            // deleteLoadout
-            // ----------------------------------------------------------------
-            deleteLoadout: (id) => {
-                set((state) => ({
-                    loadouts: state.loadouts.filter((l) => l.id !== id),
-                }));
-                console.log(`[LoadoutStore] Deleted loadout ${id}`);
-            },
-
-            // ----------------------------------------------------------------
-            // renameLoadout
-            // ----------------------------------------------------------------
-            renameLoadout: (id, name) => {
-                const trimmed = name.trim();
-                if (!trimmed) return;
-                set((state) => ({
-                    loadouts: state.loadouts.map((l) =>
-                        l.id === id ? { ...l, name: trimmed, updatedAt: Date.now() } : l
-                    ),
-                }));
-            },
-
-            // ----------------------------------------------------------------
-            // updateNotes
-            // ----------------------------------------------------------------
-            updateNotes: (id, notes) => {
-                set((state) => ({
-                    loadouts: state.loadouts.map((l) =>
-                        l.id === id ? { ...l, notes, updatedAt: Date.now() } : l
-                    ),
-                }));
-            },
-
-            // ----------------------------------------------------------------
-            // updateItems
-            // ----------------------------------------------------------------
-            updateItems: (id, items, modsByBucket) => {
-                set((state) => ({
-                    loadouts: state.loadouts.map((l) =>
-                        l.id === id ? { ...l, items, modsByBucket, updatedAt: Date.now() } : l
-                    ),
-                }));
-            },
-
-            // ----------------------------------------------------------------
-            // addLoadout
-            // ----------------------------------------------------------------
-            addLoadout: (loadout) => {
-                set((state) => ({
-                    loadouts: [loadout, ...state.loadouts],
-                }));
-                console.log(`[LoadoutStore] Added loadout: "${loadout.name}" (${loadout.items.length} items)`);
-            },
-        }),
-        {
-            name: 'guardian-nexus-loadouts', // localStorage key
-            version: 2,
-            // Migrate from v1 (no socketOverrides/modsByBucket) to v2
-            migrate: (persisted: any, version: number) => {
-                if (version < 2) {
-                    // Old loadouts: items have no socketOverrides, loadout has no modsByBucket.
-                    // No data to add — just ensure the shape is valid.
-                    const state = persisted as Partial<LoadoutState>;
-                    return {
-                        ...state,
-                        loadouts: (state.loadouts || []).map((l: any) => ({
-                            ...l,
-                            modsByBucket: l.modsByBucket || undefined,
-                            items: (l.items || []).map((i: any) => ({
-                                ...i,
-                                socketOverrides: i.socketOverrides || undefined,
-                            })),
-                        })),
-                    };
-                }
-                return persisted as LoadoutState;
-            },
-            // Merge strategy: on version mismatch, keep any valid loadouts
-            // and discard unknown fields gracefully.
-            merge: (persisted, current) => {
-                const p = persisted as Partial<LoadoutState>;
-                return {
-                    ...current,
-                    loadouts: Array.isArray(p.loadouts) ? p.loadouts : [],
-                };
-            },
-        }
-    )
+                return { loadouts: merged };
+            });
+        },
+    }),
 );
 
 // ============================================================================

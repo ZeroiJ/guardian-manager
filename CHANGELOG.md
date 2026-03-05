@@ -2,6 +2,45 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.32.0] - 2026-03-05
+
+### Phase 1.5: Profile Caching + Cloud Sync
+
+Two major infrastructure systems that dramatically improve load times and enable cross-device data persistence.
+
+#### Profile Caching (Stale-While-Revalidate)
+
+- **Instant cold-load UI**: Bungie profile responses are cached in IndexedDB via `idb-keyval`. On page load, the cached profile is hydrated immediately (~instant) while a network fetch runs in the background.
+- **Timestamp guard**: `useInventoryStore.hydrate()` compares `responseMintedTimestamp` — if the network response is not newer than the cached version, reprocessing is skipped entirely.
+- **Smart polling**: `useAutoRefresh` rewritten to use `setTimeout` (not `setInterval`) with skip logic when the tab is hidden, and immediate refresh on tab re-focus.
+
+#### Cloud Sync (Loadouts + Settings via D1)
+
+- **D1 schema**: New `loadouts`, `settings`, and `sync_tokens` tables for persistent cross-device storage.
+- **Worker sync endpoints**: `/api/sync/import`, `/api/sync/export`, `/api/sync/full` — incremental delta sync via sync tokens, last-write-wins conflict resolution.
+- **Sync engine** (`syncStore.ts`): Zustand-based queue with 1-second debounced flush, queue compaction (merges redundant updates), optimistic local updates with server reconciliation.
+- **Loadout store rewrite**: Removed `zustand/persist` localStorage middleware. Every mutation (save, delete, rename, updateNotes, updateItems) now enqueues a sync change. One-time migration reads legacy localStorage data via `drainLegacyLoadouts()`.
+- **Settings store** (`settingsStore.ts`): First persistent settings store for user preferences (itemSortOrder, wishlistUrl, characterOrder) with automatic sync integration.
+- **Sync lifecycle** (`useCloudSync.ts`): Full sync on mount + legacy migration, 5-minute periodic incremental imports, tab-focus imports, and `beforeunload` flush to prevent data loss.
+
+#### Files Added
+
+- `src/services/profile/profileCache.ts` — IDB cache service for raw Bungie profile responses
+- `src/services/sync/syncClient.ts` — HTTP client for sync endpoints
+- `src/store/syncStore.ts` — Sync engine (queue, flush, compaction, format converters)
+- `src/store/settingsStore.ts` — Persistent user preferences store
+- `src/hooks/useCloudSync.ts` — Sync lifecycle orchestration hook
+- `migrations/0001_cloud_sync.sql` — D1 migration for loadouts, settings, sync_tokens tables
+
+#### Files Modified
+
+- `src/hooks/useProfile.ts` — Two-phase loading (cache → network), timestamp comparison
+- `src/hooks/useAutoRefresh.ts` — setTimeout + smart skip + tab re-focus
+- `src/store/useInventoryStore.ts` — Added `lastMintedTimestamp` field + timestamp guard in `hydrate()`
+- `src/store/loadoutStore.ts` — Rewritten: removed localStorage persist, added cloud sync integration
+- `functions/api/[[route]].ts` — Added sync endpoints (import/export/full)
+- `src/pages/Inventory.tsx` — Added `useCloudSync` hook call
+
 ## [0.31.0] - 2026-03-03
 
 ### 🎨 Item Popup UI Overhaul (DIM Parity)

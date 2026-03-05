@@ -3,6 +3,7 @@ import { GuardianItem } from '../services/profile/types';
 import { TransferService } from '../services/inventory/transferService';
 import { APIClient } from '../services/api/client';
 import type { InGameLoadout } from '../lib/destiny/ingame-loadouts';
+import { extractMintedTimestamp, isNewerTimestamp } from '../services/profile/profileCache';
 
 // Subset of manifest data (names, icons, tierType)
 export interface ManifestDefinition {
@@ -38,6 +39,11 @@ interface InventoryState {
     compareSession: CompareSession | null;
     /** In-game loadouts per character (Component 205), keyed by characterId. */
     inGameLoadouts: Record<string, InGameLoadout[]>;
+    /**
+     * Bungie's responseMintedTimestamp from the last successfully hydrated profile.
+     * Used to skip reprocessing when poll returns identical data.
+     */
+    lastMintedTimestamp: string | null;
 
     // Actions
     hydrate: (bungieProfile: any, metadata: any) => void;
@@ -58,9 +64,21 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     dupeInstanceIds: new Set(),
     compareSession: null,
     inGameLoadouts: {},
+    lastMintedTimestamp: null,
 
     hydrate: (bungieProfile, metadata) => {
         if (!bungieProfile || !metadata) return;
+
+        // Timestamp guard: skip reprocessing if this profile isn't newer
+        const incomingTimestamp = extractMintedTimestamp(bungieProfile);
+        const currentTimestamp = get().lastMintedTimestamp;
+        if (currentTimestamp && incomingTimestamp && !isNewerTimestamp(incomingTimestamp, currentTimestamp)) {
+            console.log(
+                `[InventoryStore] Skipping hydration — profile not newer ` +
+                `(${incomingTimestamp} <= ${currentTimestamp})`
+            );
+            return;
+        }
 
         console.log('[InventoryStore] Hydrating...');
 
@@ -156,8 +174,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             }
         }
 
-        set({ characters, items, profile: bungieProfile, metadata, dupeInstanceIds });
-        console.log(`[InventoryStore] Hydrated ${items.length} items`);
+        set({ characters, items, profile: bungieProfile, metadata, dupeInstanceIds, lastMintedTimestamp: incomingTimestamp || null });
+        console.log(`[InventoryStore] Hydrated ${items.length} items (minted: ${incomingTimestamp || 'unknown'})`);
     },
 
     setManifest: (manifest) => {

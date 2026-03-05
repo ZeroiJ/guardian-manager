@@ -689,6 +689,354 @@ app.post("/api/actions/equipLoadout", async (c: any) => {
   }
 });
 
+// ============================================================================
+// SYNC ENDPOINTS — Cloud Sync for Loadouts, Settings, Tags
+// ============================================================================
+
+/**
+ * Helper: Extract membershipId from auth cookie.
+ * Returns null if not authenticated.
+ */
+function getMembershipId(c: any): string | null {
+  const authCookie = getCookie(c, "bungie_auth");
+  if (!authCookie) return null;
+  try {
+    const session = JSON.parse(authCookie);
+    return session.m || session.membership_id || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * POST /api/sync/import — Pull remote changes since last sync.
+ *
+ * Body: { syncToken?: number }
+ * Response: { loadouts: [...], settings: {...} | null, tags: {...}, notes: {...}, newSyncToken: number }
+ *
+ * If syncToken is 0 or missing, returns all data (full sync).
+ * Otherwise returns only rows with updated_at > syncToken.
+ */
+app.post("/api/sync/import", async (c: any) => {
+  const membershipId = getMembershipId(c);
+  if (!membershipId) return c.text("Unauthorized", 401);
+
+  const body = (await c.req.json().catch(() => ({}))) as any;
+  const syncToken: number = body.syncToken || 0;
+  const db = c.env.guardian_db;
+
+  try {
+    // Fetch loadouts changed since syncToken
+    const loadoutsResult = await db
+      .prepare(
+        "SELECT id, name, class_type, data, created_at, updated_at, deleted FROM loadouts WHERE membership_id = ? AND updated_at > ? ORDER BY updated_at ASC"
+      )
+      .bind(membershipId, syncToken)
+      .all();
+
+    const loadouts = (loadoutsResult.results || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      classType: row.class_type,
+      data: JSON.parse(row.data || "{}"),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deleted: row.deleted === 1,
+    }));
+
+    // Fetch settings (always return latest if changed)
+    let settings = null;
+    const settingsRow = await db
+      .prepare(
+        "SELECT data, updated_at FROM settings WHERE membership_id = ? AND updated_at > ?"
+      )
+      .bind(membershipId, syncToken)
+      .first();
+
+    if (settingsRow) {
+      settings = {
+        data: JSON.parse((settingsRow.data as string) || "{}"),
+        updatedAt: settingsRow.updated_at,
+      };
+    }
+
+    // Fetch tags/notes if changed (check UserMetadata table)
+    let tags: Record<string, string> = {};
+    let notes: Record<string, string> = {};
+    const metadataRow = await db
+      .prepare("SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?")
+      .bind(membershipId)
+      .first();
+
+    if (metadataRow) {
+      tags = JSON.parse((metadataRow.tags as string) || "{}");
+      notes = JSON.parse((metadataRow.notes as string) || "{}");
+    }
+
+    // Compute new sync token = max updated_at across all returned data
+    let newSyncToken = syncToken;
+    for (const l of loadouts) {
+      if (l.updatedAt > newSyncToken) newSyncToken = l.updatedAt;
+    }
+    if (settings && settings.updatedAt > newSyncToken) {
+      newSyncToken = settings.updatedAt;
+    }
+    // If nothing changed, advance token to current time to avoid re-scanning
+    if (newSyncToken === syncToken) {
+      newSyncToken = Date.now();
+    }
+
+    // Update server-side sync token record
+    await db
+      .prepare(
+        "INSERT INTO sync_tokens (membership_id, last_sync_token, updated_at) VALUES (?, ?, ?) ON CONFLICT(membership_id) DO UPDATE SET last_sync_token = ?, updated_at = ?"
+      )
+      .bind(membershipId, newSyncToken, Date.now(), newSyncToken, Date.now())
+      .run();
+
+    return c.json({ loadouts, settings, tags, notes, newSyncToken });
+  } catch (err: any) {
+    console.error("[Sync Import] Error:", err);
+    return c.text(err.message || "Sync import failed", 500);
+  }
+});
+
+/**
+ * POST /api/sync/export — Push local changes to server.
+ *
+ * Body: {
+ *   loadouts?: Array<{ id, name, classType, data, createdAt, updatedAt, deleted? }>,
+ *   settings?: { data: {...} },
+ *   tags?: Record<string, string>,
+ *   notes?: Record<string, string>,
+ * }
+ *
+ * Response: { success: true, syncedLoadouts: number, syncedSettings: boolean }
+ */
+app.post("/api/sync/export", async (c: any) => {
+  const membershipId = getMembershipId(c);
+  if (!membershipId) return c.text("Unauthorized", 401);
+
+  const body = (await c.req.json()) as any;
+  const db = c.env.guardian_db;
+
+  try {
+    let syncedLoadouts = 0;
+    let syncedSettings = false;
+
+    // Sync loadouts
+    if (body.loadouts && Array.isArray(body.loadouts)) {
+      for (const loadout of body.loadouts) {
+        const now = Date.now();
+        await db
+          .prepare(
+            `INSERT INTO loadouts (id, membership_id, name, class_type, data, created_at, updated_at, deleted)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               name = excluded.name,
+               class_type = excluded.class_type,
+               data = excluded.data,
+               updated_at = excluded.updated_at,
+               deleted = excluded.deleted`
+          )
+          .bind(
+            loadout.id,
+            membershipId,
+            loadout.name || "Unnamed",
+            loadout.classType ?? -1,
+            JSON.stringify(loadout.data || {}),
+            loadout.createdAt || now,
+            now,
+            loadout.deleted ? 1 : 0
+          )
+          .run();
+        syncedLoadouts++;
+      }
+    }
+
+    // Sync settings
+    if (body.settings) {
+      const now = Date.now();
+      await db
+        .prepare(
+          `INSERT INTO settings (membership_id, data, updated_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(membership_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+        )
+        .bind(membershipId, JSON.stringify(body.settings.data || body.settings), now)
+        .run();
+      syncedSettings = true;
+    }
+
+    // Sync tags/notes (merge with existing)
+    if (body.tags || body.notes) {
+      // Read existing
+      const existing = await db
+        .prepare("SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?")
+        .bind(membershipId)
+        .first();
+
+      let currentTags = JSON.parse((existing?.tags as string) || "{}");
+      let currentNotes = JSON.parse((existing?.notes as string) || "{}");
+
+      // Merge (client values override server values — last-write-wins)
+      if (body.tags) {
+        for (const [k, v] of Object.entries(body.tags)) {
+          if (v === null || v === undefined || v === "") {
+            delete currentTags[k];
+          } else {
+            currentTags[k] = v;
+          }
+        }
+      }
+      if (body.notes) {
+        for (const [k, v] of Object.entries(body.notes)) {
+          if (v === null || v === undefined || v === "") {
+            delete currentNotes[k];
+          } else {
+            currentNotes[k] = v;
+          }
+        }
+      }
+
+      if (!existing) {
+        await db
+          .prepare("INSERT INTO UserMetadata (bungieMembershipId, tags, notes) VALUES (?, ?, ?)")
+          .bind(membershipId, JSON.stringify(currentTags), JSON.stringify(currentNotes))
+          .run();
+      } else {
+        await db
+          .prepare("UPDATE UserMetadata SET tags = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP WHERE bungieMembershipId = ?")
+          .bind(JSON.stringify(currentTags), JSON.stringify(currentNotes), membershipId)
+          .run();
+      }
+    }
+
+    return c.json({ success: true, syncedLoadouts, syncedSettings });
+  } catch (err: any) {
+    console.error("[Sync Export] Error:", err);
+    return c.text(err.message || "Sync export failed", 500);
+  }
+});
+
+/**
+ * POST /api/sync/full — Full bidirectional sync.
+ *
+ * 1. Exports client changes (same as /export)
+ * 2. Returns all server data (same as /import with syncToken=0)
+ *
+ * Used on first load or when sync state is uncertain.
+ *
+ * Body: same as /export
+ * Response: same as /import
+ */
+app.post("/api/sync/full", async (c: any) => {
+  const membershipId = getMembershipId(c);
+  if (!membershipId) return c.text("Unauthorized", 401);
+
+  const body = (await c.req.json().catch(() => ({}))) as any;
+  const db = c.env.guardian_db;
+
+  try {
+    // Phase 1: Export client changes (if any)
+    if (body.loadouts && Array.isArray(body.loadouts)) {
+      for (const loadout of body.loadouts) {
+        const now = Date.now();
+        await db
+          .prepare(
+            `INSERT INTO loadouts (id, membership_id, name, class_type, data, created_at, updated_at, deleted)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               name = excluded.name,
+               class_type = excluded.class_type,
+               data = excluded.data,
+               updated_at = CASE WHEN excluded.updated_at > loadouts.updated_at THEN excluded.updated_at ELSE loadouts.updated_at END,
+               deleted = excluded.deleted`
+          )
+          .bind(
+            loadout.id,
+            membershipId,
+            loadout.name || "Unnamed",
+            loadout.classType ?? -1,
+            JSON.stringify(loadout.data || {}),
+            loadout.createdAt || now,
+            loadout.updatedAt || now,
+            loadout.deleted ? 1 : 0
+          )
+          .run();
+      }
+    }
+
+    if (body.settings) {
+      const now = Date.now();
+      await db
+        .prepare(
+          `INSERT INTO settings (membership_id, data, updated_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(membership_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+        )
+        .bind(membershipId, JSON.stringify(body.settings.data || body.settings), now)
+        .run();
+    }
+
+    // Phase 2: Return all server data (full import)
+    const loadoutsResult = await db
+      .prepare(
+        "SELECT id, name, class_type, data, created_at, updated_at, deleted FROM loadouts WHERE membership_id = ? ORDER BY updated_at DESC"
+      )
+      .bind(membershipId)
+      .all();
+
+    const loadouts = (loadoutsResult.results || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      classType: row.class_type,
+      data: JSON.parse(row.data || "{}"),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deleted: row.deleted === 1,
+    }));
+
+    let settings = null;
+    const settingsRow = await db
+      .prepare("SELECT data, updated_at FROM settings WHERE membership_id = ?")
+      .bind(membershipId)
+      .first();
+
+    if (settingsRow) {
+      settings = {
+        data: JSON.parse((settingsRow.data as string) || "{}"),
+        updatedAt: settingsRow.updated_at,
+      };
+    }
+
+    let tags: Record<string, string> = {};
+    let notes: Record<string, string> = {};
+    const metadataRow = await db
+      .prepare("SELECT tags, notes FROM UserMetadata WHERE bungieMembershipId = ?")
+      .bind(membershipId)
+      .first();
+
+    if (metadataRow) {
+      tags = JSON.parse((metadataRow.tags as string) || "{}");
+      notes = JSON.parse((metadataRow.notes as string) || "{}");
+    }
+
+    const newSyncToken = Date.now();
+    await db
+      .prepare(
+        "INSERT INTO sync_tokens (membership_id, last_sync_token, updated_at) VALUES (?, ?, ?) ON CONFLICT(membership_id) DO UPDATE SET last_sync_token = ?, updated_at = ?"
+      )
+      .bind(membershipId, newSyncToken, newSyncToken, newSyncToken, newSyncToken)
+      .run();
+
+    return c.json({ loadouts, settings, tags, notes, newSyncToken });
+  } catch (err: any) {
+    console.error("[Sync Full] Error:", err);
+    return c.text(err.message || "Full sync failed", 500);
+  }
+});
+
 // Catch-all 404 handler
 app.all("*", (c: any) => {
   return c.json(
