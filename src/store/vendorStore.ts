@@ -10,6 +10,7 @@
  */
 import { create } from 'zustand';
 import { APIClient } from '@/services/api/client';
+import { ManifestManager } from '@/services/manifest/manager';
 import { buildVendorGroups } from '@/lib/vendors/build-vendors';
 import type { VendorGroupModel } from '@/lib/vendors/types';
 import { useInventoryStore } from './useInventoryStore';
@@ -105,20 +106,39 @@ function vendorKey(characterId: string, vendorHash: number): string {
     return `${characterId}_${vendorHash}`;
 }
 
-function rebuildVendorGroupsForCharacter(characterId: string, response: any): VendorGroupModel[] {
+/** In-flight fetch guard — prevents duplicate concurrent fetches for the same character */
+let activeFetchCharacterId: string | null = null;
+
+/**
+ * Load all vendor-related definition tables from the manifest.
+ * Uses ManifestManager's two-tier cache (memory → IndexedDB → network).
+ */
+async function loadVendorDefinitions() {
+    const [vendorDefs, vendorGroupDefs, destinationDefs, placeDefs] = await Promise.all([
+        ManifestManager.loadTable('DestinyVendorDefinition'),
+        ManifestManager.loadTable('DestinyVendorGroupDefinition'),
+        ManifestManager.loadTable('DestinyDestinationDefinition'),
+        ManifestManager.loadTable('DestinyPlaceDefinition'),
+    ]);
+    return { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs };
+}
+
+async function rebuildVendorGroupsForCharacter(characterId: string, response: any): Promise<VendorGroupModel[]> {
     const inventoryState = useInventoryStore.getState();
     const profile = inventoryState.profile;
     const manifest = inventoryState.manifest;
+
+    const { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs } = await loadVendorDefinitions();
 
     return buildVendorGroups({
         characterId,
         vendorsResponse: response,
         profileResponse: profile,
         itemDefs: manifest,
-        vendorDefs: manifest,
-        vendorGroupDefs: manifest,
-        destinationDefs: manifest,
-        placeDefs: manifest,
+        vendorDefs,
+        vendorGroupDefs,
+        destinationDefs,
+        placeDefs,
     });
 }
 
@@ -138,12 +158,18 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
     detailLoading: new Set(),
 
     fetchVendors: async (characterId: string) => {
+        // Deduplicate: skip if already fetching for this character
+        if (activeFetchCharacterId === characterId) {
+            return;
+        }
+
         const membership = getMembershipInfo();
         if (!membership) {
             set({ error: 'Not logged in — no membership data available.' });
             return;
         }
 
+        activeFetchCharacterId = characterId;
         set({ loading: true, error: null, activeCharacterId: characterId });
 
         try {
@@ -198,7 +224,7 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
                 };
             }
 
-            const vendorGroups = rebuildVendorGroupsForCharacter(characterId, response);
+            const vendorGroups = await rebuildVendorGroupsForCharacter(characterId, response);
 
             set({
                 vendors,
@@ -217,6 +243,8 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
                 loading: false,
                 error: err?.message || 'Failed to fetch vendors',
             });
+        } finally {
+            activeFetchCharacterId = null;
         }
     },
 
@@ -311,7 +339,7 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
             }
 
             const vendorGroups = characterId === get().activeCharacterId && responsesByCharacter[characterId]
-                ? rebuildVendorGroupsForCharacter(characterId, responsesByCharacter[characterId])
+                ? await rebuildVendorGroupsForCharacter(characterId, responsesByCharacter[characterId])
                 : get().vendorGroups;
 
             const doneLoading = new Set(get().detailLoading);

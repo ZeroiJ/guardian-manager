@@ -459,11 +459,14 @@ export default function Vendors() {
     }
   }, [characters, selectedCharacterId]);
 
+  // Only fetch vendors when character changes, not on every profile re-hydration.
+  // The store's activeFetchCharacterId guard handles the rest of the deduplication.
+  const profileReady = Boolean(profile?.profile?.data?.userInfo);
   useEffect(() => {
-    if (selectedCharacterId && profile) {
+    if (selectedCharacterId && profileReady) {
       fetchVendors(selectedCharacterId);
     }
-  }, [selectedCharacterId, profile, fetchVendors]);
+  }, [selectedCharacterId, profileReady, fetchVendors]);
 
   const handleCharacterSelect = useCallback((charId: string) => {
     setSelectedCharacterId(charId);
