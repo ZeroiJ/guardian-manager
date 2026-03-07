@@ -131,12 +131,30 @@ const CostBadge: React.FC<{
     );
 };
 
+/** Class badge colors and labels */
+const CLASS_BADGE: Record<number, { label: string; color: string; bg: string }> = {
+    0: { label: 'Titan', color: 'text-red-300', bg: 'bg-red-500/30' },
+    1: { label: 'Hunter', color: 'text-cyan-300', bg: 'bg-cyan-500/30' },
+    2: { label: 'Warlock', color: 'text-amber-300', bg: 'bg-amber-500/30' },
+};
+
+/**
+ * Check if an item is class-locked armor (classType 0-2).
+ * Returns the classType if armor, null if universal or not armor.
+ */
+function getItemClassType(def: any): number | null {
+    const classType = def?.classType;
+    if (classType != null && classType >= 0 && classType <= 2) return classType;
+    return null;
+}
+
 /** Single vendor sale item tile */
 const VendorItemTile: React.FC<{
     sale: { vendorItemIndex: number; itemHash: number; costs: Array<{ itemHash: number; quantity: number }>; saleStatus: number };
     definitions: Record<string, any>;
     costDefinitions: Record<string, any>;
-}> = ({ sale, definitions, costDefinitions }) => {
+    showClassBadge?: boolean;
+}> = ({ sale, definitions, costDefinitions, showClassBadge }) => {
     const def = definitions[sale.itemHash];
     if (!def) return null;
 
@@ -144,6 +162,8 @@ const VendorItemTile: React.FC<{
     const name = def.displayProperties?.name || 'Unknown';
     const tierType = def.inventory?.tierType || 0;
     const statusBadge = getSaleStatusLabel(sale.saleStatus);
+    const itemClassType = getItemClassType(def);
+    const classBadge = showClassBadge && itemClassType != null ? CLASS_BADGE[itemClassType] : null;
 
     const rarityColors: Record<number, string> = {
         6: '#ceae33',  // exotic
@@ -167,6 +187,12 @@ const VendorItemTile: React.FC<{
                 {statusBadge && (
                     <div className={`absolute top-0 left-0 right-0 text-center text-[8px] font-bold uppercase py-px bg-black/70 ${statusBadge.color}`}>
                         {statusBadge.label}
+                    </div>
+                )}
+                {/* Class badge — bottom-right corner */}
+                {classBadge && (
+                    <div className={`absolute bottom-0 right-0 text-[7px] font-bold uppercase px-1 py-px ${classBadge.bg} ${classBadge.color} rounded-tl`}>
+                        {classBadge.label[0]}
                     </div>
                 )}
             </div>
@@ -193,7 +219,8 @@ const VendorCard: React.FC<{
     vendor: import('@/store/vendorStore').VendorData;
     itemDefinitions: Record<string, any>;
     costDefinitions: Record<string, any>;
-}> = ({ vendorHash, vendorDef, vendor, itemDefinitions, costDefinitions }) => {
+    characterClassType: number;
+}> = ({ vendorHash, vendorDef, vendor, itemDefinitions, costDefinitions, characterClassType }) => {
     const [collapsed, setCollapsed] = useState(false);
 
     if (!vendorDef) return null;
@@ -211,11 +238,36 @@ const VendorCard: React.FC<{
     const displayCategories = vendorDef.displayCategories || [];
     const saleItems = Object.values(vendor.sales);
 
-    // Organize sales by category
-    const categorizedSales = useMemo(() => {
+    // Organize sales by category, filtering by character class
+    const { categorizedSales, hasMultiClassItems } = useMemo(() => {
+        /**
+         * Filter a sale item by character class.
+         * - Universal items (classType 3 or undefined) always pass.
+         * - Class-locked items pass only if they match the selected character's class.
+         */
+        const isVisibleForClass = (sale: typeof saleItems[0]) => {
+            const def = itemDefinitions[sale.itemHash];
+            const itemClass = def?.classType;
+            // classType: 0=Titan, 1=Hunter, 2=Warlock, 3=Universal/Unknown
+            if (itemClass == null || itemClass === 3) return true;
+            return itemClass === characterClassType;
+        };
+
+        // Track if this vendor sells items for multiple classes (for badge display)
+        let seenClasses = new Set<number>();
+        for (const sale of saleItems) {
+            const def = itemDefinitions[sale.itemHash];
+            const ct = def?.classType;
+            if (ct != null && ct >= 0 && ct <= 2) seenClasses.add(ct);
+        }
+        const hasMultiClassItems = seenClasses.size > 1;
+
         if (vendor.categories.length === 0 && saleItems.length > 0) {
-            // If no categories, just show all items
-            return [{ name: 'Items', items: saleItems }];
+            const filtered = saleItems.filter(isVisibleForClass);
+            return {
+                categorizedSales: filtered.length > 0 ? [{ name: 'Items', items: filtered }] : [],
+                hasMultiClassItems,
+            };
         }
 
         const categories: Array<{ name: string; items: typeof saleItems }> = [];
@@ -224,23 +276,28 @@ const VendorCard: React.FC<{
             const catName = catDef?.displayProperties?.name || `Category ${cat.displayCategoryIndex}`;
             const catItems = (cat.itemIndexes || [])
                 .map((idx: number) => vendor.sales[String(idx)])
-                .filter(Boolean);
+                .filter(Boolean)
+                .filter(isVisibleForClass);
 
             if (catItems.length > 0) {
                 categories.push({ name: catName, items: catItems });
             }
         }
 
-        // If categories produced nothing, show all items
-        if (categories.length === 0 && saleItems.length > 0) {
-            categories.push({ name: 'Items', items: saleItems });
+        // If categories produced nothing, show filtered items
+        if (categories.length === 0) {
+            const filtered = saleItems.filter(isVisibleForClass);
+            if (filtered.length > 0) {
+                categories.push({ name: 'Items', items: filtered });
+            }
         }
 
-        return categories;
-    }, [vendor.categories, vendor.sales, displayCategories, saleItems]);
+        return { categorizedSales: categories, hasMultiClassItems };
+    }, [vendor.categories, vendor.sales, displayCategories, saleItems, characterClassType, itemDefinitions]);
 
-    // Skip vendors with no items
-    if (saleItems.length === 0) return null;
+    // Skip vendors with no visible items (after class filtering)
+    const visibleItemCount = categorizedSales.reduce((sum, cat) => sum + cat.items.length, 0);
+    if (visibleItemCount === 0) return null;
 
     return (
         <div className="bg-void-surface/40 border border-void-border rounded-sm overflow-hidden">
@@ -273,7 +330,7 @@ const VendorCard: React.FC<{
 
                 {/* Item count */}
                 <div className="text-[10px] text-gray-500 shrink-0">
-                    {saleItems.length} items
+                    {visibleItemCount} items
                 </div>
 
                 {/* Collapse chevron */}
@@ -297,6 +354,7 @@ const VendorCard: React.FC<{
                                         sale={sale}
                                         definitions={itemDefinitions}
                                         costDefinitions={costDefinitions}
+                                        showClassBadge={hasMultiClassItems}
                                     />
                                 ))}
                             </div>
@@ -523,6 +581,9 @@ export default function Vendors() {
                             if (!vendor) return null;
 
                             const vendorDef = vendorDefs[vendorHash];
+                            const charClassType = selectedCharacterId
+                                ? characters[selectedCharacterId]?.classType ?? 3
+                                : 3;
 
                             return (
                                 <VendorCard
@@ -532,6 +593,7 @@ export default function Vendors() {
                                     vendor={vendor}
                                     itemDefinitions={itemDefs}
                                     costDefinitions={itemDefs}
+                                    characterClassType={charClassType}
                                 />
                             );
                         })}
