@@ -10,6 +10,8 @@
  */
 import { create } from 'zustand';
 import { APIClient } from '@/services/api/client';
+import { buildVendorGroups } from '@/lib/vendors/build-vendors';
+import type { VendorGroupModel } from '@/lib/vendors/types';
 import { useInventoryStore } from './useInventoryStore';
 
 // ============================================================================
@@ -32,6 +34,8 @@ export interface VendorData {
     hasItemDetails: boolean;
     /** Item component data (stats, sockets, perks) from detailed fetch */
     itemComponents: any | null;
+    /** Raw Bungie vendor response for this vendor when detail fetch is used */
+    rawResponse?: any;
 }
 
 /** A single sale item from a vendor */
@@ -59,6 +63,10 @@ interface VendorState {
     vendors: Record<string, VendorData>;
     /** All vendor hashes returned for the current character */
     vendorHashes: number[];
+    /** Transformed vendor groups for the active character */
+    vendorGroups: VendorGroupModel[];
+    /** Raw Bungie vendors response keyed by characterId */
+    responsesByCharacter: Record<string, any>;
     /** Character ID currently loaded for */
     activeCharacterId: string | null;
     /** Loading state */
@@ -97,6 +105,23 @@ function vendorKey(characterId: string, vendorHash: number): string {
     return `${characterId}_${vendorHash}`;
 }
 
+function rebuildVendorGroupsForCharacter(characterId: string, response: any): VendorGroupModel[] {
+    const inventoryState = useInventoryStore.getState();
+    const profile = inventoryState.profile;
+    const manifest = inventoryState.manifest;
+
+    return buildVendorGroups({
+        characterId,
+        vendorsResponse: response,
+        profileResponse: profile,
+        itemDefs: manifest,
+        vendorDefs: manifest,
+        vendorGroupDefs: manifest,
+        destinationDefs: manifest,
+        placeDefs: manifest,
+    });
+}
+
 // ============================================================================
 // STORE
 // ============================================================================
@@ -104,6 +129,8 @@ function vendorKey(characterId: string, vendorHash: number): string {
 export const useVendorStore = create<VendorState>()((set, get) => ({
     vendors: {},
     vendorHashes: [],
+    vendorGroups: [],
+    responsesByCharacter: {},
     activeCharacterId: null,
     loading: false,
     error: null,
@@ -125,6 +152,9 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
                 membership.membershipId,
                 characterId,
             );
+
+            const inventoryState = useInventoryStore.getState();
+            const manifest = inventoryState.manifest;
 
             // Parse the vendor response
             const vendorComponents = response?.vendors?.data || {};
@@ -164,12 +194,20 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
                     sales: salesMap,
                     hasItemDetails: false,
                     itemComponents: null,
+                    rawResponse: undefined,
                 };
             }
+
+            const vendorGroups = rebuildVendorGroupsForCharacter(characterId, response);
 
             set({
                 vendors,
                 vendorHashes,
+                vendorGroups,
+                responsesByCharacter: {
+                    ...get().responsesByCharacter,
+                    [characterId]: response,
+                },
                 loading: false,
                 lastFetched: Date.now(),
             });
@@ -205,11 +243,13 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
 
             // Merge item components into existing vendor data
             const updated = { ...get().vendors };
+            const responsesByCharacter = { ...get().responsesByCharacter };
             if (updated[key]) {
                 updated[key] = {
                     ...updated[key],
                     hasItemDetails: true,
                     itemComponents: response?.itemComponents || null,
+                    rawResponse: response,
                     // Also update sales if the detailed response has them
                     ...(response?.sales?.data ? {
                         sales: (() => {
@@ -234,9 +274,54 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
                 };
             }
 
+            const baseResponse = responsesByCharacter[characterId];
+            if (baseResponse) {
+                responsesByCharacter[characterId] = {
+                    ...baseResponse,
+                    vendors: {
+                        ...baseResponse.vendors,
+                        data: {
+                            ...baseResponse.vendors?.data,
+                            [vendorHash]: response?.vendor?.data || baseResponse.vendors?.data?.[vendorHash],
+                        },
+                    },
+                    categories: {
+                        ...baseResponse.categories,
+                        data: {
+                            ...baseResponse.categories?.data,
+                            [vendorHash]: response?.categories?.data
+                                ? { categories: response.categories.data.categories || [] }
+                                : baseResponse.categories?.data?.[vendorHash],
+                        },
+                    },
+                    sales: {
+                        ...baseResponse.sales,
+                        data: {
+                            ...baseResponse.sales?.data,
+                            [vendorHash]: response?.sales?.data
+                                ? { saleItems: response.sales.data || {} }
+                                : baseResponse.sales?.data?.[vendorHash],
+                        },
+                    },
+                    itemComponents: {
+                        ...(baseResponse.itemComponents || {}),
+                        [vendorHash]: response?.itemComponents || (baseResponse.itemComponents || {})[vendorHash],
+                    },
+                };
+            }
+
+            const vendorGroups = characterId === get().activeCharacterId && responsesByCharacter[characterId]
+                ? rebuildVendorGroupsForCharacter(characterId, responsesByCharacter[characterId])
+                : get().vendorGroups;
+
             const doneLoading = new Set(get().detailLoading);
             doneLoading.delete(vendorHash);
-            set({ vendors: updated, detailLoading: doneLoading });
+            set({
+                vendors: updated,
+                responsesByCharacter,
+                vendorGroups,
+                detailLoading: doneLoading,
+            });
         } catch (err: any) {
             console.error(`[VendorStore] Failed to fetch vendor ${vendorHash}:`, err);
             const doneLoading = new Set(get().detailLoading);
@@ -245,12 +330,14 @@ export const useVendorStore = create<VendorState>()((set, get) => ({
         }
     },
 
-    clear: () => set({
-        vendors: {},
-        vendorHashes: [],
-        activeCharacterId: null,
-        loading: false,
-        error: null,
+        clear: () => set({
+            vendors: {},
+            vendorHashes: [],
+            vendorGroups: [],
+            responsesByCharacter: {},
+            activeCharacterId: null,
+            loading: false,
+            error: null,
         lastFetched: null,
         detailLoading: new Set(),
     }),
