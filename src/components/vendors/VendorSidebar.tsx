@@ -1,13 +1,8 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { BungieImage } from '@/components/ui/BungieImage';
+import { ClassIcon, PowerIcon, CLASS_NAMES } from '@/components/ui/DestinyIcons';
 import type { VendorGroupModel } from '@/lib/vendors/types';
-
-const CLASS_NAMES: Record<number, string> = {
-  0: 'Titan',
-  1: 'Hunter',
-  2: 'Warlock',
-};
 
 // ============================================================================
 // Character Selector
@@ -33,10 +28,12 @@ const CharacterCard: React.FC<{
     />
     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
     <div className="relative z-10 h-full flex flex-col justify-center px-3">
-      <span className={`text-xs font-bold uppercase tracking-wider leading-none ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+      <span className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider leading-none ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+        <ClassIcon classType={character.classType} size={12} />
         {CLASS_NAMES[character.classType] || 'Unknown'}
       </span>
-      <span className="text-lg font-light text-amber-200/80 leading-none mt-0.5 font-mono">
+      <span className="flex items-center gap-1 text-lg font-light text-amber-200/80 leading-none mt-0.5 font-mono">
+        <PowerIcon size={10} className="text-amber-300/60" />
         {character.light}
       </span>
     </div>

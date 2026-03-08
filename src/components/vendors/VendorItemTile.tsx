@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, Lock } from 'lucide-react';
 import { DestinyCollectibleState } from 'bungie-api-ts/destiny2';
 import { BungieImage } from '@/components/ui/BungieImage';
+import { ClassIcon, PursuitCompleteBadge } from '@/components/ui/DestinyIcons';
 import type { VendorItemModel } from '@/lib/vendors/types';
 
 /**
@@ -70,6 +71,16 @@ export const VendorItemTile: React.FC<VendorItemTileProps> = ({
   const owned = isOwned(item, ownedItemHashes);
   const acquired = !owned && isAcquired(item);
 
+  // Class-specific item detection (classType 0-2 are specific classes, 3 = all classes)
+  const itemClassType = def.classType;
+  const isClassSpecific = itemClassType !== undefined && itemClassType !== 3;
+
+  // Pursuit/bounty completion detection
+  const isBountyOrQuest =
+    def.itemCategoryHashes?.includes(1784235469) || // bounty
+    def.itemCategoryHashes?.includes(53); // quest step
+  const isCompleted = isBountyOrQuest && owned;
+
   // Unavailable: can't be sold, or locked, or owned emblems/bounties
   const isEmblem = def.itemCategoryHashes?.includes(19);
   const isBounty = def.itemCategoryHashes?.includes(1784235469);
@@ -119,6 +130,20 @@ export const VendorItemTile: React.FC<VendorItemTileProps> = ({
         title={name}
       >
         {icon && <BungieImage src={icon} className="w-full h-full object-cover" />}
+
+        {/* Class-specific indicator — top-left */}
+        {isClassSpecific && (
+          <div className="absolute top-0 left-0 w-4 h-4 flex items-center justify-center bg-black/70 rounded-br">
+            <ClassIcon classType={itemClassType} size={10} className="text-white/80" />
+          </div>
+        )}
+
+        {/* Pursuit complete badge — bottom-left triangle */}
+        {isCompleted && (
+          <div className="absolute bottom-0 left-0">
+            <PursuitCompleteBadge size={13} />
+          </div>
+        )}
 
         {/* Ownership / acquired / locked badge — bottom-right circle */}
         {owned && (
