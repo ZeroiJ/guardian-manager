@@ -1,466 +1,110 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, ChevronDown, ChevronRight, Clock, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { DestinyCollectibleState } from 'bungie-api-ts/destiny2';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { Navigation } from '@/components/Navigation';
-import { BungieImage } from '@/components/ui/BungieImage';
+import { VendorSidebar } from '@/components/vendors/VendorSidebar';
+import { VendorCard } from '@/components/vendors/VendorCard';
+import { SubVendorSheet } from '@/components/vendors/SubVendorSheet';
+import { VendorItemPopup } from '@/components/vendors/VendorItemPopup';
+import { filterVendorGroups } from '@/lib/vendors/filters';
+import type { FilteredVendorGroup } from '@/lib/vendors/filters';
+import type { VendorItemModel, VendorModel } from '@/lib/vendors/types';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useVendorStore } from '@/store/vendorStore';
-import type { VendorGroupModel, VendorItemModel, VendorModel } from '@/lib/vendors/types';
 
-const SILVER_HASH = 3147280338;
-const IGNORED_CATEGORY_PREFIXES = ['categories.campaigns', 'categories.featured.carousel'];
+// ============================================================================
+// Vendor group ordering — sort by def.order, prioritize Ada/Banshee/Eververse
+// ============================================================================
 
-const CLASS_BADGE: Record<number, { short: string; label: string; tone: string }> = {
-  0: { short: 'T', label: 'Titan', tone: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  1: { short: 'H', label: 'Hunter', tone: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-  2: { short: 'W', label: 'Warlock', tone: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+/** Known vendor hashes for priority ordering within groups (DIM's vendorOrder) */
+const VENDOR_PRIORITY: Record<number, number> = {
+  350061650: 0,   // Ada-1 (Armor Synthesis)
+  672118013: 1,   // Banshee-44
+  3361454721: 2,  // Tess Everis (Eververse)
 };
 
-function formatCountdown(refreshDate: string | undefined): string | null {
-  if (!refreshDate) return null;
-  const target = new Date(refreshDate).getTime();
-  const now = Date.now();
-  const diff = target - now;
-  if (diff <= 0) return null;
+function sortVendorGroups(groups: FilteredVendorGroup[]): FilteredVendorGroup[] {
+  // Sort groups by def.order (ascending)
+  const sorted = [...groups].sort((a, b) => {
+    const orderA = (a.group.def as any)?.order ?? 999;
+    const orderB = (b.group.def as any)?.order ?? 999;
+    return orderA - orderB;
+  });
 
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours > 24) {
-    const days = Math.floor(hours / 24);
-    return `${days}d ${hours % 24}h`;
+  // Within each group, sort vendors by priority (known vendors first), then by def.order
+  for (const group of sorted) {
+    group.vendors.sort((a, b) => {
+      const prioA = VENDOR_PRIORITY[a.vendor.vendorHash] ?? 100;
+      const prioB = VENDOR_PRIORITY[b.vendor.vendorHash] ?? 100;
+      if (prioA !== prioB) return prioA - prioB;
+      // Fall back to original array order
+      return 0;
+    });
   }
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+
+  return sorted;
 }
 
-function getFailureLabel(item: VendorItemModel, selectedClassType: number): string | null {
-  if (item.classType != null && item.classType >= 0 && item.classType <= 2 && item.classType !== selectedClassType) {
-    return `Other class`;
-  }
+// ============================================================================
+// Popup / SubVendor state types
+// ============================================================================
 
-  if (item.locked) {
-    return 'Locked';
-  }
-
-  if (item.failureStrings.length > 0) {
-    const cleaned = item.failureStrings[0]
-      .replace(/\s+/g, ' ')
-      .replace(/[.!]+$/g, '')
-      .trim();
-    return cleaned || 'Unavailable';
-  }
-
-  if (item.owned) {
-    return 'Owned';
-  }
-
-  if (!item.canBeSold) {
-    return 'Unavailable';
-  }
-
-  return null;
-}
-
-function itemMatchesFilters(
-  item: VendorItemModel,
-  options: {
-    hideOwned: boolean;
-    hideSilver: boolean;
-    onlySelectedClass: boolean;
-    selectedClassType: number;
-    categoryIdentifier?: string;
-  },
-) {
-  if (options.hideOwned && item.owned) {
-    return false;
-  }
-
-  if (options.hideSilver && item.costs.some((cost) => cost.itemHash === SILVER_HASH && cost.quantity > 0)) {
-    return false;
-  }
-
-  if (
-    options.hideSilver &&
-    options.categoryIdentifier &&
-    IGNORED_CATEGORY_PREFIXES.some((prefix) => options.categoryIdentifier?.startsWith(prefix))
-  ) {
-    return false;
-  }
-
-  if (options.onlySelectedClass) {
-    const classType = item.classType;
-    if (classType != null && classType >= 0 && classType <= 2 && classType !== options.selectedClassType) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function isUnacquired(item: VendorItemModel): boolean {
-  if (item.owned) {
-    return false;
-  }
-
-  if (item.collectibleState !== undefined) {
-    return (item.collectibleState & DestinyCollectibleState.NotAcquired) !== 0;
-  }
-
-  return false;
-}
-
-function getFailureTooltip(item: VendorItemModel, selectedClassType: number): string | null {
-  if (item.classType != null && item.classType >= 0 && item.classType <= 2 && item.classType !== selectedClassType) {
-    return `This item is for ${CLASS_BADGE[item.classType]?.label ?? 'another class'}`;
-  }
-
-  if (item.failureStrings.length > 0) {
-    return item.failureStrings.join(' | ');
-  }
-
-  if (item.locked) {
-    return 'This item is currently locked by the vendor.';
-  }
-
-  if (item.owned) {
-    return 'You already own this item.';
-  }
-
-  if (!item.canBeSold) {
-    return 'This item is currently unavailable.';
-  }
-
-  return null;
-}
-
-const CharacterTabs: React.FC<{
-  characters: Record<string, any>;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}> = ({ characters, selectedId, onSelect }) => {
-  const charIds = Object.keys(characters);
-  const classNames = ['Titan', 'Hunter', 'Warlock'];
-
-  return (
-    <div className="flex gap-1 bg-void-surface/50 border border-void-border rounded-sm p-1">
-      {charIds.map((id) => {
-        const char = characters[id];
-        const className = classNames[char?.classType] || 'Unknown';
-        const isActive = id === selectedId;
-        return (
-          <button
-            key={id}
-            onClick={() => onSelect(id)}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors rounded-sm ${
-              isActive
-                ? 'bg-white/10 text-white border border-white/10'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {className}
-            <span className="ml-2 text-gray-500 text-[10px] font-mono">{char?.light || ''}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-const CostBadge: React.FC<{
-  cost: { itemHash: number; quantity: number };
-  manifest: Record<number, any>;
-}> = ({ cost, manifest }) => {
-  const def = manifest[cost.itemHash];
-  return (
-    <div className="flex items-center gap-1 text-[10px] text-gray-400" title={def?.displayProperties?.name || String(cost.itemHash)}>
-      {def?.displayProperties?.icon && <BungieImage src={def.displayProperties.icon} className="w-3 h-3 rounded-sm" />}
-      <span className="font-mono tabular-nums">{cost.quantity.toLocaleString()}</span>
-    </div>
-  );
-};
-
-const VendorItemTile: React.FC<{
+interface PopupState {
   item: VendorItemModel;
-  selectedClassType: number;
-  manifest: Record<number, any>;
-  expanded: boolean;
-  onToggleSubVendor?: () => void;
-}> = ({ item, selectedClassType, manifest, expanded, onToggleSubVendor }) => {
-  const def = item.itemDef || manifest[item.itemHash];
-  if (!def) return null;
+  element: HTMLElement;
+}
 
-  const icon = def.displayProperties?.icon;
-  const name = def.displayProperties?.name || 'Unknown';
-  const tierType = def.inventory?.tierType || 0;
-  const rarityColors: Record<number, string> = {
-    6: '#ceae33',
-    5: '#522f65',
-    4: '#5076a3',
-    3: '#366f42',
-  };
-  const borderColor = rarityColors[tierType] || '#333';
-
-  const isWrongClass =
-    item.classType != null &&
-    item.classType >= 0 &&
-    item.classType <= 2 &&
-    item.classType !== selectedClassType;
-  const isUnavailable = isWrongClass || !item.canBeSold || item.locked;
-  const failureLabel = getFailureLabel(item, selectedClassType);
-  const failureTooltip = getFailureTooltip(item, selectedClassType);
-  const classBadge = item.classType != null && item.classType >= 0 && item.classType <= 2
-    ? CLASS_BADGE[item.classType]
-    : null;
-  const hasSubVendor = Boolean(item.subVendor);
-
-  return (
-    <div className={`group relative flex w-[84px] flex-col items-center gap-1 ${isUnavailable ? 'opacity-55' : ''}`}>
-      <div
-        className="relative w-[56px] h-[56px] rounded border overflow-hidden bg-black/30 shrink-0"
-        style={{ borderColor: `${borderColor}60` }}
-        title={failureTooltip ? `${name} - ${failureTooltip}` : name}
-      >
-        {icon && <BungieImage src={icon} className="w-full h-full" />}
-        {failureLabel && (
-          <div className="absolute inset-x-0 top-0 bg-black/75 px-1 py-px text-center text-[8px] font-bold uppercase text-gray-200 truncate">
-            {failureLabel}
-          </div>
-        )}
-        {classBadge && (
-          <div className={`absolute bottom-0 right-0 border-l border-t px-1 py-px text-[7px] font-bold uppercase ${classBadge.tone}`}>
-            {classBadge.short}
-          </div>
-        )}
-        {hasSubVendor && (
-          <button
-            type="button"
-            onClick={onToggleSubVendor}
-            className="absolute bottom-0 left-0 border-r border-t border-sky-500/30 bg-sky-500/20 px-1 py-px text-[7px] font-bold uppercase text-sky-200"
-            title={expanded ? 'Hide nested vendor' : 'Show nested vendor'}
-          >
-            {expanded ? 'Hide' : 'Open'}
-          </button>
-        )}
-      </div>
-      <div className="text-[10px] text-gray-300 text-center leading-tight line-clamp-2 w-full">
-        {name}
-      </div>
-      {item.costs.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center">
-          {item.costs.map((cost, index) => (
-            <CostBadge key={`${cost.itemHash}-${index}`} cost={cost} manifest={manifest} />
-          ))}
-        </div>
-      )}
-      {hasSubVendor && (
-        <div className="text-[9px] uppercase tracking-wider text-sky-300 text-center">
-          Opens vendor
-        </div>
-      )}
-    </div>
-  );
-};
-
-const VendorCard: React.FC<{
-  vendor: VendorModel;
-  characterId: string;
-  selectedClassType: number;
-  hideOwned: boolean;
-  hideSilver: boolean;
-  onlySelectedClass: boolean;
-  showUnacquiredOnly: boolean;
-  manifest: Record<number, any>;
-}> = ({ vendor, characterId, selectedClassType, hideOwned, hideSilver, onlySelectedClass, showUnacquiredOnly, manifest }) => {
-  const [collapsed, setCollapsed] = useState(false);
-  const [openSubVendorKey, setOpenSubVendorKey] = useState<string | null>(null);
-  const fetchVendorDetails = useVendorStore((s) => s.fetchVendorDetails);
-  const detailLoading = useVendorStore((s) => s.detailLoading);
-  const vendorRecord = useVendorStore((s) => s.vendors[`${characterId}_${vendor.vendorHash}`]);
-
-  if (!vendor.def) return null;
-
-  const filteredItems = useMemo(
-    () =>
-      vendor.items.filter((item) =>
-        (() => {
-          const categoryIndex = item.displayCategoryIndex;
-          const categoryIdentifier =
-            categoryIndex !== undefined && categoryIndex >= 0
-              ? vendor.def?.displayCategories?.[categoryIndex]?.identifier
-              : undefined;
-
-          return itemMatchesFilters(item, {
-            hideOwned,
-            hideSilver,
-            onlySelectedClass,
-            selectedClassType,
-            categoryIdentifier,
-          }) && (!showUnacquiredOnly || isUnacquired(item));
-        })(),
-      ),
-    [vendor.items, hideOwned, hideSilver, onlySelectedClass, selectedClassType, showUnacquiredOnly],
-  );
-
-  const categories = useMemo(() => {
-    const displayCategories = vendor.def?.displayCategories || [];
-    const mapped = new Map<number, VendorItemModel[]>();
-
-    for (const item of filteredItems) {
-      const key = item.displayCategoryIndex ?? -1;
-      const existing = mapped.get(key) || [];
-      existing.push(item);
-      mapped.set(key, existing);
-    }
-
-    return Array.from(mapped.entries()).map(([categoryIndex, items]) => ({
-      name:
-        categoryIndex >= 0
-          ? displayCategories[categoryIndex]?.displayProperties?.name || `Category ${categoryIndex}`
-          : 'Items',
-      items,
-    }));
-  }, [filteredItems, vendor.def]);
-
-  if (filteredItems.length === 0) {
-    return null;
-  }
-
-  const name = vendor.def.displayProperties?.name || `Vendor ${vendor.vendorHash}`;
-  const subtitle = [vendor.destination?.displayProperties?.name, vendor.place?.displayProperties?.name]
-    .filter(Boolean)
-    .filter((value, index, arr) => arr.indexOf(value) === index)
-    .join(', ');
-  const icon = vendor.def.displayProperties?.smallTransparentIcon || vendor.def.displayProperties?.icon;
-  const countdown = formatCountdown(vendor.component?.nextRefreshDate);
-  const isDetailLoading = detailLoading.has(vendor.vendorHash);
-
-  useEffect(() => {
-    if (!collapsed && vendorRecord && !vendorRecord.hasItemDetails && !isDetailLoading) {
-      fetchVendorDetails(characterId, vendor.vendorHash);
-    }
-  }, [collapsed, vendorRecord, isDetailLoading, fetchVendorDetails, characterId, vendor.vendorHash]);
-
-  return (
-    <div className="bg-void-surface/40 border border-void-border rounded-sm overflow-hidden">
-      <button
-        onClick={() => setCollapsed((value) => !value)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
-      >
-        {icon && (
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 shrink-0 bg-black/30">
-            <BungieImage src={icon} className="w-full h-full object-cover" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white truncate">{name}</div>
-          {subtitle && <div className="text-[10px] text-gray-500 truncate">{subtitle}</div>}
-        </div>
-        {countdown && (
-          <div className="flex items-center gap-1 text-[10px] text-gray-500 shrink-0">
-            <Clock size={10} />
-            {countdown}
-          </div>
-        )}
-        {isDetailLoading && <Loader2 size={12} className="animate-spin text-sky-300 shrink-0" />}
-        <div className="text-[10px] text-gray-500 shrink-0">{filteredItems.length} items</div>
-        {collapsed ? <ChevronRight size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
-      </button>
-
-      {!collapsed && (
-        <div className="border-t border-void-border px-4 py-3 space-y-4">
-          {vendor.currencies.length > 0 && (
-            <div className="flex flex-wrap gap-3 text-[11px] text-gray-400">
-              {vendor.currencies.map((currency) => (
-                <div key={currency.hash} className="flex items-center gap-1">
-                  {currency.displayProperties?.icon && (
-                    <BungieImage src={currency.displayProperties.icon} className="w-4 h-4 rounded-sm" />
-                  )}
-                  <span>{currency.displayProperties?.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {categories.map((category, index) => (
-            <div key={`${category.name}-${index}`}>
-              {categories.length > 1 && (
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">
-                  {category.name}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-3">
-                {category.items.map((item) => (
-                  <div key={`${vendor.vendorHash}-${item.vendorItemIndex}`} className="space-y-3">
-                    <VendorItemTile
-                      item={item}
-                      selectedClassType={selectedClassType}
-                      manifest={manifest}
-                      expanded={openSubVendorKey === `${vendor.vendorHash}-${item.vendorItemIndex}`}
-                      onToggleSubVendor={
-                        item.subVendor
-                          ? () =>
-                              setOpenSubVendorKey((current) =>
-                                current === `${vendor.vendorHash}-${item.vendorItemIndex}`
-                                  ? null
-                                  : `${vendor.vendorHash}-${item.vendorItemIndex}`,
-                              )
-                          : undefined
-                      }
-                    />
-                    {item.subVendor && openSubVendorKey === `${vendor.vendorHash}-${item.vendorItemIndex}` && (
-                      <div className="w-full min-w-[280px] max-w-[640px] rounded-sm border border-sky-500/20 bg-sky-500/5 p-3">
-                        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-sky-300">
-                          {item.subVendor.def?.displayProperties?.name || 'Nested Vendor'}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mb-3">
-                          Nested vendor inventory preview.
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                          {item.subVendor.items.map((subItem) => (
-                            <VendorItemTile
-                              key={`${item.subVendor?.vendorHash}-${subItem.vendorItemIndex}`}
-                              item={subItem}
-                              selectedClassType={selectedClassType}
-                              manifest={manifest}
-                              expanded={false}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+// ============================================================================
+// Vendors Page
+// ============================================================================
 
 export default function Vendors() {
+  // ---------------------------------------------------------------------------
+  // Store selectors (atomic)
+  // ---------------------------------------------------------------------------
   const characters = useInventoryStore((s) => s.characters);
   const profile = useInventoryStore((s) => s.profile);
   const manifest = useInventoryStore((s) => s.manifest);
+  const inventoryItems = useInventoryStore((s) => s.items);
+
+  const vendorGroups = useVendorStore((s) => s.vendorGroups);
+  const loading = useVendorStore((s) => s.loading);
+  const error = useVendorStore((s) => s.error);
+  const lastFetched = useVendorStore((s) => s.lastFetched);
+  const fetchVendors = useVendorStore((s) => s.fetchVendors);
+
+  // ---------------------------------------------------------------------------
+  // Local state
+  // ---------------------------------------------------------------------------
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [hideOwned, setHideOwned] = useState(false);
-  const [hideSilver, setHideSilver] = useState(true);
-  const [onlySelectedClass, setOnlySelectedClass] = useState(false);
   const [showUnacquiredOnly, setShowUnacquiredOnly] = useState(false);
+  const [hideSilver, setHideSilver] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [popup, setPopup] = useState<PopupState | null>(null);
+  const [subVendorHash, setSubVendorHash] = useState<number | null>(null);
 
-  const { vendorGroups, loading, error, fetchVendors, lastFetched } = useVendorStore();
+  // ---------------------------------------------------------------------------
+  // Derived: owned item hashes from player inventory
+  // ---------------------------------------------------------------------------
+  const ownedItemHashes = useMemo(() => {
+    const set = new Set<number>();
+    for (const item of inventoryItems) {
+      set.add(item.itemHash);
+    }
+    return set;
+  }, [inventoryItems]);
 
+  // ---------------------------------------------------------------------------
+  // Character selection — auto-select first character
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!selectedCharacterId && Object.keys(characters).length > 0) {
       setSelectedCharacterId(Object.keys(characters)[0]);
     }
   }, [characters, selectedCharacterId]);
 
-  // Only fetch vendors when character changes, not on every profile re-hydration.
-  // The store's activeFetchCharacterId guard handles the rest of the deduplication.
+  // ---------------------------------------------------------------------------
+  // Fetch vendors when character changes (deduplicated by store guard)
+  // ---------------------------------------------------------------------------
   const profileReady = Boolean(profile?.profile?.data?.userInfo);
   useEffect(() => {
     if (selectedCharacterId && profileReady) {
@@ -468,8 +112,67 @@ export default function Vendors() {
     }
   }, [selectedCharacterId, profileReady, fetchVendors]);
 
+  // ---------------------------------------------------------------------------
+  // Reset unacquired filter on unmount (DIM behavior)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    return () => setShowUnacquiredOnly(false);
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Selected class type (for filtering / badges)
+  // ---------------------------------------------------------------------------
+  const selectedClassType = selectedCharacterId
+    ? characters[selectedCharacterId]?.classType ?? 3
+    : 3;
+
+  // ---------------------------------------------------------------------------
+  // Filtered + sorted vendor groups
+  // ---------------------------------------------------------------------------
+  const filteredGroups = useMemo(() => {
+    const filtered = filterVendorGroups(vendorGroups, {
+      hideSilver,
+      showUnacquiredOnly,
+      searchQuery,
+      ownedItemHashes,
+    });
+    return sortVendorGroups(filtered);
+  }, [vendorGroups, hideSilver, showUnacquiredOnly, searchQuery, ownedItemHashes]);
+
+  // Build a flat VendorGroupModel list for the sidebar nav (needs full shape)
+  const sidebarNavGroups = useMemo(() => {
+    return filteredGroups.map((fg) => ({
+      ...fg.group,
+      vendors: fg.vendors.map((fv) => fv.vendor),
+    }));
+  }, [filteredGroups]);
+
+  const hasData = filteredGroups.length > 0;
+
+  // ---------------------------------------------------------------------------
+  // Resolve sub-vendor model from hash
+  // ---------------------------------------------------------------------------
+  const subVendorModel = useMemo((): VendorModel | null => {
+    if (!subVendorHash) return null;
+    for (const group of vendorGroups) {
+      for (const vendor of group.vendors) {
+        for (const item of vendor.items) {
+          if (item.subVendor?.vendorHash === subVendorHash) {
+            return item.subVendor;
+          }
+        }
+      }
+    }
+    return null;
+  }, [subVendorHash, vendorGroups]);
+
+  // ---------------------------------------------------------------------------
+  // Callbacks
+  // ---------------------------------------------------------------------------
   const handleCharacterSelect = useCallback((charId: string) => {
     setSelectedCharacterId(charId);
+    setPopup(null);
+    setSubVendorHash(null);
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -478,125 +181,73 @@ export default function Vendors() {
     }
   }, [selectedCharacterId, fetchVendors]);
 
-  const selectedClassType = selectedCharacterId ? characters[selectedCharacterId]?.classType ?? 3 : 3;
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const handleItemClick = useCallback((item: VendorItemModel, element: HTMLElement) => {
+    setPopup((prev) => {
+      // Toggle off if clicking the same item
+      if (prev?.item === item) return null;
+      return { item, element };
+    });
+  }, []);
 
-  const vendorMatchesSearch = useCallback(
-    (vendor: VendorModel) =>
-      !normalizedSearch ||
-      vendor.def?.displayProperties?.name?.toLowerCase().includes(normalizedSearch),
-    [normalizedSearch],
-  );
+  const handleSubVendorClick = useCallback((vendorHash: number) => {
+    setSubVendorHash((prev) => (prev === vendorHash ? null : vendorHash));
+    setPopup(null);
+  }, []);
 
-  const itemMatchesSearch = useCallback(
-    (item: VendorItemModel) => {
-      if (!normalizedSearch) return true;
-      const name = item.itemDef?.displayProperties?.name?.toLowerCase();
-      return Boolean(name?.includes(normalizedSearch));
-    },
-    [normalizedSearch],
-  );
+  const handleClosePopup = useCallback(() => setPopup(null), []);
+  const handleCloseSheet = useCallback(() => setSubVendorHash(null), []);
 
-  const filteredGroups = useMemo(() => {
-    return vendorGroups
-      .map((group: VendorGroupModel) => ({
-        ...group,
-        vendors: group.vendors.filter((vendor) =>
-          vendorMatchesSearch(vendor) || vendor.items.some((item) =>
-            (() => {
-              const categoryIndex = item.displayCategoryIndex;
-              const categoryIdentifier =
-                categoryIndex !== undefined && categoryIndex >= 0
-                  ? vendor.def?.displayCategories?.[categoryIndex]?.identifier
-                  : undefined;
-
-              return itemMatchesFilters(item, {
-                hideOwned,
-                hideSilver,
-                onlySelectedClass,
-                selectedClassType,
-                categoryIdentifier,
-              }) && (!showUnacquiredOnly || isUnacquired(item)) && itemMatchesSearch(item);
-            })(),
-          ),
-        ),
-      }))
-      .filter((group) => group.vendors.length > 0);
-  }, [vendorGroups, hideOwned, hideSilver, onlySelectedClass, selectedClassType, showUnacquiredOnly, vendorMatchesSearch, itemMatchesSearch]);
-
-  const hasData = filteredGroups.length > 0;
-
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-void-bg text-void-text">
       <Navigation />
 
-      <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-lg font-bold text-white">Vendors</h1>
-            <p className="text-xs text-gray-500">
-              {lastFetched ? `Updated ${new Date(lastFetched).toLocaleTimeString()}` : 'Not yet loaded'}
-            </p>
+      <div className="flex">
+        {/* ---- Sidebar (desktop: sticky 230px, mobile: hidden) ---- */}
+        <div className="hidden lg:block">
+          <VendorSidebar
+            characters={characters}
+            selectedCharacterId={selectedCharacterId}
+            onSelectCharacter={handleCharacterSelect}
+            showUnacquiredOnly={showUnacquiredOnly}
+            onToggleUnacquired={() => setShowUnacquiredOnly((v) => !v)}
+            hideSilver={hideSilver}
+            onToggleSilver={() => setHideSilver((v) => !v)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            vendorGroups={sidebarNavGroups}
+          />
+        </div>
+
+        {/* ---- Main content ---- */}
+        <main className="flex-1 min-w-0 px-4 py-4 space-y-4 lg:px-6">
+          {/* Mobile-only header (character tabs + filters inline) */}
+          <div className="lg:hidden space-y-3">
+            <MobileHeader
+              characters={characters}
+              selectedCharacterId={selectedCharacterId}
+              onSelectCharacter={handleCharacterSelect}
+              showUnacquiredOnly={showUnacquiredOnly}
+              onToggleUnacquired={() => setShowUnacquiredOnly((v) => !v)}
+              hideSilver={hideSilver}
+              onToggleSilver={() => setHideSilver((v) => !v)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
           </div>
 
-          {Object.keys(characters).length > 0 && (
-            <CharacterTabs characters={characters} selectedId={selectedCharacterId} onSelect={handleCharacterSelect} />
-          )}
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search vendors or items"
-              className="w-[220px] rounded-sm border border-void-border bg-white/[0.04] px-3 py-1.5 text-xs text-white placeholder:text-gray-500 outline-none focus:border-white/20"
-            />
-
-            <button
-              onClick={() => setHideOwned((value) => !value)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                hideOwned
-                  ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
-                  : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
-              }`}
-            >
-              {hideOwned ? <EyeOff size={12} /> : <Eye size={12} />}
-              {hideOwned ? 'Owned Hidden' : 'Hide Owned'}
-            </button>
-
-            <button
-              onClick={() => setHideSilver((value) => !value)}
-              className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                hideSilver
-                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                  : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
-              }`}
-            >
-              Hide Silver
-            </button>
-
-            <button
-              onClick={() => setShowUnacquiredOnly((value) => !value)}
-              className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                showUnacquiredOnly
-                  ? 'bg-amber-500/20 border-amber-500/30 text-amber-300'
-                  : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
-              }`}
-            >
-              Unacquired Only
-            </button>
-
-            <button
-              onClick={() => setOnlySelectedClass((value) => !value)}
-              className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors ${
-                onlySelectedClass
-                  ? 'bg-violet-500/20 border-violet-500/30 text-violet-300'
-                  : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
-              }`}
-            >
-              Only Selected Class
-            </button>
-
+          {/* Page title bar */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-lg font-bold text-white">Vendors</h1>
+              <p className="text-xs text-gray-500">
+                {lastFetched
+                  ? `Updated ${new Date(lastFetched).toLocaleTimeString()}`
+                  : 'Not yet loaded'}
+              </p>
+            </div>
             <button
               onClick={handleRefresh}
               disabled={loading}
@@ -606,55 +257,202 @@ export default function Vendors() {
               Refresh
             </button>
           </div>
-        </div>
 
-        <div className="rounded-sm border border-void-border bg-void-surface/30 px-4 py-3 text-xs text-gray-400">
-          Character selection sets the vendor perspective. Items for other classes remain visible by default, but they are dimmed and marked unavailable instead of being hidden.
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-sm px-4 py-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        {loading && !hasData && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 size={32} className="animate-spin text-gray-500" />
-            <span className="text-sm text-gray-500">Loading vendors...</span>
-          </div>
-        )}
-
-        {!profile && !loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <span className="text-sm text-gray-500">Log in and load your profile first to view vendors.</span>
-          </div>
-        )}
-
-        {hasData &&
-          filteredGroups.map((group) => (
-            <div key={group.vendorGroupHash} className="space-y-2">
-              {filteredGroups.length > 1 && (
-                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest pt-2">
-                  {group.def?.categoryName || 'Vendors'}
-                </h2>
-              )}
-              {group.vendors.map((vendor) => (
-                <VendorCard
-                  key={vendor.vendorHash}
-                  vendor={vendor}
-                  characterId={selectedCharacterId!}
-                  selectedClassType={selectedClassType}
-                  hideOwned={hideOwned}
-                  hideSilver={hideSilver}
-                  onlySelectedClass={onlySelectedClass}
-                  showUnacquiredOnly={showUnacquiredOnly}
-                  manifest={manifest}
-                />
-              ))}
+          {/* Error */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-sm px-4 py-3 text-sm text-red-400">
+              {error}
             </div>
-          ))}
+          )}
+
+          {/* Loading (initial) */}
+          {loading && !hasData && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 size={32} className="animate-spin text-gray-500" />
+              <span className="text-sm text-gray-500">Loading vendors...</span>
+            </div>
+          )}
+
+          {/* Not logged in */}
+          {!profile && !loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <span className="text-sm text-gray-500">
+                Log in and load your profile first to view vendors.
+              </span>
+            </div>
+          )}
+
+          {/* Vendor groups */}
+          {hasData &&
+            filteredGroups.map((fg) => (
+              <div key={fg.group.vendorGroupHash} className="space-y-2">
+                {/* Group header (only when there are multiple groups) */}
+                {filteredGroups.length > 1 && (
+                  <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest pt-2">
+                    {fg.group.def?.categoryName || 'Vendors'}
+                  </h2>
+                )}
+                {fg.vendors.map((fv) => (
+                  <VendorCard
+                    key={fv.vendor.vendorHash}
+                    vendor={fv.vendor}
+                    characterId={selectedCharacterId!}
+                    selectedClassType={selectedClassType}
+                    filteredItems={fv.filteredItems}
+                    manifest={manifest}
+                    ownedItemHashes={ownedItemHashes}
+                    onItemClick={handleItemClick}
+                    onSubVendorClick={handleSubVendorClick}
+                  />
+                ))}
+              </div>
+            ))}
+
+          {/* No results after filtering */}
+          {!loading && profileReady && hasData === false && vendorGroups.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-16 gap-2">
+              <span className="text-sm text-gray-500">No vendors match your current filters.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowUnacquiredOnly(false);
+                  setHideSilver(false);
+                }}
+                className="text-xs text-gray-400 underline hover:text-white transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* ---- Item Popup ---- */}
+      {popup && (
+        <VendorItemPopup
+          item={popup.item}
+          manifest={manifest}
+          referenceElement={popup.element}
+          ownedItemHashes={ownedItemHashes}
+          onClose={handleClosePopup}
+        />
+      )}
+
+      {/* ---- Sub-Vendor Sheet ---- */}
+      {subVendorModel && selectedCharacterId && (
+        <SubVendorSheet
+          vendor={subVendorModel}
+          characterId={selectedCharacterId}
+          selectedClassType={selectedClassType}
+          manifest={manifest}
+          ownedItemHashes={ownedItemHashes}
+          onClose={handleCloseSheet}
+          onItemClick={handleItemClick}
+        />
+      )}
     </div>
   );
 }
+
+// ============================================================================
+// Mobile Header — stacks above content on narrow screens
+// ============================================================================
+
+const CLASS_NAMES: Record<number, string> = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+
+const MobileHeader: React.FC<{
+  characters: Record<string, any>;
+  selectedCharacterId: string | null;
+  onSelectCharacter: (id: string) => void;
+  showUnacquiredOnly: boolean;
+  onToggleUnacquired: () => void;
+  hideSilver: boolean;
+  onToggleSilver: () => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+}> = ({
+  characters,
+  selectedCharacterId,
+  onSelectCharacter,
+  showUnacquiredOnly,
+  onToggleUnacquired,
+  hideSilver,
+  onToggleSilver,
+  searchQuery,
+  onSearchChange,
+}) => {
+  const charIds = Object.keys(characters);
+
+  return (
+    <>
+      {/* Character selector — horizontal swipe */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {charIds.map((id) => {
+          const char = characters[id];
+          const isActive = id === selectedCharacterId;
+          return (
+            <button
+              key={id}
+              onClick={() => onSelectCharacter(id)}
+              className={`shrink-0 relative h-11 w-28 rounded overflow-hidden border transition-all ${
+                isActive
+                  ? 'border-white/30 shadow-[0_0_8px_rgba(255,255,255,0.06)]'
+                  : 'border-void-border opacity-60 hover:opacity-90'
+              }`}
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(https://www.bungie.net${char.emblemBackgroundPath})`,
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+              <div className="relative z-10 h-full flex items-center gap-2 px-2.5">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-gray-300'}`}>
+                  {CLASS_NAMES[char.classType] || '?'}
+                </span>
+                <span className="text-sm font-light text-amber-200/80 font-mono">
+                  {char.light}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search + filter row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search vendors..."
+          className="flex-1 min-w-[160px] rounded-sm border border-void-border bg-white/[0.04] px-3 py-1.5 text-xs text-white placeholder:text-gray-500 outline-none focus:border-white/20"
+        />
+        <button
+          type="button"
+          onClick={onToggleUnacquired}
+          className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors whitespace-nowrap ${
+            showUnacquiredOnly
+              ? 'bg-amber-500/20 border-amber-500/30 text-amber-300'
+              : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
+          }`}
+        >
+          Unacquired
+        </button>
+        <button
+          type="button"
+          onClick={onToggleSilver}
+          className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-colors whitespace-nowrap ${
+            hideSilver
+              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+              : 'bg-white/[0.04] border-void-border text-gray-400 hover:text-white'
+          }`}
+        >
+          Hide Silver
+        </button>
+      </div>
+    </>
+  );
+};
