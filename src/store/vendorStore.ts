@@ -114,13 +114,14 @@ let activeFetchCharacterId: string | null = null;
  * Uses ManifestManager's two-tier cache (memory → IndexedDB → network).
  */
 async function loadVendorDefinitions() {
-    const [vendorDefs, vendorGroupDefs, destinationDefs, placeDefs] = await Promise.all([
+    const [vendorDefs, vendorGroupDefs, destinationDefs, placeDefs, itemDefs] = await Promise.all([
         ManifestManager.loadTable('DestinyVendorDefinition'),
         ManifestManager.loadTable('DestinyVendorGroupDefinition'),
         ManifestManager.loadTable('DestinyDestinationDefinition'),
         ManifestManager.loadTable('DestinyPlaceDefinition'),
+        ManifestManager.loadTable('DestinyInventoryItemDefinition'),
     ]);
-    return { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs };
+    return { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs, itemDefs };
 }
 
 async function rebuildVendorGroupsForCharacter(characterId: string, response: any): Promise<VendorGroupModel[]> {
@@ -128,13 +129,18 @@ async function rebuildVendorGroupsForCharacter(characterId: string, response: an
     const profile = inventoryState.profile;
     const manifest = inventoryState.manifest;
 
-    const { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs } = await loadVendorDefinitions();
+    const { vendorDefs, vendorGroupDefs, destinationDefs, placeDefs, itemDefs } = await loadVendorDefinitions();
+
+    // Merge: full item definition table + inventory manifest overlay (inventory manifest
+    // may have slightly richer data for items the player owns, but the full table ensures
+    // vendor-only items like bounties, quests, rank rewards are always resolved)
+    const mergedItemDefs = { ...itemDefs, ...manifest };
 
     return buildVendorGroups({
         characterId,
         vendorsResponse: response,
         profileResponse: profile,
-        itemDefs: manifest,
+        itemDefs: mergedItemDefs,
         vendorDefs,
         vendorGroupDefs,
         destinationDefs,
