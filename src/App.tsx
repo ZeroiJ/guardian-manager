@@ -7,6 +7,7 @@ import Loadouts from '@/pages/Loadouts';
 const Organizer = lazy(() => import('@/pages/Organizer'));
 const Vendors = lazy(() => import('@/pages/Vendors'));
 const Collections = lazy(() => import('@/pages/Collections'));
+const LoadoutOptimizer = lazy(() => import('@/pages/LoadoutOptimizer'));
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/organizer" element={<Organizer />} />
           <Route path="/vendors" element={<Vendors />} />
           <Route path="/collections" element={<Collections />} />
+          <Route path="/optimizer" element={<LoadoutOptimizer />} />
         </Routes>
       </Suspense>
     </Router>
