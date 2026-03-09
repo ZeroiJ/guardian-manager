@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, Lock } from 'lucide-react';
 import { DestinyCollectibleState } from 'bungie-api-ts/destiny2';
 import { BungieImage } from '@/components/ui/BungieImage';
-import { ClassIcon, PursuitCompleteBadge } from '@/components/ui/DestinyIcons';
+import { ClassIcon, PursuitCompleteBadge, DAMAGE_TYPE_ICONS, AMMO_TYPE_ICONS } from '@/components/ui/DestinyIcons';
 import type { VendorItemModel } from '@/lib/vendors/types';
 
 /**
@@ -88,6 +88,17 @@ export const VendorItemTile: React.FC<VendorItemTileProps> = ({
   const ownershipRule = isEmblem || (isBounty && !isRepeatableBounty);
   const unavailable = !item.canBeSold || item.locked || (owned && ownershipRule);
 
+  // Damage type and ammo type detection
+  const damageType = def.defaultDamageType || 0;
+  const ammoType = def.ammoType || 0;
+  // Map Bungie damage types to our icon indices (Bungie: 1=kinetic,2=arc,3=solar,4=void,6=stasis,7=strand)
+  // Our icons: 1=kinetic,2=arc,3=solar,4=void,5=stasis
+  const iconDamageType = damageType === 6 ? 5 : damageType; // Map stasis 6->5
+  const DamageIcon = DAMAGE_TYPE_ICONS[iconDamageType] || DAMAGE_TYPE_ICONS[0];
+  const AmmoIcon = AMMO_TYPE_ICONS[ammoType];
+  const showDamageIcon = damageType > 0 && damageType !== 7 && DamageIcon; // Skip strand (not in icons)
+  const showAmmoIcon = ammoType > 0 && AmmoIcon;
+
   // Display tile (sub-vendor entry) — render as a wider clickable image
   if (isDisplayTile(item) && onSubVendorClick && item.previewVendorHash) {
     return (
@@ -135,6 +146,20 @@ export const VendorItemTile: React.FC<VendorItemTileProps> = ({
         {isClassSpecific && (
           <div className="absolute top-0 left-0 w-4 h-4 flex items-center justify-center bg-black/70 rounded-br">
             <ClassIcon classType={itemClassType} size={10} className="text-white/80" />
+          </div>
+        )}
+
+        {/* Damage type icon — top-right */}
+        {showDamageIcon && (
+          <div className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center">
+            <DamageIcon size={12} />
+          </div>
+        )}
+
+        {/* Ammo type icon — below damage icon if both shown, otherwise next to it */}
+        {showAmmoIcon && (
+          <div className="absolute top-3 right-0 w-4 h-4 flex items-center justify-center" style={{ top: showDamageIcon ? '14px' : '0px' }}>
+            <AmmoIcon size={10} />
           </div>
         )}
 

@@ -10,6 +10,11 @@ import { RARITY_COLORS } from '@/data/constants';
 import { ItemCategoryHashes } from '@/lib/destiny-constants';
 import type { OrganizerColumn, OrganizerRow, ColumnSort, ColumnContext, CategoryNode } from '@/lib/organizer/types';
 import type { GuardianItem } from '@/services/profile/types';
+import {
+  WEAPON_TYPE_ICONS,
+  ARMOR_SLOT_ICONS,
+  CLASS_ICON_COMPONENTS,
+} from '@/components/ui/DestinyIcons';
 
 // ============================================================================
 // CONSTANTS
@@ -18,6 +23,42 @@ import type { GuardianItem } from '@/services/profile/types';
 const INITIAL_RENDER_COUNT = 50;
 const RENDER_INCREMENT = 50;
 const TAG_OPTIONS = ['favorite', 'keep', 'infuse', 'junk', 'archive'] as const;
+
+// ============================================================================
+// CATEGORY ICONS MAPPING
+// ============================================================================
+
+/** Map category IDs to icon components for the sidebar */
+const CATEGORY_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
+  // Weapons
+  'auto-rifle': WEAPON_TYPE_ICONS.auto_rifle,
+  'hand-cannon': WEAPON_TYPE_ICONS.hand_cannon,
+  'pulse-rifle': WEAPON_TYPE_ICONS.pulse_rifle,
+  'scout-rifle': WEAPON_TYPE_ICONS.scout_rifle,
+  'sidearm': WEAPON_TYPE_ICONS.sidearm,
+  'smg': WEAPON_TYPE_ICONS.smg,
+  'bow': WEAPON_TYPE_ICONS.bow,
+  'trace-rifle': WEAPON_TYPE_ICONS.beam_weapon,
+  'shotgun': WEAPON_TYPE_ICONS.shotgun,
+  'fusion-rifle': WEAPON_TYPE_ICONS.fusion_rifle,
+  'sniper-rifle': WEAPON_TYPE_ICONS.sniper_rifle,
+  'glaive': WEAPON_TYPE_ICONS.glaive,
+  'rocket-launcher': WEAPON_TYPE_ICONS.rocket_launcher,
+  'grenade-launcher': WEAPON_TYPE_ICONS.grenade_launcher,
+  'linear-fusion': WEAPON_TYPE_ICONS.wire_rifle,
+  'machine-gun': WEAPON_TYPE_ICONS.machinegun,
+  'sword': WEAPON_TYPE_ICONS.sword_heavy,
+  // Armor slots
+  'helmet': ARMOR_SLOT_ICONS.helmet,
+  'gauntlets': ARMOR_SLOT_ICONS.gloves,
+  'chest': ARMOR_SLOT_ICONS.chest,
+  'legs': ARMOR_SLOT_ICONS.boots,
+  'class-item': ARMOR_SLOT_ICONS.class,
+  // Classes
+  'titan': CLASS_ICON_COMPONENTS[0],
+  'hunter': CLASS_ICON_COMPONENTS[1],
+  'warlock': CLASS_ICON_COMPONENTS[2],
+};
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -46,12 +87,20 @@ function CategoryTree({
                     ) : (
                         <button
                             onClick={() => onSelect(node.id)}
-                            className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors ${
+                            className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors flex items-center gap-2 ${
                                 selectedId === node.id
                                     ? 'bg-white/10 text-white font-medium'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
+                            {CATEGORY_ICONS[node.id] && (
+                                <span className="w-4 h-4 flex-shrink-0 opacity-70">
+                                    {(() => {
+                                        const Icon = CATEGORY_ICONS[node.id];
+                                        return Icon ? <Icon size={14} /> : null;
+                                    })()}
+                                </span>
+                            )}
                             {node.label}
                         </button>
                     )}
