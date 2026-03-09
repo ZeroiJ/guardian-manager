@@ -14,9 +14,18 @@ export function Navigation() {
             </Link>
             <Link
                 to="/loadouts"
-                className={`transition-colors ${isActive('/loadouts') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+                className={`transition-colors ${isActive('/loadouts') || isActive('/optimizer') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
             >
                 Loadouts
+            </Link>
+            <Link
+                to="/optimizer"
+                className={`transition-colors ${isActive('/optimizer') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+            >
+                Optimizer
+                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-[#7af48b] text-black rounded leading-none align-text-top">
+                    NEW
+                </span>
             </Link>
             <Link
                 to="/progress"
