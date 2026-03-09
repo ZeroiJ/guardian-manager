@@ -46,6 +46,21 @@ export const ARMOR_BUCKET_MAP: Record<ArmorBucketHash, string> = {
 };
 
 // ============================================================================
+// Auto Stat Mod Constants
+// ============================================================================
+
+/** Bonus to a single stat from an artifice armor mod slot (+3) */
+export const ARTIFICE_BOOST = 3;
+/** Bonus from a minor stat mod (+5, costs 1 energy) */
+export const MINOR_BOOST = 5;
+/** Bonus from a major stat mod (+10, costs 3 energy) */
+export const MAJOR_BOOST = 10;
+/** Energy cost for a minor stat mod */
+export const MINOR_MOD_COST = 1;
+/** Energy cost for a major stat mod */
+export const MAJOR_MOD_COST = 3;
+
+// ============================================================================
 // Process Item (Simplified for Worker)
 // ============================================================================
 
@@ -58,8 +73,11 @@ export interface ProcessItem {
     isArtifice: boolean;
     energyCapacity: number;
     energyUsed: number;
+    /** Energy capacity remaining after existing mods (energyCapacity - energyUsed) */
+    remainingEnergy: number;
     power: number;
-    stats: Partial<ArmorStats>;
+    /** All 6 armor stats — always fully populated with 0 defaults */
+    stats: ArmorStats;
     season?: number;
     source?: number;
 }

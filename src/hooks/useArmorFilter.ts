@@ -17,9 +17,6 @@ import {
     ARMOR_BUCKET_HASHES,
 } from '@/lib/loadout-optimizer/types';
 
-// Item state bitmasks
-const ITEM_STATE_LOCKED = 1;
-const ITEM_STATE_MASTERWORKED = 4;
 
 const ARMOR_STAT_HASHES: ArmorStatHash[] = [
     StatHashes.Mobility,
@@ -49,6 +46,14 @@ export interface ArmorFilterOptions {
     minEnergy?: number;
     /** Maximum items per slot to keep (for performance) */
     maxItemsPerSlot?: number;
+    /**
+     * Exotic locking:
+     * undefined = no preference
+     * -1 = no exotic (remove all exotics)
+     * -2 = any exotic (keep exotics, standard)
+     * positive = lock a specific exotic by item hash
+     */
+    lockedExoticHash?: number;
 }
 
 export interface UseArmorFilterResult {
@@ -60,7 +65,7 @@ export interface UseArmorFilterResult {
     loading: boolean;
 }
 
-function itemToProcessItem(item: any): ProcessItem | null {
+function itemToProcessItem(item: any, manifest: Record<number, any>): ProcessItem | null {
     const bucketHash = item.bucketHash;
     const armorBucket = BUCKET_HASH_TO_ARMOR_BUCKET[bucketHash];
     
@@ -68,8 +73,17 @@ function itemToProcessItem(item: any): ProcessItem | null {
         return null;
     }
 
-    // Extract stats
-    const stats: Partial<ArmorStats> = {};
+    const def = manifest[item.itemHash];
+
+    // Extract stats — always initialize all 6 to 0 so stats is never partial
+    const stats: ArmorStats = {
+        [StatHashes.Mobility]: 0,
+        [StatHashes.Resilience]: 0,
+        [StatHashes.Recovery]: 0,
+        [StatHashes.Discipline]: 0,
+        [StatHashes.Intellect]: 0,
+        [StatHashes.Strength]: 0,
+    } as ArmorStats;
     if (item.stats) {
         for (const statHash of ARMOR_STAT_HASHES) {
             const statValue = item.stats[statHash];
@@ -80,10 +94,10 @@ function itemToProcessItem(item: any): ProcessItem | null {
     }
 
     // Determine if exotic (tierType 6)
-    const isExotic = item.definition?.inventory?.tierType === 6;
+    const isExotic = def?.inventory?.tierType === 6;
     
     // Determine if artifice (has artifice stat bonus)
-    const isArtifice = item.definition?.investmentStats?.some(
+    const isArtifice = def?.investmentStats?.some(
         (s: any) => s.statTypeHash === 2779143083 // Artifice stat hash
     ) ?? false;
 
@@ -92,20 +106,18 @@ function itemToProcessItem(item: any): ProcessItem | null {
     const energyUsed = item.instanceData?.energy?.energyUsed ?? 0;
 
     // Get power
-    const power = item.instanceData?.primaryStat?.value ?? item.definition?.quality?.minQuality ?? 0;
-
-    // Check if masterworked
-    const isMasterworked = (item.state & ITEM_STATE_MASTERWORKED) !== 0;
+    const power = item.instanceData?.primaryStat?.value ?? def?.quality?.minQuality ?? 0;
 
     return {
         id: item.itemInstanceId ?? `hash-${item.itemHash}`,
         hash: item.itemHash,
         bucketHash: armorBucket,
-        name: item.definition?.displayProperties?.name,
+        name: def?.displayProperties?.name,
         isExotic,
         isArtifice,
         energyCapacity,
         energyUsed,
+        remainingEnergy: Math.max(0, energyCapacity - energyUsed),
         power,
         stats,
     };
@@ -151,7 +163,7 @@ export function useArmorFilter(options: ArmorFilterOptions = {}): UseArmorFilter
     const { maxItemsPerSlot = 30 } = options;
     
     const items = useInventoryStore(state => state.items);
-    const definitions = useInventoryStore(state => state.definitions);
+    const manifest = useInventoryStore(state => state.manifest);
 
     const result = useMemo(() => {
         if (!items || items.length === 0) {
@@ -167,23 +179,24 @@ export function useArmorFilter(options: ArmorFilterOptions = {}): UseArmorFilter
         
         for (const item of items) {
             // Skip items without definitions
-            if (!item.definition) continue;
+            const def = manifest[item.itemHash];
+            if (!def) continue;
             
             // Only process armor
-            const isArmor = item.definition.itemCategoryHashes?.some(
+            const isArmor = def.itemCategoryHashes?.some(
                 (cat: number) => cat === 20 // Armor category
             );
             if (!isArmor) continue;
 
             // Filter by class if specified
             if (options.classType !== undefined) {
-                const itemClass = item.definition.classType;
+                const itemClass = def.classType;
                 if (itemClass !== 3 && itemClass !== options.classType) {
                     continue;
                 }
             }
 
-            const processItem = itemToProcessItem(item);
+            const processItem = itemToProcessItem(item, manifest);
             if (processItem) {
                 processItems.push(processItem);
             }
@@ -210,6 +223,25 @@ export function useArmorFilter(options: ArmorFilterOptions = {}): UseArmorFilter
             );
         }
 
+        // Apply exotic locking filter AFTER grouping
+        const lockedExotic = options.lockedExoticHash;
+        if (lockedExotic !== undefined) {
+            if (lockedExotic === -1) {
+                // No exotic mode — remove all exotics from all slots
+                for (const bucketHash of ARMOR_BUCKET_HASHES) {
+                    grouped[bucketHash] = grouped[bucketHash].filter(i => !i.isExotic);
+                }
+            } else if (lockedExotic > 0) {
+                // Lock specific exotic — remove all other exotics, keep only the locked one
+                for (const bucketHash of ARMOR_BUCKET_HASHES) {
+                    grouped[bucketHash] = grouped[bucketHash].filter(
+                        i => !i.isExotic || i.hash === lockedExotic
+                    );
+                }
+            }
+            // -2 (any exotic) = no filtering needed here, worker handles the requirement
+        }
+
         const totalCount = Object.values(grouped).reduce(
             (sum, arr) => sum + arr.length,
             0
@@ -220,7 +252,7 @@ export function useArmorFilter(options: ArmorFilterOptions = {}): UseArmorFilter
             totalCount,
             loading: false,
         };
-    }, [items, definitions, options.classType, options.masterworked, options.exotics, options.minEnergy, maxItemsPerSlot]);
+    }, [items, manifest, options.classType, options.masterworked, options.exotics, options.minEnergy, options.lockedExoticHash, maxItemsPerSlot]);
 
     return result;
 }
