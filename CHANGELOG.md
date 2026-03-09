@@ -2,6 +2,62 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.35.0] - 2026-03-09
+
+### Loadout Optimizer — Phase 1 Complete
+
+Added a Web Worker-based armor optimization system inspired by DIM's Loadout Optimizer and D2ArmorPicker. Located at `/optimizer` via the top navigation bar.
+
+#### Loadout Optimizer Features
+
+- **Web Worker Architecture**: Offloads heavy computation to a background thread to avoid blocking the UI. Uses a min-heap to efficiently track the top 200 best sets.
+- **Pre-filtering**: `useArmorFilter` hook reduces inventory armor to ~30 items per slot before optimization, dramatically reducing combinations.
+- **Early Rejection**: Double exotic detection and quick stat minimum checks prune invalid combinations early.
+- **Stat Constraint Editor**: Interactive sliders for setting min/max stat requirements (Mobility, Resilience, Recovery, Discipline, Intellect, Strength).
+- **Quick Presets**: One-click buttons for common builds (100/100, Rec 100, Res 100, 30+ All).
+- **Results Display**: Scrollable list showing stat bars, power level, enabled stats total, and armor piece details.
+- **Class Selector**: Filter by Titan, Hunter, or Warlock.
+- **Exotic Toggle**: Option to allow multiple exotics in a set.
+
+#### Files Added
+
+- `src/lib/loadout-optimizer/types.ts` — Type definitions for ProcessItem, ProcessArmorSet, StatConstraint, etc.
+- `src/workers/loadout-optimizer.worker.ts` — Web Worker with optimization algorithm
+- `src/hooks/useArmorFilter.ts` — Pre-filtering hook for inventory armor
+- `src/store/optimizerStore.ts` — Zustand store for optimizer state
+- `src/pages/LoadoutOptimizer.tsx` — Main optimizer page
+- `src/components/loadout-optimizer/StatConstraintEditor.tsx` — Stat slider UI with presets
+- `src/components/loadout-optimizer/OptimizerResults.tsx` — Results list and details
+
+### Destiny Icon Library
+
+Added a comprehensive inline SVG icon library sourced from DIM's destiny-icons submodule, eliminating the need for Bungie API requests for weapon types, ammo types, armor slots, damage elements, and champion icons.
+
+#### Icon Categories
+
+- **Weapon Types**: Auto Rifle, Hand Cannon, Pulse Rifle, Scout Rifle, Shotgun, Sniper Rifle, Fusion Rifle, Rocket Launcher, Sword, SMG, Sidearm, Bow, Grenade Launcher, Machine Gun, Glaive, Trace Rifle, Linear Fusion
+- **Ammo Types**: Primary (white), Special (green), Heavy (purple) — multi-path SVGs
+- **Armor Slots**: Helmet, Gauntlets, Chest, Legs, Class Item
+- **Damage/Element**: Kinetic, Solar, Arc, Void, Stasis — with hardcoded element colors
+- **Champions**: Stagger, Pierce, Overload
+- **Meta Icons**: Shaped (crafted), Enhanced, Masterwork Hammer, Artifice
+
+#### Wiring
+
+- **VendorItemTile**: Added element and ammo type badges to item tiles
+- **Organizer**: Added weapon/armor icons to category sidebar tree
+
+#### Files Modified
+
+- `src/components/ui/DestinyIcons.tsx` — Expanded from 148 to 513+ lines with all icon categories
+- `src/components/vendors/VendorItemTile.tsx` — Added element/ammo badges
+- `src/pages/Organizer.tsx` — Added category icons
+
+### Navigation Updates
+
+- Added "Optimizer" link to the top navigation bar with green "NEW" badge
+- Loadouts link now highlights when on the Optimizer page
+
 ## [0.34.0] - 2026-03-05
 
 ### Tier 2 Feature Completion — Organizer, Triage, Vendors, Collections
