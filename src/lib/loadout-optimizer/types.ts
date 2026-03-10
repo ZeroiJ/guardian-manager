@@ -69,6 +69,8 @@ export interface ProcessItem {
     hash?: number;
     bucketHash: ArmorBucketHash;
     name?: string;
+    /** Bungie CDN icon path (e.g. "/common/destiny2_content/icons/...") */
+    icon?: string;
     isExotic: boolean;
     isArtifice: boolean;
     energyCapacity: number;

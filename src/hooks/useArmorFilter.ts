@@ -113,6 +113,7 @@ function itemToProcessItem(item: any, manifest: Record<number, any>): ProcessIte
         hash: item.itemHash,
         bucketHash: armorBucket,
         name: def?.displayProperties?.name,
+        icon: def?.displayProperties?.icon,
         isExotic,
         isArtifice,
         energyCapacity,
