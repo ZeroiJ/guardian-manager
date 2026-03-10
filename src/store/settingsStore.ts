@@ -29,6 +29,12 @@ export interface SettingsData {
     wishlistUrl: string;
     /** User-defined character display order (array of characterIds). Empty = default. */
     characterOrder: string[];
+    /** What to show on item badges: power level, tag, or nothing. */
+    badgeType: 'power' | 'tag' | 'none';
+    /** Number of columns in the inventory grid (3-8). */
+    inventoryColumns: number;
+    /** Whether to show element damage type icons on weapon tiles. */
+    showElements: boolean;
 }
 
 interface SettingsState extends SettingsData {
@@ -58,6 +64,9 @@ const DEFAULTS: SettingsData = {
     itemSortOrder: 'power',
     wishlistUrl: '',
     characterOrder: [],
+    badgeType: 'power',
+    inventoryColumns: 5,
+    showElements: true,
 };
 
 // ============================================================================
@@ -99,6 +108,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         if (Array.isArray(serverData.characterOrder)) {
             updates.characterOrder = serverData.characterOrder as string[];
         }
+        if (typeof serverData.badgeType === 'string') {
+            updates.badgeType = serverData.badgeType as 'power' | 'tag' | 'none';
+        }
+        if (typeof serverData.inventoryColumns === 'number') {
+            updates.inventoryColumns = serverData.inventoryColumns;
+        }
+        if (typeof serverData.showElements === 'boolean') {
+            updates.showElements = serverData.showElements;
+        }
 
         if (Object.keys(updates).length > 0) {
             set(updates);
@@ -107,7 +125,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     },
 
     getData: () => {
-        const { itemSortOrder, wishlistUrl, characterOrder } = get();
-        return { itemSortOrder, wishlistUrl, characterOrder };
+        const { itemSortOrder, wishlistUrl, characterOrder, badgeType, inventoryColumns, showElements } = get();
+        return { itemSortOrder, wishlistUrl, characterOrder, badgeType, inventoryColumns, showElements };
     },
 }));

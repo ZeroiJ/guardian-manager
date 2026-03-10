@@ -54,6 +54,12 @@ export function Navigation() {
             >
                 Collections
             </Link>
+            <Link
+                to="/settings"
+                className={`transition-colors ${isActive('/settings') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}
+            >
+                ⚙ Settings
+            </Link>
         </nav>
     );
 }

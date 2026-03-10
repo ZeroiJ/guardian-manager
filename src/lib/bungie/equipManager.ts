@@ -202,6 +202,16 @@ interface InsertPlugFreeBody {
     membershipType: number;
 }
 
+/** Equip phases for progress tracking */
+export type EquipPhase = 'dequip' | 'transfer' | 'equip' | 'sockets' | 'mods' | 'done';
+
+export interface EquipProgressInfo {
+    phase: EquipPhase;
+    message: string;
+    current: number;
+    total: number;
+}
+
 /**
  * Calls the `/api/actions/equip` Cloudflare Worker proxy which forwards to
  * `POST /Platform/Destiny2/Actions/Items/EquipItems/`.
@@ -267,7 +277,7 @@ async function callTransferItemEndpoint(
 /**
  * Calls the `/api/actions/insertPlugFree` Cloudflare Worker proxy.
  */
-async function callInsertPlugFreeEndpoint(
+export async function callInsertPlugFreeEndpoint(
     body: InsertPlugFreeBody
 ): Promise<any> {
     const response = await fetch('/api/actions/insertPlugFree', {
@@ -383,7 +393,8 @@ export async function applyInGameLoadout(
 
 export async function applyLoadout(
     characterId: string,
-    loadout: ILoadout
+    loadout: ILoadout,
+    onProgress?: (info: EquipProgressInfo) => void,
 ): Promise<ApplyLoadoutResult> {
     const membershipType = getMembershipType();
     const inventoryStore = useInventoryStore.getState();
@@ -407,16 +418,90 @@ export async function applyLoadout(
     const equipped: string[] = [];
     const failed: FailedEquip[] = [];
 
+    const reportProgress = (phase: EquipPhase, message: string, current: number, total: number) => {
+        onProgress?.({ phase, message, current, total });
+    };
+
+    // --- PHASE 0: EXOTIC DEQUIP ---
+    // If the loadout contains an exotic weapon or armor, and the character already has
+    // a DIFFERENT exotic equipped in that category, dequip it first.
+    reportProgress('dequip', 'Checking exotic conflicts...', 0, 1);
+
+    const loadoutExotics = equippableItems.filter(li => {
+        const live = allItems.find(i => i.itemInstanceId === li.itemInstanceId);
+        if (!live) return false;
+        const def = inventoryStore.manifest?.[live.itemHash];
+        return def?.inventory?.tierType === 6; // Exotic
+    });
+
+    for (const exotic of loadoutExotics) {
+        const liveExotic = allItems.find(i => i.itemInstanceId === exotic.itemInstanceId);
+        if (!liveExotic) continue;
+
+        const exoticDef = inventoryStore.manifest?.[liveExotic.itemHash];
+        const isWeapon = exoticDef?.itemType === 3;
+        const isArmor = exoticDef?.itemType === 2;
+
+        // Find currently equipped exotics on the target character in the same category
+        const equippedOnChar = allItems.filter(i =>
+            i.owner === characterId &&
+            i.instanceData?.isEquipped &&
+            i.itemInstanceId !== exotic.itemInstanceId
+        );
+
+        for (const equipped of equippedOnChar) {
+            const equippedDef = inventoryStore.manifest?.[equipped.itemHash];
+            if (!equippedDef) continue;
+            const isEquippedExotic = equippedDef.inventory?.tierType === 6;
+            const sameCategory = (isWeapon && equippedDef.itemType === 3) || (isArmor && equippedDef.itemType === 2);
+
+            if (isEquippedExotic && sameCategory) {
+                // Need to dequip this exotic first — find a legendary replacement in same bucket
+                const bucketHash = equipped.bucketHash;
+                const replacement = allItems.find(i =>
+                    i.owner === characterId &&
+                    !i.instanceData?.isEquipped &&
+                    i.bucketHash === bucketHash &&
+                    i.itemInstanceId !== exotic.itemInstanceId &&
+                    (inventoryStore.manifest?.[i.itemHash]?.inventory?.tierType ?? 0) < 6 // Non-exotic
+                );
+
+                if (replacement) {
+                    reportProgress('dequip', `Dequipping ${equippedDef.displayProperties?.name ?? 'exotic'}...`, 0, 1);
+                    console.log(`[EquipManager] Dequipping exotic ${equippedDef.displayProperties?.name} by equipping ${inventoryStore.manifest?.[replacement.itemHash]?.displayProperties?.name}`);
+
+                    try {
+                        await callEquipItemsEndpoint({
+                            itemIds: [replacement.itemInstanceId!],
+                            characterId,
+                            membershipType,
+                        });
+                    } catch (err: any) {
+                        console.warn(`[EquipManager] Exotic dequip failed:`, err.message);
+                        // Not fatal — the equip phase may still work
+                    }
+                } else {
+                    console.warn(`[EquipManager] No legendary replacement found in bucket ${bucketHash} to dequip exotic`);
+                }
+            }
+        }
+    }
+
     // --- PHASE 1: TRANSFERS ---
+    reportProgress('transfer', 'Transferring items...', 0, equippableItems.length);
+    let transferIdx = 0;
     for (const loadoutItem of equippableItems) {
         const liveItem = allItems.find((i) => i.itemInstanceId === loadoutItem.itemInstanceId);
         if (!liveItem) {
             console.warn(`[EquipManager] Item ${loadoutItem.itemInstanceId} not found in inventory.`);
+            transferIdx++;
             continue;
         }
 
         if (liveItem.owner !== characterId) {
-            console.log(`[EquipManager] Transferring item ${liveItem.name} from ${liveItem.owner} to ${characterId}`);
+            const itemName = inventoryStore.manifest?.[liveItem.itemHash]?.displayProperties?.name ?? 'item';
+            reportProgress('transfer', `Moving ${itemName}...`, transferIdx, equippableItems.length);
+            console.log(`[EquipManager] Transferring item ${itemName} from ${liveItem.owner} to ${characterId}`);
             try {
                 // If on another character, must go to vault first
                 if (liveItem.owner !== 'vault') {
@@ -424,7 +509,7 @@ export async function applyLoadout(
                         itemReferenceHash: liveItem.itemHash,
                         stackSize: 1,
                         transferToVault: true,
-                        itemId: liveItem.itemInstanceId,
+                        itemId: liveItem.itemInstanceId!,
                         characterId: liveItem.owner,
                         membershipType,
                     });
@@ -434,12 +519,12 @@ export async function applyLoadout(
                     itemReferenceHash: liveItem.itemHash,
                     stackSize: 1,
                     transferToVault: false,
-                    itemId: liveItem.itemInstanceId,
+                    itemId: liveItem.itemInstanceId!,
                     characterId,
                     membershipType,
                 });
             } catch (err: any) {
-                console.error(`[EquipManager] Transfer failed for ${liveItem.name}:`, err.message);
+                console.error(`[EquipManager] Transfer failed for ${inventoryStore.manifest?.[liveItem.itemHash]?.displayProperties?.name}:`, err.message);
                 failed.push({
                     itemInstanceId: liveItem.itemInstanceId!,
                     reason: `Transfer failed: ${err.message}`,
@@ -447,12 +532,14 @@ export async function applyLoadout(
                 });
             }
         }
+        transferIdx++;
     }
 
     // Filter equippable items to only those that successfully transferred (or were already there)
     const itemsToEquip = equippableItems.filter((i: any) => !failed.some(f => f.itemInstanceId === i.itemInstanceId));
 
     // --- PHASE 2: EQUIP ---
+    reportProgress('equip', 'Equipping items...', 0, itemsToEquip.length);
     const itemIdBatches = chunkArray(
         itemsToEquip.map((i) => i.itemInstanceId),
         EQUIP_BATCH_SIZE
@@ -499,8 +586,14 @@ export async function applyLoadout(
     }
 
     // --- PHASE 3: SOCKET OVERRIDES (Subclass, Fashion) ---
+    const itemsWithOverrides = itemsToEquip.filter(i => i.socketOverrides);
+    if (itemsWithOverrides.length > 0) {
+        reportProgress('sockets', 'Applying socket overrides...', 0, itemsWithOverrides.length);
+    }
+    let socketIdx = 0;
     for (const loadoutItem of itemsToEquip) {
         if (loadoutItem.socketOverrides) {
+            reportProgress('sockets', `Configuring sockets...`, socketIdx, itemsWithOverrides.length);
             console.log(`[EquipManager] Applying socket overrides for item ${loadoutItem.itemInstanceId}`);
             for (const [socketIndexStr, plugItemHash] of Object.entries(loadoutItem.socketOverrides)) {
                 const socketIndex = parseInt(socketIndexStr, 10);
@@ -535,6 +628,8 @@ export async function applyLoadout(
             }
         }
     }
+
+    reportProgress('done', failed.length === 0 ? 'Loadout applied!' : `Done with ${failed.length} error(s)`, equipped.length, equippableItems.length);
 
     const success = failed.length === 0 && equipped.length > 0;
 

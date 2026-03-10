@@ -2,6 +2,58 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.36.0] - 2026-03-10
+
+### Loadout Optimizer — Phase 2: Bug Fixes, Exotic Picker & DIM-Style UI
+
+Major improvements to the Loadout Optimizer based on a deep analysis of DIM's `loadout-builder/` implementation (~60 files).
+
+#### Critical Bug Fixes
+
+- **Fixed `addStats` Bug**: `ProcessItem.stats` changed from `Partial<ArmorStats>` to full `ArmorStats` — all 6 stats always initialized to 0. This fixes the root cause of stat miscalculations where keys from one object were missing in another.
+- **Fixed `useArmorFilter` type errors**: Changed `state.definitions` → `state.manifest` and `item.definition` → `manifest[item.itemHash]` — the filter was returning zero items due to accessing non-existent properties on the store and item types.
+
+#### Worker Rewrite
+
+- **Flat Stat Arrays**: Pre-computed `statsCache` Map with 6-element flat arrays per item (like DIM's approach). Eliminates the buggy `addStats()` function entirely and speeds up the inner loop.
+- **Auto Stat Mod Assignment**: New `assignAutoStatMods()` greedy algorithm assigns artifice (+3, free), minor (+5, 1 energy), and major (+10, 3 energy) mods based on stat deficits and remaining energy capacity.
+- **Energy Awareness**: `remainingEnergy` tracked per item, consumed during auto mod assignment.
+- **Exotic Locking**: Worker supports `lockedExoticHash` with 4 modes: no preference, no exotic, any exotic, or specific hash.
+- **Heap Optimization**: Added `couldInsert` early rejection to skip sets that can't beat the current worst in the heap.
+
+#### Exotic Picker
+
+- **New `ExoticPicker.tsx` Component**: Full modal with search, 3 special modes (No Preference / Any Exotic / No Exotic), and exotic grid grouped by armor slot showing Bungie CDN icons.
+- **`useArmorFilter` Integration**: `lockedExoticHash` filter removes non-matching exotics at the filter level before optimization.
+- **Replaced** the old "Allow multiple exotics" checkbox with the exotic picker button showing the selected exotic name.
+
+#### DIM-Style Results Layout
+
+- **Inline Per-Set Display**: Replaced the click-to-select card pattern with DIM's inline layout where each set shows everything in one block.
+- **Stat Summary Row**: `Total: {sum}` followed by each stat with its Bungie stat icon and colored value, then `★{power}`.
+- **Real Bungie Armor Icons**: 48×48 item icons from Bungie CDN with exotic gold ring, artifice `A` badge, and power number overlay.
+- **Per-Set Buttons**: Save Loadout / Equip buttons stacked vertically on the right side of each set row.
+- **Auto Mod Display**: Mod count badges on result rows, per-stat bonus indicators, and "X stat mods auto-assigned" notice.
+
+#### Equip Button Wired
+
+- **`createLoadoutFromSet` action** in `optimizerStore.ts` builds an `ILoadout` from the selected `ProcessArmorSet` and saves it via `loadoutStore.addLoadout()`.
+- **Success feedback**: "✓ Loadout Saved!" confirmation with `lastAction` feedback banner.
+- **Progress bar**: Animated progress bar during optimization.
+
+#### Files Added
+
+- `src/components/loadout-optimizer/ExoticPicker.tsx` — Exotic selection modal
+
+#### Files Modified
+
+- `src/lib/loadout-optimizer/types.ts` — Full `ArmorStats` on `ProcessItem`, `icon` field, `remainingEnergy`, auto mod constants
+- `src/workers/loadout-optimizer.worker.ts` — Complete rewrite with flat stat arrays, auto mod assignment, exotic locking
+- `src/hooks/useArmorFilter.ts` — Fixed type errors (`definitions`→`manifest`, `item.definition`→manifest lookup), added `icon` + `lockedExoticHash` filter
+- `src/store/optimizerStore.ts` — Added `lockedExoticHash`, `setLockedExotic`, `createLoadoutFromSet`, `lastAction`
+- `src/components/loadout-optimizer/OptimizerResults.tsx` — DIM-style inline per-set layout with Bungie icons
+- `src/pages/LoadoutOptimizer.tsx` — Exotic picker integration, progress bar, character ID resolution
+
 ## [0.35.0] - 2026-03-09
 
 ### Loadout Optimizer — Phase 1 Complete
