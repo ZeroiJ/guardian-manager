@@ -104,7 +104,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             ref={setNodeRef}
             {...(canDrag ? listeners : {})}
             {...(canDrag ? attributes : {})}
-            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200 ${isSelected ? 'ring-2 ring-[#f5dc56] ring-offset-1 ring-offset-black' : ''}`}
+            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200 overflow-hidden ${isMasterwork ? 'masterwork-shimmer' : ''} ${isSelected ? 'ring-2 ring-[#f5dc56] ring-offset-1 ring-offset-black' : ''}`}
             style={{
                 ...style,
                 borderColor: hasDeepsight ? '#22d3ee' : effectiveBorderColor,

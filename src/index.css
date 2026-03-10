@@ -45,4 +45,63 @@
     .animate-slide-up {
         animation: slide-up 0.3s ease-out forwards;
     }
+
+    /* Toast notification animations */
+    @keyframes toast-enter {
+        from {
+            opacity: 0;
+            transform: translateX(100%) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+    }
+    @keyframes toast-exit {
+        from {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%) scale(0.95);
+        }
+    }
+    @keyframes toast-timer {
+        from { width: 100%; }
+        to { width: 0%; }
+    }
+    .animate-toast-enter {
+        animation: toast-enter 0.25s ease-out forwards;
+    }
+    .animate-toast-exit {
+        animation: toast-exit 0.25s ease-in forwards;
+    }
+
+    /* Masterwork shimmer sweep */
+    @keyframes masterwork-shimmer {
+        0% { transform: translateX(-100%) rotate(25deg); }
+        100% { transform: translateX(200%) rotate(25deg); }
+    }
+    .masterwork-shimmer::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(234, 222, 139, 0.25) 40%,
+            rgba(234, 222, 139, 0.08) 60%,
+            transparent 100%
+        );
+        transform: translateX(-100%) rotate(25deg);
+        animation: masterwork-shimmer 3s ease-in-out infinite;
+        animation-delay: 1s;
+        pointer-events: none;
+    }
+
+    /* Tabular numbers for stat displays */
+    .font-tabular {
+        font-variant-numeric: tabular-nums;
+    }
 }

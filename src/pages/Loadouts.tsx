@@ -18,7 +18,8 @@ import {
     validateLoadout,
 } from '@/store/loadoutStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
-import { applyLoadout } from '@/lib/bungie/equipManager';
+import { applyLoadout, type EquipProgressInfo } from '@/lib/bungie/equipManager';
+import { showNotification, useNotificationStore } from '@/store/notificationStore';
 import { useToast } from '@/contexts/ToastContext';
 import { Navigation } from '@/components/Navigation';
 import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
@@ -122,38 +123,65 @@ export default function Loadouts() {
     const handleEquip = useCallback(
         async (loadout: ILoadout, targetCharacterId: string) => {
             setEquipState({ status: 'loading', loadoutId: loadout.id });
+
+            // Show a persistent progress notification
+            const progressId = showNotification({
+                title: `Equipping: ${loadout.name}`,
+                body: 'Preparing loadout...',
+                type: 'progress',
+                duration: 0, // persistent until dismissed
+            });
+
+            const handleProgress = (info: EquipProgressInfo) => {
+                const { dismissNotification, showNotification: show } = useNotificationStore.getState();
+                dismissNotification(progressId);
+                // We re-show to update text (Zustand doesn't support mutation in-place)
+                show({
+                    title: `${info.phase}: ${loadout.name}`,
+                    body: info.message + (info.total ? ` (${info.current}/${info.total})` : ''),
+                    type: 'progress',
+                    duration: 0,
+                });
+            };
+
             try {
-                const result = await applyLoadout(targetCharacterId, loadout);
+                const result = await applyLoadout(targetCharacterId, loadout, handleProgress);
                 setEquipState({ status: 'success', loadoutId: loadout.id, result });
-                
-                // Show toast notification
+
+                // Dismiss progress and show result
+                useNotificationStore.getState().dismissNotification(progressId);
+
                 const char = characters[targetCharacterId];
                 const charName = char ? CLASS_NAMES[char.classType] || 'Character' : 'Character';
-                
+
                 if (result.success && result.equipped.length > 0) {
-                    showToast({
-                        type: 'success',
+                    showNotification({
                         title: 'Loadout Equipped',
-                        message: `${result.equipped.length} items equipped to ${charName}`,
+                        body: `${result.equipped.length} items equipped to ${charName}`,
+                        type: 'success',
+                        duration: 4000,
                     });
                 } else if (result.failed.length > 0) {
-                    showToast({
-                        type: 'warning',
+                    showNotification({
                         title: 'Loadout Partially Equipped',
-                        message: `${result.equipped.length} equipped, ${result.failed.length} failed`,
+                        body: `${result.equipped.length} equipped, ${result.failed.length} failed`,
+                        type: 'warning',
+                        duration: 6000,
                     });
                 }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown equip error';
                 setEquipState({ status: 'error', loadoutId: loadout.id, message });
-                showToast({
-                    type: 'error',
+                useNotificationStore.getState().dismissNotification(progressId);
+                showNotification({
                     title: 'Equip Failed',
-                    message: message,
+                    body: message,
+                    type: 'error',
+                    duration: 8000,
                 });
             }
         },
-        [characters, showToast],
+        [characters],
     );
 
     const handleEdit = useCallback((loadout: ILoadout) => {

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap, ThumbsUp, ThumbsDown, Hash } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats, getSocketAlternatives, type StatSegment, type StatSegmentType, type SocketAlternatives } from '../../lib/destiny/stat-manager';
@@ -18,6 +18,7 @@ import { getKillTracker, getCraftedInfo, getArmorEnergy, getCatalystInfo, getDee
 import catalystMapping from '../../data/exotic-to-catalyst-record.json';
 import { KillTrackerBadge, CraftedWeaponBadge, DeepsightBadge, CatalystProgress } from '../item/ItemPopupInfo';
 import { TriagePanel } from '../item/TriagePanel';
+import { getHashtagsFromString } from '../../lib/destiny/note-hashtags';
 
 // ============================================================================
 // TYPES
@@ -535,6 +536,53 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                     ============================================================ */}
                 <div className="flex-1 overflow-y-auto min-h-0">
                     <div className="p-4 space-y-5">
+
+                        {/* ---- USER NOTES & HASHTAGS ---- */}
+                        {(item?.userNote || item?.userTag) && (() => {
+                            const tags = getHashtagsFromString(item?.userNote);
+                            const TAG_COLORS: Record<string, string> = {
+                                '#godroll': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                                '#pvp': 'bg-red-500/20 text-red-300 border-red-500/30',
+                                '#pve': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                                '#keep': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                                '#trash': 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+                                '#favorite': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+                            };
+                            const defaultTagColor = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+
+                            return (
+                                <div className="flex flex-col gap-2 p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                                    {/* User tag badge */}
+                                    {item.userTag && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Hash size={10} className="text-gray-500" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300 bg-white/[0.06] px-2 py-0.5 rounded-sm border border-white/10">
+                                                {item.userTag}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {/* Hashtag pills */}
+                                    {tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {tags.map((tag: string) => (
+                                                <span
+                                                    key={tag}
+                                                    className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full border ${TAG_COLORS[tag.toLowerCase()] || defaultTagColor}`}
+                                                >
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Note text (with hashtags stripped from display) */}
+                                    {item.userNote && (
+                                        <div className="text-xs text-gray-400 leading-relaxed">
+                                            {item.userNote.replace(/#\w+/g, '').trim() || item.userNote}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* ---- SOURCE INFO ---- */}
                         {sourceString && (
