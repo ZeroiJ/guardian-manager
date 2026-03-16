@@ -20,7 +20,7 @@
  * - Manifest: DestinyProgressionDefinition, DestinySeasonDefinition, DestinyRecordDefinition
  */
 import React, { useMemo, useState } from 'react';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { useProfile } from '@/hooks/useProfile';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { RankSection } from '@/components/progress/RankSection';
@@ -190,7 +190,7 @@ export default function Progress() {
             <div className="h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
                 <div className="flex items-center gap-4">
                     <span className="font-bold text-xl tracking-[0.15em] text-white font-rajdhani uppercase">GM</span>
-                    <Navigation />
+                    <TopBar />
                 </div>
             </div>
 

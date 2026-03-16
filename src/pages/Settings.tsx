@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { useSettingsStore, type ItemSortOrder } from '@/store/settingsStore';
 
 /**
@@ -27,7 +27,7 @@ export default function Settings() {
                             SETTINGS
                         </span>
                     </div>
-                    <Navigation />
+                    <TopBar />
                 </div>
             </header>
 

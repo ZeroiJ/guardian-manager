@@ -11,7 +11,7 @@
  * Lazy-loaded via React.lazy() in App.tsx.
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useDefinitions } from '@/hooks/useDefinitions';
 import { BungieImage } from '@/components/ui/BungieImage';
@@ -440,7 +440,7 @@ export default function Collections() {
 
     return (
         <div className="min-h-screen bg-void-bg text-void-text">
-            <Navigation />
+            <TopBar />
 
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
                 {/* Header */}

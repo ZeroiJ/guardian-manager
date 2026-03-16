@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { VendorSidebar } from '@/components/vendors/VendorSidebar';
 import { VendorCard } from '@/components/vendors/VendorCard';
 import { SubVendorSheet } from '@/components/vendors/SubVendorSheet';
@@ -202,7 +202,7 @@ export default function Vendors() {
   // ---------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-void-bg text-void-text">
-      <Navigation />
+      <TopBar />
 
       <div className="flex">
         {/* ---- Sidebar (desktop: sticky 230px, mobile: hidden) ---- */}

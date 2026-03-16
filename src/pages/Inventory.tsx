@@ -24,7 +24,7 @@ import { useBulkSelectStore } from "@/store/useBulkSelectStore";
 import { filterItems } from "@/lib/search/itemFilter";
 import { calculateMaxPower } from "@/lib/destiny/powerUtils";
 import { CompareModal } from "@/components/CompareModal";
-import { Navigation } from "@/components/Navigation";
+import { TopBar } from "@/components/layout/TopBar";
 import { LoadoutDrawer } from "@/components/loadouts/LoadoutDrawer";
 import { InventoryItem } from "@/components/inventory/InventoryItem";
 import { BulkActionBar } from "@/components/inventory/BulkActionBar";
@@ -423,17 +423,10 @@ export default function Inventory() {
 
   return (
     <div className="h-screen bg-black text-white font-sans flex flex-col overflow-y-auto selection:bg-white selection:text-black scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-      {/* Top Bar */}
-      <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-xl tracking-[0.15em] text-white font-rajdhani uppercase">
-            GM
-          </span>
-          <Navigation />
-        </div>
-
-        <div className="flex-1 max-w-xl px-8">
-          <div className="relative">
+      {/* Unified Top Bar */}
+      <TopBar 
+        centerContent={
+          <div className="w-full relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
             <input
               id="search-items"
@@ -449,7 +442,7 @@ export default function Inventory() {
 
             {/* Spotlight Search Dropdown */}
             {isSearchFocused && dropdownItems.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-md shadow-2xl z-50 overflow-hidden max-h-[400px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-md shadow-2xl z-50 overflow-hidden max-h-[400px] overflow-y-auto w-full">
                 {dropdownItems.map((item) => {
                   const def = definitions[item.itemHash];
                   const power = item.instanceData?.primaryStat?.value;
@@ -497,46 +490,46 @@ export default function Inventory() {
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-sm text-gray-400">
-          <RefreshButton
-            lastUpdated={lastUpdated}
-            isRefreshing={isRefreshing}
-            onRefresh={triggerRefresh}
-          />
-          <button
-            onClick={() => setIsLoadoutDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest font-rajdhani"
-            title="Quick loadout panel"
-          >
-            <BookMarked size={13} />
-            Quick Loadout
-          </button>
-          <button
-            onClick={() => {
-              if (farmingMode.active) {
-                toggleFarmingMode();
-              } else {
-                // Use the first character as default farming character
-                const firstCharId = characters[0]?.characterId;
-                if (firstCharId) toggleFarmingMode(firstCharId);
-              }
-            }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded border transition-all text-xs font-bold uppercase tracking-widest font-rajdhani ${
-              farmingMode.active
-                ? 'border-green-500/50 text-green-400 bg-green-500/10 hover:bg-green-500/20'
-                : 'border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5'
-            }`}
-            title={farmingMode.active ? 'Stop farming mode' : 'Start farming mode (auto-vault engrams & consumables)'}
-          >
-            <Sprout size={13} />
-            {farmingMode.active ? 'Farming' : 'Farm'}
-          </button>
-          <button className="hover:text-white">Settings</button>
-          <div className="size-6 bg-gradient-to-tr from-[#f5dc56] to-[#f5dc56]/50 rounded-full border border-white/10" />
-        </div>
-      </div>
+        }
+        rightContent={
+          <>
+            <RefreshButton
+              lastUpdated={lastUpdated}
+              isRefreshing={isRefreshing}
+              onRefresh={triggerRefresh}
+            />
+            <button
+              onClick={() => setIsLoadoutDrawerOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest font-rajdhani"
+              title="Quick loadout panel"
+            >
+              <BookMarked size={13} />
+              Quick Loadout
+            </button>
+            <button
+              onClick={() => {
+                if (farmingMode.active) {
+                  toggleFarmingMode();
+                } else {
+                  // Use the first character as default farming character
+                  const firstCharId = characters[0]?.characterId;
+                  if (firstCharId) toggleFarmingMode(firstCharId);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded border transition-all text-xs font-bold uppercase tracking-widest font-rajdhani ${
+                farmingMode.active
+                  ? 'border-green-500/50 text-green-400 bg-green-500/10 hover:bg-green-500/20'
+                  : 'border-white/10 text-gray-400 hover:text-white hover:border-white/25 hover:bg-white/5'
+              }`}
+              title={farmingMode.active ? 'Stop farming mode' : 'Start farming mode (auto-vault engrams & consumables)'}
+            >
+              <Sprout size={13} />
+              {farmingMode.active ? 'Farming' : 'Farm'}
+            </button>
+            <button className="hover:text-white">Settings</button>
+          </>
+        }
+      />
 
       {/* Loadout Drawer — Phase 5 */}
       <LoadoutDrawer

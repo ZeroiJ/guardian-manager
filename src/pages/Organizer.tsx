@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import { useBulkSelectStore } from '@/store/useBulkSelectStore';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { filterItems } from '@/lib/search/itemFilter';
 import { CATEGORY_TREE, findCategory } from '@/lib/organizer/categories';
 import { WEAPON_COLUMNS, ARMOR_COLUMNS, getDamageColor, getDamageLabel, getTagLabel, getTagEmoji } from '@/lib/organizer/columns';
@@ -556,7 +556,7 @@ export default function Organizer() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-void-bg/95 backdrop-blur border-b border-void-border p-4 flex items-center gap-6">
                 <h1 className="text-2xl font-bold tracking-wider">GUARDIAN NEXUS</h1>
-                <Navigation />
+                <TopBar />
                 <div className="ml-auto flex items-center gap-3">
                     <input
                         type="text"

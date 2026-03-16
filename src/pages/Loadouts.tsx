@@ -21,7 +21,7 @@ import { useInventoryStore } from '@/store/useInventoryStore';
 import { applyLoadout, type EquipProgressInfo } from '@/lib/bungie/equipManager';
 import { showNotification, useNotificationStore } from '@/store/notificationStore';
 import { useToast } from '@/contexts/ToastContext';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { LoadoutCard, type EquipState, type LoadoutValidation } from '@/components/loadouts/LoadoutCard';
 import { LoadoutEditorDrawer } from '@/components/loadouts/LoadoutEditorDrawer';
 import { CreateLoadoutModal } from '@/components/loadouts/CreateLoadoutModal';
@@ -222,20 +222,7 @@ export default function Loadouts() {
     return (
         <div className="min-h-screen bg-black text-white font-sans flex flex-col selection:bg-white selection:text-black">
             {/* ── Top Bar ─────────────────────────────────────── */}
-            <div className="sticky top-0 h-12 bg-black border-b border-void-border flex items-center px-4 justify-between flex-shrink-0 z-50">
-                <div className="flex items-center gap-4">
-                    <Link
-                        to="/"
-                        className="font-bold text-xl tracking-[0.15em] text-white font-rajdhani uppercase hover:opacity-80 transition-opacity"
-                    >
-                        GM
-                    </Link>
-                    <Navigation />
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <div className="size-6 bg-gradient-to-tr from-[#f5dc56] to-[#f5dc56]/50 rounded-full border border-white/10" />
-                </div>
-            </div>
+            <TopBar />
 
             {/* ── Page Content ────────────────────────────────── */}
             <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">

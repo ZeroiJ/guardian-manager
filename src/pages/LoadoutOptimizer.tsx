@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Navigation } from '@/components/Navigation';
+import { TopBar } from '@/components/layout/TopBar';
 import { useOptimizerStore, LOCKED_EXOTIC_NO_EXOTIC, LOCKED_EXOTIC_ANY_EXOTIC } from '@/store/optimizerStore';
 import { useArmorFilter } from '@/hooks/useArmorFilter';
 import { useInventoryStore } from '@/store/useInventoryStore';
@@ -74,7 +74,7 @@ export function LoadoutOptimizer() {
 
     return (
         <div className="min-h-screen bg-void-bg text-white">
-            <Navigation />
+            <TopBar />
             
             <div className="flex h-[calc(100vh-65px)]">
                 {/* Sidebar - Settings */}
