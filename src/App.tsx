@@ -1,9 +1,16 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Inventory from '@/pages/Inventory';
 import Progress from '@/pages/Progress';
 import Loadouts from '@/pages/Loadouts';
 import { NotificationContainer } from '@/components/ui/NotificationToast';
+import { useClarityStore } from '@/store/clarityStore';
+import { ItemFeedPanel } from '@/components/ui/ItemFeedPanel';
+import { createContext, useContext } from 'react';
+
+// Context for global feed panel
+export const FeedContext = createContext<{ onOpenFeed: () => void }>({ onOpenFeed: () => {} });
+export const useFeed = () => useContext(FeedContext);
 
 const Organizer = lazy(() => import('@/pages/Organizer'));
 const Vendors = lazy(() => import('@/pages/Vendors'));
@@ -12,9 +19,18 @@ const LoadoutOptimizer = lazy(() => import('@/pages/LoadoutOptimizer'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
 function App() {
+  const [isFeedOpen, setIsFeedOpen] = useState(false);
+  const loadDescriptions = useClarityStore(s => s.loadDescriptions);
+
+  // Initialize Clarity descriptions on startup
+  useEffect(() => {
+    loadDescriptions();
+  }, [loadDescriptions]);
+
   return (
-    <>
+    <FeedContext.Provider value={{ onOpenFeed: () => setIsFeedOpen(true) }}>
       <NotificationContainer />
+      <ItemFeedPanel isOpen={isFeedOpen} onClose={() => setIsFeedOpen(false)} />
       <Router>
         <Suspense fallback={<div className="min-h-screen bg-void-bg flex items-center justify-center text-void-text">Loading...</div>}>
           <Routes>
@@ -29,7 +45,7 @@ function App() {
           </Routes>
         </Suspense>
       </Router>
-    </>
+    </FeedContext.Provider>
   );
 }
 

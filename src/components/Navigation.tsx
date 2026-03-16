@@ -1,11 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
+import { ItemFeedButton } from '@/components/ui/ItemFeedPanel';
+import { useFeed } from '@/App';
 
 export function Navigation() {
     const location = useLocation();
     const isActive = (path: string) => location.pathname === path;
+    const { onOpenFeed } = useFeed();
 
     return (
-        <nav className="flex gap-4 text-sm font-medium text-gray-400">
+        <nav className="flex items-center gap-4 text-sm font-medium text-gray-400">
+            <ItemFeedButton onClick={onOpenFeed} />
             <Link
                 to="/"
                 className={`transition-colors ${isActive('/') ? 'text-white bg-void-surface px-3 py-1 border border-void-border rounded-sm' : 'hover:text-white'}`}

@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Crosshair, Sword, Sparkles, FlaskConical, Zap, ThumbsUp, ThumbsDown, Hash } from 'lucide-react';
+import { X, ExternalLink, GitCompare, Grid3x3, List, RotateCcw, Hash, ThumbsUp, ThumbsDown, Zap } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats, getSocketAlternatives, type StatSegment, type StatSegmentType, type SocketAlternatives } from '../../lib/destiny/stat-manager';
 import { categorizeSockets } from '../../lib/destiny/socket-helper';
 import { ItemSocket } from '../item/ItemSocket';
 import { PerkCircle } from '../item/PerkCircle';
+import { ClarityInsight } from '../item/ClarityInsight';
 import { BungieImage, bungieNetPath } from '../ui/BungieImage';
 import { useDefinitions } from '../../hooks/useDefinitions';
 import { StatHashes, PlugCategoryHashes } from '../../lib/destiny-constants';
@@ -838,6 +839,8 @@ export const ItemDetailOverlay: React.FC<ItemDetailOverlayProps> = ({
                                                                     {dp.description}
                                                                 </div>
                                                             )}
+                                                            {/* Clarity Insight for Perk */}
+                                                            {activePlugHash && <ClarityInsight perkHash={activePlugHash} />}
                                                         </div>
                                                     </div>
 

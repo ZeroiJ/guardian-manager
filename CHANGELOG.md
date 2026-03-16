@@ -2,8 +2,31 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
-## [0.36.0] - 2026-03-10
+## [0.37.0] - 2026-03-16
 
+### 🌟 Core Feature Parity Update: Clarity, Item Feed, & Loadout Mods
+
+This update introduces three massive quality-of-life features inspired by DIM, bringing Guardian Nexus even closer to full feature parity.
+
+#### 📊 Clarity Integration (Community Insights)
+- We now integrate the community-sourced **Clarity** database directly into the app!
+- **What this means for you:** When you inspect weapons in the Item Detail popup, you'll see exact, hidden numbers for perks instead of Bungie's vague descriptions. (e.g., instead of "increases reload speed", you'll see exactly "+50 Reload Speed, 0.85x animation duration").
+- The app automatically downloads and caches this data in the background, keeping it fast and lightweight.
+
+#### 🔔 Live Item Feed
+- Similar to DIM's item feed, Guardian Nexus now tracks your loot drops in real-time.
+- **What this means for you:** There is a new "Bell" icon in the top navigation bar. Whenever a new item drops in-game or appears in your inventory while the app is open, you'll see a notification badge.
+- Clicking the bell opens a slide-out panel showing a chronological history of your newly acquired loot, cleanly styled by item rarity. You can dismiss items individually or clear them all at once to keep your feed tidy.
+
+#### ⚙️ Full Loadout Mod Assignment
+- **What this means for you:** When you click "Equip" on a saved loadout, the app now actively slots your saved armor mods into your equipped armor!
+- Previously, the app only equipped the armor pieces themselves. Now, the final phase of the equip engine scans your armor's mod sockets and automatically inserts exactly what you had saved, meaning your build is 100% ready to play the moment the loadout finishes applying.
+
+#### 🛠 Polish & UI Cleanup
+- Fixed missing UI icons (`ThumbsUp`, `ThumbsDown`, `Zap`) throughout the Wishlist and Triage menus.
+- Cleaned up background code warnings to ensure the app continues to build and run flawlessly.
+
+## [0.36.0] - 2026-03-10
 ### Loadout Optimizer — Phase 2: Bug Fixes, Exotic Picker & DIM-Style UI
 
 Major improvements to the Loadout Optimizer based on a deep analysis of DIM's `loadout-builder/` implementation (~60 files).

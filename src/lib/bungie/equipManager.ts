@@ -617,15 +617,66 @@ export async function applyLoadout(
 
     // --- PHASE 4: ARMOR MODS ---
     if (loadout.modsByBucket) {
+        reportProgress('mods', 'Applying armor mods...', 0, itemsToEquip.length);
+        let modIdx = 0;
         for (const loadoutItem of itemsToEquip) {
             const mods = loadout.modsByBucket[loadoutItem.bucketHash];
             if (mods && mods.length > 0) {
-                // To properly apply mods, we'd need to know the correct socket indices. 
-                // Without a complex matching logic (like DIM's mod-assignment-utils), this is best effort.
-                // For now, we note that it's partially implemented. 
-                // A full implementation requires tracking which mod goes into which socket.
-                console.log(`[EquipManager] Mods insertion for bucket ${loadoutItem.bucketHash} is noted but needs specific socket index mapping.`);
+                reportProgress('mods', `Applying mods...`, modIdx, itemsToEquip.length);
+                const liveItem = allItems.find(i => i.itemInstanceId === loadoutItem.itemInstanceId);
+                const itemDef = inventoryStore.manifest?.[loadoutItem.itemHash];
+                
+                if (liveItem && liveItem.sockets?.sockets && itemDef?.sockets?.socketCategories) {
+                    // Find indices that are categorized as "ArmorMods"
+                    const modSocketCategory = itemDef.sockets.socketCategories.find(
+                        (sc: any) => sc.socketCategoryHash === 3313201758 || // Armor Mods
+                                     sc.socketCategoryHash === 2685412949    // Also Armor Mods sometimes
+                    );
+                    
+                    if (modSocketCategory) {
+                        const socketIndices = modSocketCategory.socketIndexes as number[];
+                        let remainingMods = [...mods];
+                        
+                        // First pass: Don't touch sockets that already have the correct mod
+                        for (const socketIndex of socketIndices) {
+                            const currentPlugHash = liveItem.sockets.sockets[socketIndex]?.plugHash;
+                            const modIndexReq = remainingMods.indexOf(currentPlugHash!);
+                            if (modIndexReq !== -1) {
+                                // Already has this mod, remove from requirements
+                                remainingMods.splice(modIndexReq, 1);
+                            }
+                        }
+
+                        // Second pass: Insert remaining mods into remaining sockets
+                        // (This is a naive approach; DIM uses a complex ModAssignmentAlgorithm to factor in energy costs)
+                        for (const socketIndex of socketIndices) {
+                            if (remainingMods.length === 0) break;
+                            
+                            // To keep it simple, we just try to jam the first remaining mod into this socket
+                            // The API will reject it if it doesn't fit the socket type or energy budget
+                            const modToInsert = remainingMods[0];
+                            
+                            try {
+                                await callInsertPlugFreeEndpoint({
+                                    itemId: loadoutItem.itemInstanceId,
+                                    plug: {
+                                        socketIndex,
+                                        socketArrayType: 0,
+                                        plugItemHash: modToInsert,
+                                    },
+                                    characterId,
+                                    membershipType
+                                });
+                                // Successfully requested insertion (assuming no throw)
+                                remainingMods.shift();
+                            } catch (err: any) {
+                                console.error(`[EquipManager] Failed to insert mod ${modToInsert} at index ${socketIndex}:`, err.message);
+                            }
+                        }
+                    }
+                }
             }
+            modIdx++;
         }
     }
 

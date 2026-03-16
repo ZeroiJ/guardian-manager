@@ -57,7 +57,7 @@ const Toast: React.FC<{ notification: Notify }> = ({ notification }) => {
         setStartTime(Date.now());
         const timer = setTimeout(handleDismiss, remainingMs);
         return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [paused, handleDismiss]);
 
     const handleMouseEnter = () => {

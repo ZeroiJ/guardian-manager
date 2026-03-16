@@ -4,6 +4,7 @@ import { TransferService } from '../services/inventory/transferService';
 import { APIClient } from '../services/api/client';
 import type { InGameLoadout } from '../lib/destiny/ingame-loadouts';
 import { extractMintedTimestamp, isNewerTimestamp } from '../services/profile/profileCache';
+import { useItemFeedStore } from './itemFeedStore';
 
 // Subset of manifest data (names, icons, tierType)
 export interface ManifestDefinition {
@@ -180,6 +181,9 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
                 ids.forEach(id => dupeInstanceIds.add(id));
             }
         }
+
+        // Process snapshot for Item Feed
+        useItemFeedStore.getState().processSnapshot(items);
 
         set({ characters, items, profile: bungieProfile, metadata, dupeInstanceIds, lastMintedTimestamp: incomingTimestamp || null });
         console.log(`[InventoryStore] Hydrated ${items.length} items (minted: ${incomingTimestamp || 'unknown'})`);
