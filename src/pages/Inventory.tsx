@@ -28,6 +28,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { LoadoutDrawer } from "@/components/loadouts/LoadoutDrawer";
 import { InventoryItem } from "@/components/inventory/InventoryItem";
 import { BulkActionBar } from "@/components/inventory/BulkActionBar";
+import { HotkeysOverlay, HotkeysButton } from "@/components/ui/HotkeysOverlay";
+import { FilterPills } from "@/components/ui/FilterPills";
 
 export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +47,8 @@ export default function Inventory() {
   } | null>(null);
   const [isLoadoutDrawerOpen, setIsLoadoutDrawerOpen] = useState(false);
   const [activeDragItem, setActiveDragItem] = useState<any>(null);
+  const [isHotkeysOpen, setIsHotkeysOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   // Use the new Zipper hook
   const {
@@ -160,6 +164,34 @@ export default function Inventory() {
   // Filter Items Logic
   const allItems = profile?.items || [];
 
+  // Weapon bucket hashes
+  const WEAPON_BUCKETS = [1498876634, 2465295065, 953998645];
+  const ARMOR_BUCKETS = [3448274436, 3551918588, 14239492, 20886954, 158489786];
+  const GHOST_BUCKETS = [4023201246, 284967800, 375726501];
+
+  // Filter items by active filter pill
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') return allItems;
+    let targetBuckets: number[] = [];
+    switch (activeFilter) {
+      case 'weapons':
+        targetBuckets = WEAPON_BUCKETS;
+        break;
+      case 'armor':
+        targetBuckets = ARMOR_BUCKETS;
+        break;
+      case 'ghosts':
+        targetBuckets = GHOST_BUCKETS;
+        break;
+      default:
+        return allItems;
+    }
+    return allItems.filter((item) => {
+      const itemBucket = item.bucketHash || 0;
+      return targetBuckets.includes(itemBucket);
+    });
+  }, [allItems, activeFilter]);
+
   // --- Keyboard Shortcuts ---
   const navigate = useNavigate();
   const setLockState = useInventoryStore((state) => state.setLockState);
@@ -227,18 +259,20 @@ export default function Inventory() {
     { key: '2', handler: () => navigate('/loadouts'), description: 'Go to Loadouts' },
     { key: '3', handler: () => navigate('/progress'), description: 'Go to Progress' },
     { key: '4', handler: () => navigate('/vendors'), description: 'Go to Vendors' },
-  ], [selectedItem, contextMenu, isLoadoutDrawerOpen, searchQuery, isRefreshing, triggerRefresh, setLockState, navigate, bulkActive, bulkClear]));
+    // Help: ?
+    { key: '?', handler: () => setIsHotkeysOpen(true), description: 'Show keyboard shortcuts', global: true },
+  ], [selectedItem, contextMenu, isLoadoutDrawerOpen, searchQuery, isRefreshing, triggerRefresh, setLockState, navigate, bulkActive, bulkClear, setIsHotkeysOpen]));
 
   // Dropdown (Live Search)
   const dropdownItems = useMemo(() => {
     if (!searchQuery.trim()) return [];
     return filterItems(
-      allItems,
+      filteredItems,
       searchQuery,
       definitions,
       dupeInstanceIds,
     ).slice(0, 10);
-  }, [allItems, searchQuery, definitions, dupeInstanceIds]);
+  }, [filteredItems, searchQuery, definitions, dupeInstanceIds]);
 
   const loading =
     profileLoading ||
@@ -377,7 +411,7 @@ export default function Inventory() {
   }
 
   // Main Grid (Always Show All)
-  const filteredItems = allItems;
+  // Use filteredItems from useMemo above
 
   // Filter Items for Vault
   const vaultItems = filteredItems.filter((i) => i.owner === "vault");
@@ -439,6 +473,11 @@ export default function Inventory() {
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             />
+
+            {/* Filter Pills */}
+            <div className="mt-2">
+              <FilterPills activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+            </div>
 
             {/* Spotlight Search Dropdown */}
             {isSearchFocused && dropdownItems.length > 0 && (
@@ -527,6 +566,7 @@ export default function Inventory() {
               {farmingMode.active ? 'Farming' : 'Farm'}
             </button>
             <button className="hover:text-white">Settings</button>
+            <HotkeysButton onClick={() => setIsHotkeysOpen(true)} />
           </>
         }
       />
@@ -535,6 +575,12 @@ export default function Inventory() {
       <LoadoutDrawer
         isOpen={isLoadoutDrawerOpen}
         onClose={() => setIsLoadoutDrawerOpen(false)}
+      />
+
+      {/* Hotkeys Overlay */}
+      <HotkeysOverlay
+        isOpen={isHotkeysOpen}
+        onClose={() => setIsHotkeysOpen(false)}
       />
 
       {/* DndContext for Drag and Drop */}
