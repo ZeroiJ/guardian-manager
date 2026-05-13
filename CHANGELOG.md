@@ -4,6 +4,10 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ## [0.39.0] - 2026-05-13
 
+### Inventory
+
+- Removed redundant **All / Weapons / Armor / Ghosts** filter pills under the top-bar search. Inventory always shows the full item set; use the search bar (`is:weapon`, etc.) for filtering.
+
 ### Documentation audit (`docs/`)
 
 Reconciled **DIM_IMPORT_RECOMMENDATIONS**, **DIM_GAP_ANALYSIS_ROADMAP**, **DIM_LOADOUT_PARITY**, **DEVELOPER_GUIDE**, **DIM_UI_PATTERNS**, **GEMINI**, and **plans/** with the current codebase (Organizer, infusion, farming, item feed, Clarity, CSV export, strip sockets, loadout apply pipeline, drag-and-drop). Marked complete vs partial vs open accordingly.

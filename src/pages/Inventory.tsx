@@ -30,7 +30,6 @@ import { LoadoutDrawer } from "@/components/loadouts/LoadoutDrawer";
 import { InventoryItem } from "@/components/inventory/InventoryItem";
 import { BulkActionBar } from "@/components/inventory/BulkActionBar";
 import { HotkeysOverlay, HotkeysButton } from "@/components/ui/HotkeysOverlay";
-import { FilterPills } from "@/components/ui/FilterPills";
 
 export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,8 +43,6 @@ export default function Inventory() {
   const [isLoadoutDrawerOpen, setIsLoadoutDrawerOpen] = useState(false);
   const [activeDragItem, setActiveDragItem] = useState<any>(null);
   const [isHotkeysOpen, setIsHotkeysOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
-
   const showItemPopup = useItemPopupStore((s) => s.show);
   const hideItemPopup = useItemPopupStore((s) => s.hide);
   const popupItem = useItemPopupStore((s) => s.item);
@@ -164,36 +161,7 @@ export default function Inventory() {
     });
   }, [compareSession, profile?.items, definitions]);
 
-  // Filter Items Logic
   const allItems = profile?.items || [];
-
-  // Weapon bucket hashes
-  const WEAPON_BUCKETS = [1498876634, 2465295065, 953998645];
-  const ARMOR_BUCKETS = [3448274436, 3551918588, 14239492, 20886954, 158489786];
-  const GHOST_BUCKETS = [4023201246, 284967800, 375726501];
-
-  // Filter items by active filter pill
-  const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') return allItems;
-    let targetBuckets: number[] = [];
-    switch (activeFilter) {
-      case 'weapons':
-        targetBuckets = WEAPON_BUCKETS;
-        break;
-      case 'armor':
-        targetBuckets = ARMOR_BUCKETS;
-        break;
-      case 'ghosts':
-        targetBuckets = GHOST_BUCKETS;
-        break;
-      default:
-        return allItems;
-    }
-    return allItems.filter((item) => {
-      const itemBucket = item.bucketHash || 0;
-      return targetBuckets.includes(itemBucket);
-    });
-  }, [allItems, activeFilter]);
 
   // --- Keyboard Shortcuts ---
   const navigate = useNavigate();
@@ -270,12 +238,12 @@ export default function Inventory() {
   const dropdownItems = useMemo(() => {
     if (!searchQuery.trim()) return [];
     return filterItems(
-      filteredItems,
+      allItems,
       searchQuery,
       definitions,
       dupeInstanceIds,
     ).slice(0, 10);
-  }, [filteredItems, searchQuery, definitions, dupeInstanceIds]);
+  }, [allItems, searchQuery, definitions, dupeInstanceIds]);
 
   const loading =
     profileLoading ||
@@ -424,10 +392,9 @@ export default function Inventory() {
   }
 
   // Main Grid (Always Show All)
-  // Use filteredItems from useMemo above
 
   // Filter Items for Vault
-  const vaultItems = filteredItems.filter((i) => i.owner === "vault");
+  const vaultItems = allItems.filter((i) => i.owner === "vault");
 
   const characters = profile?.characters
     ? Object.values(profile.characters)
@@ -436,7 +403,7 @@ export default function Inventory() {
   // Helper to get items for character
   const getItemsForCharacter = (charId: string) => {
     // We filter from the SEARCH results
-    const charItems = filteredItems.filter((i) => i.owner === charId);
+    const charItems = allItems.filter((i) => i.owner === charId);
 
     // Find Postmaster items — check the item's RUNTIME bucketHash (where it currently sits),
     // not the definition's bucketTypeHash (which is the item's canonical slot type).
@@ -486,11 +453,6 @@ export default function Inventory() {
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             />
-
-            {/* Filter Pills */}
-            <div className="mt-2">
-              <FilterPills activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-            </div>
 
             {/* Spotlight Search Dropdown */}
             {isSearchFocused && dropdownItems.length > 0 && (
