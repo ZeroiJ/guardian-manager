@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { ItemPopupContainer } from '@/components/inventory/ItemPopupContainer';
 import Inventory from '@/pages/Inventory';
 import Progress from '@/pages/Progress';
 import Loadouts from '@/pages/Loadouts';
@@ -44,6 +45,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Suspense>
+        <ItemPopupContainer />
       </Router>
     </FeedContext.Provider>
   );

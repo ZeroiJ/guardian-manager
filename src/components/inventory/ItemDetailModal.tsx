@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { X, Lock, Unlock, Tag, RefreshCw, Maximize2, Diamond, ChevronDown, LayoutGrid, Anchor, Archive, GitCompare, ArrowRightLeft } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
@@ -16,12 +16,16 @@ import { ItemDetailOverlay } from './ItemDetailOverlay';
 import { InfusionFinder } from './InfusionFinder';
 import clsx from 'clsx';
 import {
-    useFloating,
-    offset,
-    flip,
-    shift,
+    arrow,
     autoUpdate,
-    FloatingPortal
+    flip,
+    FloatingArrow,
+    FloatingPortal,
+    offset,
+    shift,
+    useDismiss,
+    useFloating,
+    useInteractions,
 } from '@floating-ui/react';
 // Import CSS Modules
 import styles from './styles/ItemPopup.module.scss';
@@ -67,22 +71,25 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     // moveItem, // Removed
     characters
 }) => {
-    // --- Floating UI Setup ---
-    const { refs, floatingStyles, placement } = useFloating({
+    const arrowRef = useRef<SVGSVGElement | null>(null);
+
+    const { context, floatingStyles, placement, refs } = useFloating({
         elements: { reference: referenceElement },
         placement: 'right-start',
         middleware: [
-            offset(10),
+            offset(12),
             flip({ fallbackPlacements: ['left-start', 'bottom', 'top'] }),
-            shift({ padding: 8 })
+            shift({ padding: 8 }),
+            arrow({ element: arrowRef }),
         ],
-        whileElementsMounted: autoUpdate
+        whileElementsMounted: autoUpdate,
     });
+
+    const dismiss = useDismiss(context);
+    const { getFloatingProps } = useInteractions([dismiss]);
 
     const moveItem = useInventoryStore(state => state.moveItem);
     const startCompare = useInventoryStore(state => state.startCompare);
-
-    if (!item || !definition || !referenceElement) return null;
 
     // --- JIT Definitions ---
     const plugHashes = useMemo(() => {
@@ -97,35 +104,40 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const { definitions: plugDefinitions } = useDefinitions('DestinyInventoryItemDefinition', plugHashes);
     const definitions = useMemo(() => ({ ...initialDefinitions, ...plugDefinitions }), [initialDefinitions, plugDefinitions]);
 
-    // --- Logic ---
-    const { state } = item;
+    // --- Logic (safe when item/definition null — hooks must run unconditionally) ---
+    const state = item?.state ?? 0;
     const isMasterwork = (state & 4) !== 0;
     const isLocked = (state & 1) !== 0;
-    const power = item.instanceData?.primaryStat?.value || item.primaryStat?.value;
-    const damageTypeHash = item.instanceData?.damageTypeHash || definition.defaultDamageTypeHash;
-    const tierType = definition.inventory?.tierType || 0;
+    const power = item?.instanceData?.primaryStat?.value || item?.primaryStat?.value;
+    const damageTypeHash = item?.instanceData?.damageTypeHash || definition?.defaultDamageTypeHash;
+    const tierType = definition?.inventory?.tierType ?? 0;
     const isExotic = tierType === 6;
-    const itemTypeDisplayName = definition.itemTypeDisplayName;
+    const itemTypeDisplayName = definition?.itemTypeDisplayName ?? '';
     const rarity = tierTypeToRarity[tierType] || 'common';
 
-    
     // --- Item Info Features (Kill Tracker, Crafted, Energy, Catalyst, Deepsight) ---
-    const killTracker = useMemo(() => getKillTracker(item, definition), [item, definition]);
-    const craftedInfo = useMemo(() => getCraftedInfo(item, definition), [item, definition]);
+    const killTracker = useMemo(() => {
+        if (!item || !definition) return null;
+        return getKillTracker(item, definition);
+    }, [item, definition]);
+    const craftedInfo = useMemo(() => {
+        if (!item || !definition) return null;
+        return getCraftedInfo(item, definition);
+    }, [item, definition]);
 
     const profile = useInventoryStore(s => s.profile);
     const profileRecords = useMemo(() => profile?.profileRecords?.data, [profile]);
     const characterRecords = useMemo(() => profile?.characterRecords?.data, [profile]);
 
     const catalystInfo = useMemo(() => {
-        if (!isExotic) return null;
+        if (!item || !definition || (definition.inventory?.tierType ?? 0) !== 6) return null;
         return getCatalystInfo(
-            item?.itemHash,
+            item.itemHash,
             profileRecords,
             characterRecords,
             catalystMapping as Record<string, number>,
         );
-    }, [item?.itemHash, isExotic, profileRecords, characterRecords]);
+    }, [item, definition, profileRecords, characterRecords]);
 
     const recordHashes = useMemo(() => [] as number[], []); // Empty = load full table
     const { definitions: recordDefs } = useDefinitions('DestinyRecordDefinition', recordHashes);
@@ -140,44 +152,44 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         return map;
     }, [recordDefs]);
 
-    const deepsightInfo = useMemo(
-        () => getDeepsightInfo(item, definition, profileRecords, patternRecordMap),
-        [item, definition, profileRecords, patternRecordMap]
-    );
+    const deepsightInfo = useMemo(() => {
+        if (!item || !definition) return null;
+        return getDeepsightInfo(item, definition, profileRecords, patternRecordMap);
+    }, [item, definition, profileRecords, patternRecordMap]);
 
-    const calculatedStats = useMemo(() => calculateStats(item, definition, definitions), [item, definition, definitions]);
-    const sockets = useMemo(() => categorizeSockets(item, definition, definitions), [item, definition, definitions]);
+    const calculatedStats = useMemo(() => {
+        if (!item || !definition) return [];
+        return calculateStats(item, definition, definitions);
+    }, [item, definition, definitions]);
 
-    const itemOwner = item.owner || 'unknown';
-    const [isTransferring, setIsTransferring] = useState(false);
+    const sockets = useMemo(() => {
+        if (!item || !definition) {
+            return {
+                intrinsic: null,
+                perks: [],
+                mods: [],
+                weaponMods: [],
+                cosmetics: [],
+                ornament: null,
+                catalyst: null,
+            };
+        }
+        return categorizeSockets(item, definition, definitions);
+    }, [item, definition, definitions]);
+
     const [showOverlay, setShowOverlay] = useState(false);
     const [showInfusion, setShowInfusion] = useState(false);
 
-    // Move Handler
-    const handleMove = (targetId: string, isVault: boolean) => {
-        if (isTransferring) return;
-        if (targetId === itemOwner && !isVault) return; // Already on char
-        if (itemOwner === 'vault' && isVault) return; // Already in vault
-
-        // Instant Interaction
-        setIsTransferring(true);
-        onClose();
-
-        // Fire and forget (Optimistic UI will handle the visual feedback)
-        moveItem(item.itemInstanceId, item.itemHash, targetId, isVault).catch(err => {
-            console.error("Transfer failed after modal close:", err);
-        });
-    };
+    if (!item || !definition || !referenceElement) {
+        return null;
+    }
 
     return (
         <FloatingPortal>
-            {/* Backdrop - click to close */}
-            <div
-                className="fixed inset-0 z-[100] bg-black/30"
-                onClick={onClose}
-            />
-
-            {/* Floating Popup */}
+            {/*
+              DIM-style: single portaled popup anchored to the item tile, outside-press
+              to dismiss (useDismiss) — no full-viewport dimmer.
+            */}
             <div
                 ref={refs.setFloating}
                 style={floatingStyles}
@@ -189,8 +201,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     styles.desktopPopupRoot
                 )}
                 role="dialog"
-                aria-modal="true"
+                aria-modal="false"
                 data-popper-placement={placement}
+                {...getFloatingProps()}
             >
                 <div className={styles.desktopPopup}>
 
@@ -453,6 +466,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                     </div>
                 </div>
+                <FloatingArrow
+                    ref={arrowRef}
+                    context={context}
+                    width={18}
+                    height={9}
+                    tipRadius={1}
+                    className="fill-[#111]"
+                />
             </div>
 
             {/* Full Item Detail Overlay */}

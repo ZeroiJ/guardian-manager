@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DndContext, DragOverlay, DragEndEvent, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useNavigate } from "react-router-dom";
 import { Search, BookMarked, Sprout } from "lucide-react";
@@ -7,7 +7,7 @@ import { InventoryBucketLabel } from "@/components/inventory/InventoryBucketLabe
 import { StoreBucket } from "@/components/inventory/StoreBucket";
 import { BUCKETS } from "@/data/constants";
 import { VirtualVaultGrid } from "@/components/inventory/VirtualVaultGrid";
-import { ItemDetailModal } from "@/components/inventory/ItemDetailModal";
+import { useItemPopupStore } from "@/store/useItemPopupStore";
 import { ItemContextMenu } from "@/components/inventory/ItemContextMenu";
 import { RefreshButton } from "@/components/ui/RefreshButton";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -41,15 +41,14 @@ export default function Inventory() {
     item: any;
     definition: any;
   } | null>(null);
-  const [selectedItem, setSelectedItem] = useState<{
-    item: any;
-    definition: any;
-    referenceElement: HTMLElement | null;
-  } | null>(null);
   const [isLoadoutDrawerOpen, setIsLoadoutDrawerOpen] = useState(false);
   const [activeDragItem, setActiveDragItem] = useState<any>(null);
   const [isHotkeysOpen, setIsHotkeysOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
+
+  const showItemPopup = useItemPopupStore((s) => s.show);
+  const hideItemPopup = useItemPopupStore((s) => s.hide);
+  const popupItem = useItemPopupStore((s) => s.item);
 
   // Use the new Zipper hook
   const {
@@ -226,8 +225,8 @@ export default function Inventory() {
     {
       key: 'Escape',
       handler: () => {
-        if (selectedItem) {
-          setSelectedItem(null);
+        if (popupItem) {
+          hideItemPopup();
         } else if (contextMenu) {
           setContextMenu(null);
         } else if (bulkActive) {
@@ -251,9 +250,9 @@ export default function Inventory() {
     {
       key: 'l',
       handler: () => {
-        if (selectedItem?.item?.itemInstanceId && selectedItem.item.lockable) {
-          const isLocked = (selectedItem.item.state & 1) !== 0;
-          setLockState(selectedItem.item.itemInstanceId, !isLocked);
+        if (popupItem?.itemInstanceId && popupItem.lockable) {
+          const isLocked = (popupItem.state & 1) !== 0;
+          setLockState(popupItem.itemInstanceId, !isLocked);
         }
       },
       description: 'Lock / unlock selected item',
@@ -265,7 +264,7 @@ export default function Inventory() {
     { key: '4', handler: () => navigate('/vendors'), description: 'Go to Vendors' },
     // Help: ?
     { key: '?', handler: () => setIsHotkeysOpen(true), description: 'Show keyboard shortcuts', global: true },
-  ], [selectedItem, contextMenu, isLoadoutDrawerOpen, searchQuery, isRefreshing, triggerRefresh, setLockState, navigate, bulkActive, bulkClear, setIsHotkeysOpen]));
+  ], [popupItem, hideItemPopup, contextMenu, isLoadoutDrawerOpen, searchQuery, isRefreshing, triggerRefresh, setLockState, navigate, bulkActive, bulkClear, setIsHotkeysOpen]));
 
   // Dropdown (Live Search)
   const dropdownItems = useMemo(() => {
@@ -311,9 +310,10 @@ export default function Inventory() {
     definition: any,
     event: React.MouseEvent,
   ) => {
-    setSelectedItem({
+    showItemPopup({
       item,
       definition,
+      definitions,
       referenceElement: event.currentTarget as HTMLElement,
     });
     setIsSearchFocused(false);
@@ -739,17 +739,7 @@ export default function Inventory() {
         />
       )}
 
-      {/* Item Details Modal */}
-      {selectedItem && (
-        <ItemDetailModal
-          item={selectedItem.item}
-          definition={selectedItem.definition}
-          definitions={definitions}
-          referenceElement={selectedItem.referenceElement}
-          onClose={() => setSelectedItem(null)}
-          characters={characters}
-        />
-      )}
+      {/* Item popup: global DIM-style `ItemPopupContainer` in App */}
 
       {/* Compare Sheet (DIM-style bottom drawer) */}
       {compareSession && compareItems.length > 0 && (

@@ -4,6 +4,14 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ## [0.39.0] - 2026-05-13
 
+### Item Popup — DIM `ItemPopupContainer` Pattern
+
+Mirrors Destiny Item Manager’s `item-popup.ts` + `ItemPopupContainer` + `ItemPopup` flow (DIM does not use names “ItemOverlay” / “ItemOverlayPopup”; `ItemDetailOverlay` remains our full-screen overlay when expanding from the popup header):
+
+- **`useItemPopupStore`** — global single-popup state; **`show()`** toggles closed when the same instance is clicked again (same as DIM).
+- **`ItemPopupContainer`** — mounted once in **`App`** under **`Router`**; closes the popup on route change; renders **`ItemDetailModal`** (anchored popup body).
+- **`ItemDetailModal`** — Floating UI **`arrow`** + **`FloatingArrow`**, **`useDismiss`** for outside-click close (no full-screen dimmer), fixed hooks order for loading paths, removed unused transfer stub.
+
 ### Desktop Layout — No Page-Wide Horizontal Scroll + Priority Nav
 
 - **Fix (hooks)**: `inventoryGridTemplate` `useMemo` must run before loading/error early returns on `Inventory`; otherwise React error #310 (“Rendered more hooks than during the previous render”) occurs when transitioning from the loading screen to the main grid.
