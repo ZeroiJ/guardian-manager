@@ -26,7 +26,7 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ storeId, bucketHash, e
         // Container: Responsive sizing based on CSS variables
         <div 
             ref={setNodeRef}
-            className={`flex items-start flex-shrink-0 p-1 -m-1 rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
+            className={`flex min-w-0 max-w-full items-start p-1 -m-1 rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
             style={{
                 minHeight: 'calc(var(--item-size) + 4px)',
                 gap: 'var(--item-gap)',

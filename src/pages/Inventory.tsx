@@ -424,6 +424,12 @@ export default function Inventory() {
     ? Object.values(profile.characters)
     : [];
 
+  /** Character columns + vault share viewport width (no page-wide horizontal scroll). */
+  const inventoryGridTemplate = useMemo(() => {
+    const n = Math.max(characters.length, 1);
+    return `repeat(${n}, minmax(0, 1fr)) minmax(0, 1.35fr)`;
+  }, [characters.length]);
+
   // Helper to get items for character
   const getItemsForCharacter = (charId: string) => {
     // We filter from the SEARCH results
@@ -591,17 +597,18 @@ export default function Inventory() {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Horizontal Content - THE FLOORS */}
         {/* Horizontal Content - SLOT BASED ROWS */}
-        <div className="flex-1 flex flex-col p-4 gap-4 overflow-x-auto pb-32">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 pb-32">
           {/* Floor 1: HEADERS (Emblems + Stats) */}
-          <div className="flex gap-2 min-w-max h-[160px] items-start">
-            {" "}
-            {/* Fixed height for alignment */}
+          <div
+            className="grid h-[160px] items-start gap-2"
+            style={{ gridTemplateColumns: inventoryGridTemplate }}
+          >
             {characters.map((char: any) => (
-              <div key={char.characterId} className="flex-shrink-0">
+              <div key={char.characterId} className="min-w-0">
                 <StoreHeader storeId={char.characterId} character={char} />
               </div>
             ))}
-            <div className="flex-1 min-w-[300px] flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
             </div>
           </div>
@@ -617,19 +624,18 @@ export default function Inventory() {
             { label: "Legs", hash: BUCKETS.Legs },
             { label: "Class Items", hash: BUCKETS.Class },
           ].map((row) => (
-            <div key={row.hash} className="flex flex-col w-full">
+            <div key={row.hash} className="flex w-full min-w-0 flex-col">
               <InventoryBucketLabel label={row.label} />
-              <div className="flex gap-2 items-start">
-                {/* Characters */}
+              <div
+                className="grid items-start gap-2"
+                style={{ gridTemplateColumns: inventoryGridTemplate }}
+              >
                 {characters.map((char: any) => {
                   const { equipment, inventory } = getItemsForCharacter(
                     char.characterId,
                   );
                   return (
-                    <div
-                      key={char.characterId}
-                      className="w-[290px] flex-shrink-0"
-                    >
+                    <div key={char.characterId} className="min-w-0">
                       <StoreBucket
                         storeId={char.characterId}
                         bucketHash={row.hash}
@@ -642,8 +648,7 @@ export default function Inventory() {
                   );
                 })}
 
-                {/* Vault */}
-                <div className="flex-1 min-w-[400px]">
+                <div className="min-w-0 overflow-hidden">
                   <VirtualVaultGrid
                     bucketHash={row.hash}
                     items={vaultItems}
@@ -661,13 +666,16 @@ export default function Inventory() {
             const { postmaster } = getItemsForCharacter(char.characterId);
             return postmaster.length > 0;
           }) && (
-            <div className="flex flex-col w-full">
+            <div className="flex w-full min-w-0 flex-col">
               <InventoryBucketLabel label="Postmaster" />
-              <div className="flex gap-2 items-start">
+              <div
+                className="grid items-start gap-2"
+                style={{ gridTemplateColumns: inventoryGridTemplate }}
+              >
                 {characters.map((char: any) => {
                   const { postmaster } = getItemsForCharacter(char.characterId);
                   return (
-                    <div key={char.characterId} className="w-[290px] flex-shrink-0">
+                    <div key={char.characterId} className="min-w-0">
                       {postmaster.length > 0 ? (
                         <div className="bg-[#111] border border-white/5 rounded-sm p-2">
                           <div className="flex flex-wrap gap-1">
@@ -697,8 +705,7 @@ export default function Inventory() {
                     </div>
                   );
                 })}
-                {/* Empty vault column for alignment */}
-                <div className="flex-1 min-w-[400px]" />
+                <div className="min-w-0" aria-hidden />
               </div>
             </div>
           )}

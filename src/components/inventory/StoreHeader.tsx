@@ -12,7 +12,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     // 1. Vault Header
     if (storeId === 'vault') {
         return (
-            <div className="flex-shrink-0 w-[300px] md:w-[400px] flex-1 min-w-[300px] bg-dim-surface border border-dim-border-light flex flex-col relative select-none">
+            <div className="flex h-full min-w-0 flex-1 flex-col border border-dim-border-light bg-dim-surface select-none relative">
                 {/* Header (Matches Character Emblem: h-[56px]) */}
                 <div className="h-[56px] flex items-center px-4 bg-dim-bg border-b border-dim-border justify-between flex-shrink-0 relative z-20">
                     <div className="flex flex-col leading-tight">
@@ -54,7 +54,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ storeId, character, va
     const basePower = light - (artifactPower || 0);
 
     return (
-        <div className="flex-shrink-0 w-[290px] bg-dim-surface border border-dim-border-light flex flex-col select-none relative">
+        <div className="flex min-w-0 w-full flex-col border border-dim-border-light bg-dim-surface select-none relative">
             {/* Header / Emblem - Clean Overlay Style */}
             <div
                 className="relative h-[56px] w-full bg-cover bg-center flex items-center justify-between px-4 bg-no-repeat z-20"

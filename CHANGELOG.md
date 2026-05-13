@@ -4,9 +4,17 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ## [0.39.0] - 2026-05-13
 
+### Desktop Layout — No Page-Wide Horizontal Scroll + Priority Nav
+
+- **Inventory grid**: Character columns and vault share the viewport width via CSS Grid (`minmax(0, 1fr)` columns) instead of a fixed-width flex row with horizontal scroll.
+- **Headers / buckets / Postmaster**: Same grid template so columns stay aligned.
+- **Store headers & buckets**: Fluid width (`min-w-0`, no rigid `w-[290px]`) so columns can shrink with `--item-size` scaling.
+- **Top bar**: Left cluster (`GM` + nav) uses `min-w-0` / `flex-1` so the strip does not force overflow.
+- **Navigation**: Primary links (feed, Inventory, Loadouts, Optimizer) stay visible; secondary links (Progress → Settings by priority) collapse into a **More** menu when space is tight (`useNavigationFit` + Floating UI).
+
 ### Responsive UI Scaling — DIM-Style Auto-Resizing
 
-The entire inventory UI now scales proportionally based on window size, just like DIM. No more horizontal scrolling or cramped views on smaller screens!
+The entire inventory UI now scales proportionally based on window size, just like DIM. Item tiles shrink before the page scrolls sideways on desktop-sized windows.
 
 #### CSS Variable-Based Scaling
 
