@@ -73,22 +73,25 @@ export default function Inventory() {
   // Extract hashes for manifest lookup
   // Include both item hashes AND plug hashes from sockets (perks, mods, etc.)
   const itemHashes = useMemo(() => {
-    if (!profile?.items) return [];
     const hashes = new Set<number>();
-    for (const item of profile.items) {
-      hashes.add(item.itemHash);
-      // Collect all plug hashes from sockets so we can resolve perk/mod definitions
-      const sockets = item.sockets?.sockets;
-      if (sockets) {
-        for (const socket of sockets) {
-          if (socket.plugHash) {
-            hashes.add(socket.plugHash);
+    if (profile?.items) {
+      for (const item of profile.items) {
+        hashes.add(item.itemHash);
+        const sockets = item.sockets?.sockets;
+        if (sockets) {
+          for (const socket of sockets) {
+            if (socket.plugHash) {
+              hashes.add(socket.plugHash);
+            }
           }
         }
       }
     }
+    for (const c of bungieProfile?.profileCurrencies?.data?.items ?? []) {
+      if (c?.itemHash) hashes.add(c.itemHash);
+    }
     return Array.from(hashes);
-  }, [profile?.items]);
+  }, [profile?.items, bungieProfile?.profileCurrencies?.data?.items]);
   const { definitions: itemDefs, loading: itemDefsLoading } = useDefinitions(
     "DestinyInventoryItemDefinition",
     itemHashes,
@@ -127,6 +130,7 @@ export default function Inventory() {
   const pullAllFromPostmaster = useInventoryStore((state) => state.pullAllFromPostmaster);
   const farmingMode = useInventoryStore((state) => state.farmingMode);
   const toggleFarmingMode = useInventoryStore((state) => state.toggleFarmingMode);
+  const bungieProfile = useInventoryStore((state) => state.profile);
 
   // Farming mode auto-move hook
   useFarmingMode();
@@ -565,16 +569,37 @@ export default function Inventory() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 pb-32">
           {/* Floor 1: HEADERS (Emblems + Stats) */}
           <div
-            className="grid h-[160px] items-start gap-2"
+            className="store-row store-header grid h-[118px] shrink-0 items-stretch gap-2"
             style={{ gridTemplateColumns: inventoryGridTemplate }}
           >
-            {characters.map((char: any) => (
-              <div key={char.characterId} className="min-w-0">
-                <StoreHeader storeId={char.characterId} character={char} />
-              </div>
-            ))}
+            {characters.map((char: any) => {
+              const { equipment, maxPower } = getItemsForCharacter(char.characterId);
+              const helmet = equipment.find(
+                (i: any) =>
+                  definitions[i.itemHash]?.inventory?.bucketTypeHash === BUCKETS.Helmet,
+              );
+              const artifactPower =
+                (profile as { artifactPower?: number }).artifactPower ?? 0;
+              return (
+                <div key={char.characterId} className="min-w-0">
+                  <StoreHeader
+                    storeId={char.characterId}
+                    character={char}
+                    artifactPower={artifactPower}
+                    maxPower={maxPower}
+                    helmetItem={helmet ?? null}
+                    definitions={definitions}
+                  />
+                </div>
+              );
+            })}
             <div className="flex min-w-0 flex-col">
-              <StoreHeader storeId="vault" vaultCount={vaultItems.length} />
+              <StoreHeader
+                storeId="vault"
+                vaultCount={vaultItems.length}
+                currencyItems={bungieProfile?.profileCurrencies?.data?.items ?? []}
+                definitions={definitions}
+              />
             </div>
           </div>
 

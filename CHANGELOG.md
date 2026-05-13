@@ -6,7 +6,8 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ### Inventory
 
-- Removed redundant **All / Weapons / Armor / Ghosts** filter pills under the top-bar search. Inventory always shows the full item set; use the search bar (`is:weapon`, etc.) for filtering.
+- **DIM-style store header** (~118px): character columns use `store-row store-header` — emblem banner (class/race + ✦ power), helmet row with base + artifact and max-power hint, compact Mob–Str strip. Vault shows live **ProfileCurrencies** (component **103**) in a small icon grid; worker profile fetch now requests **103**.
+- Removed redundant **All / Weapons / Armor / Ghosts** filter pills; use the search bar (`is:weapon`, etc.) for filtering.
 
 ### Documentation audit (`docs/`)
 
