@@ -6,6 +6,7 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ### Desktop Layout — No Page-Wide Horizontal Scroll + Priority Nav
 
+- **Fix (hooks)**: `inventoryGridTemplate` `useMemo` must run before loading/error early returns on `Inventory`; otherwise React error #310 (“Rendered more hooks than during the previous render”) occurs when transitioning from the loading screen to the main grid.
 - **Inventory grid**: Character columns and vault share the viewport width via CSS Grid (`minmax(0, 1fr)` columns) instead of a fixed-width flex row with horizontal scroll.
 - **Headers / buckets / Postmaster**: Same grid template so columns stay aligned.
 - **Store headers & buckets**: Fluid width (`min-w-0`, no rigid `w-[290px]`) so columns can shrink with `--item-size` scaling.

@@ -342,6 +342,15 @@ export default function Inventory() {
     }
   };
 
+  /** Must run before any early return — same dependency as character columns below. */
+  const inventoryGridTemplate = useMemo(() => {
+    const count = profile?.characters
+      ? Object.keys(profile.characters).length
+      : 0;
+    const n = Math.max(count, 1);
+    return `repeat(${n}, minmax(0, 1fr)) minmax(0, 1.35fr)`;
+  }, [profile?.characters]);
+
   if (loading) {
     return (
       <LoadingScreen
@@ -423,12 +432,6 @@ export default function Inventory() {
   const characters = profile?.characters
     ? Object.values(profile.characters)
     : [];
-
-  /** Character columns + vault share viewport width (no page-wide horizontal scroll). */
-  const inventoryGridTemplate = useMemo(() => {
-    const n = Math.max(characters.length, 1);
-    return `repeat(${n}, minmax(0, 1fr)) minmax(0, 1.35fr)`;
-  }, [characters.length]);
 
   // Helper to get items for character
   const getItemsForCharacter = (charId: string) => {
