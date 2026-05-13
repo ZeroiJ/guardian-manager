@@ -15,7 +15,11 @@ To establish relationships between the Postgres schema and the Bungie Manifest, 
 1. Use the `getDefinitions` function to fetch manifest data based on relevant user actions.
 2. Store the retrieved definitions in the appropriate format within the UserMetadata entries to facilitate future queries and ensure understanding of how user data interacts with the API.
 
-## Next Steps
-1. Implement this mapping logic within the application's service layer.
-2. Ensure proper logging and error handling during API interactions.
-3. Document precise interactions and relationships in the Memory Manifold.
+## Status (2026-05-13)
+
+Initial Postgres-focused sketch. **Current app** stores tags/notes/loadouts primarily via **Cloudflare D1 + sync client** (`useCloudSync`, `syncClient.ts`) keyed by Bungie membership; manifest lookups use cached definitions. Treat this file as **conceptual** unless extended with concrete table names matching production migrations.
+
+## Next Steps (if revisiting)
+
+1. Align any Postgres docs with actual Worker/D1 schema in `migrations/`.
+2. Document membership ↔ sync token flow next to `sync_tokens` usage.

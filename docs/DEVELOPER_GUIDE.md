@@ -1,78 +1,62 @@
-# Guardian Nexus - Developer Guide
+# Guardian Manager — Developer Guide
 
-Welcome to the **Guardian Nexus** codebase! This guide is designed to help new developers understand the project structure, key components, and data flow.
+Welcome to the **Guardian Manager** (Guardian Nexus) codebase. This guide describes layout, data flow, and where logic lives.
 
-## 🏗 Project Structure
+**Doc audit:** 2026-05-13 — aligned with current `src/` (inventory uses `StoreBucket` / `Inventory.tsx`, not legacy `CharacterColumn`).
 
-The project follows a standard Vite + React (TypeScript) structure, but with a focus on distinct logical layers:
+## Project structure
 
-```bash
+```
 src/
-├── components/         # React Components (UI)
-│   ├── inventory/      # Core Inventory Logic (CharacterColumn, Vault, Tiles)
-│   └── ui/             # Generic UI Elements (Buttons, Modals)
-├── data/               # Static Data & Constants (Hashes, Manifest definitions)
-├── hooks/              # Custom React Hooks (Data Fetching, State)
-├── lib/                # Pure Logic / Utilities (No React dependencies)
-│   ├── destiny/        # Destiny-specific logic (Power calc, filtering)
-│   └── search/         # Search filtering engine
-├── services/           # External API Layers (Bungie API, Manifest DB)
-└── App.tsx             # Main entry point and Layout Orchestrator
+├── components/
+│   ├── inventory/      # Inventory grid, ItemDetailModal, overlays, vault
+│   ├── layout/         # TopBar, navigation
+│   ├── loadouts/       # Loadout cards, editor drawer
+│   └── ui/             # Shared UI (toasts, feed panel, etc.)
+├── hooks/              # useProfile, useDefinitions, useHotkeys, etc.
+├── lib/                # Pure logic — destiny/, search/, bungie/equipManager
+├── pages/              # Route pages (Inventory, Loadouts, Organizer, …)
+├── services/           # API client, profile cache, manifest
+├── store/              # Zustand stores (inventory, loadouts, item popup, sync)
+└── App.tsx             # Router, ItemPopupContainer, feed, clarity init
 ```
 
-## 🧩 Key Components
+## Key surfaces
 
-### 1. `App.tsx` (The Orchestrator)
+### `pages/Inventory.tsx`
 
-- **Role:** The main dashboard view.
-- **Responsibilities:**
-  - Fetches the user profile (`useProfile`) and definitions (`useDefinitions`).
-  - Filters items based on the search query.
-  - Distributes data to `CharacterColumn` and `VirtualVaultGrid`.
-  - Calculates specific character data (Max Power, Postmaster items).
+Main dashboard: profile + definitions, **CSS Grid** columns per character + vault (`inventoryGridTemplate`), **TopBar** search, **DndContext** for drag-drop, **ItemPopupContainer** renders the global item popup (opened via `useItemPopupStore`).
 
-### 2. `CharacterColumn.tsx`
+### `components/inventory/StoreBucket.tsx`
 
-- **Role:** Renders a single character's inventory.
-- **Key Features:**
-  - **BucketRow:** Handles the logic for a specific slot (e.g., Kinetic). Shows Equipped + 9 Inventory slots.
-  - **Ghost Slots:** Fills empty inventory spaces with placeholders to maintain grid alignment.
-  - **Stats Engine:** Renders Armor 3.0 stats (Health, Melee, etc.).
+Per-character bucket row: equipped tile + inventory grid using **`var(--item-size)`** / **`var(--item-gap)`**.
 
-### 3. `VirtualVaultGrid.tsx`
+### `components/inventory/VirtualVaultGrid.tsx`
 
-- **Role:** Renders the massive Vault inventory.
-- **Key Features:**
-  - **Sub-Categorization:** Groups items by Type (Auto Rifle, Helmet) > Alphabetical.
-  - **Performance:** Optimized for rendering hundreds of items.
+Vault column: grouped by type, flex-wrap, droppable regions.
 
-### 4. `InventoryItem.tsx`
+### `components/inventory/InventoryItem.tsx`
 
-- **Role:** The fundamental "Tile" for an item.
-- **Features:** Renders the icon, power overlay, masterwork border, and element icon.
+Item tile: rarity border, masterwork, element, power — sized from CSS variables (`useResponsiveItemSize` on Inventory).
 
-## 🔄 Data Flow
+## Data flow
 
-1. **Bungie API**: We fetch the `DestinyProfile` (Components 102, 200, 201, 205, 300) to get all raw item data.
-2. **Manifest Definitions**: We fetch static definitions (names, icons, hashes) from a local IndexedDB cache or the Bungie API.
-3. **App Level**: `App.tsx` merges these two sources. Every item rendered is a combination of its **Instance Data** (stats, perks) and its **Definition Data** (name, icon).
+1. **Bungie API** (via Worker) → profile / components for items.
+2. **Manifest** — definitions through `useDefinitions` + cached manifest manager.
+3. **Zustand** — `useInventoryStore.hydrate()` merges profile + processed items; moves/equips go through store + services.
 
-## 🛠 Core Utilities
+## Core utilities
 
-- **`lib/destiny/powerUtils.ts`**: Contains the `calculateMaxPower` algorithm. It solves the "Best Loadout" problem while respecting the 1-Exotic limit.
-- **`components/BungieImage.tsx`**: A critical wrapper for `<img>` tags. It handles the domain prepending (`https://www.bungie.net...`) and error fallbacks. Never use a raw `<img>` tag for game assets.
-- **`data/constants.ts`**: The source of truth for **Bucket Hashes**, **Stat Hashes**, and **Damage Types**. If you need to map a Hash to a readable name, check here first.
+- **`lib/destiny/powerUtils.ts`** — `calculateMaxPower` (exotic cap, best gear).
+- **`components/ui/BungieImage.tsx`** — Bungie CDN paths + fallbacks.
+- **`data/constants.ts`** — bucket hashes, stat hashes, damage types.
 
-## 🚀 Getting Started
+## Getting started
 
-1. **Install**: `npm install`
-2. **Run**: `npm run dev`
-3. **Environment**: You need a `BUNGIE_API_KEY` in your `.env` (or `.dev.vars` for Cloudflare functions) to fetch real data.
+1. `npm install`
+2. `npm run dev`
+3. Secrets: `BUNGIE_*` in `.env` / `.dev.vars` for Workers.
 
-## ⚠️ "The Bungie Standard"
+## UI density
 
-Start new UI components with **pixel-perfect alignment** in mind. We aim to match the density and alignment of DIM/Bungie.net.
-
-- **Character Headers**: Fixed at 48px height.
-- **Item Tiles**: 48x48px (standard).
-- **Grid Spacing**: 2px gaps.
+Target DIM-like density: **`--item-size`** scales with viewport (`useResponsiveItemSize`), grid uses **`minmax(0, 1fr)`** so the page does not horizontally scroll on desktop.

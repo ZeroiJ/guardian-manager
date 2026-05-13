@@ -147,10 +147,10 @@ DIM items are composed of **layered overlays** inside a placeholder:
 
 ## Summary: What to Adopt
 
-| Pattern | Current (Guardian Nexus) | DIM Approach |
+| Pattern | Guardian Manager (2026) | DIM Approach |
 |---------|-------------------------|--------------|
-| **Layout** | `flex` with fixed widths | CSS Grid with `repeat()` + `1fr` |
-| **Item Size** | Hardcoded `48px` | CSS variable `--item-size` |
-| **Performance** | None | `contain: layout paint style size` |
-| **Vault Flow** | Flex-wrap | `display: contents` for inline mode |
-| **Scaling** | Manual | `dim-item-px()` function |
+| **Layout** | CSS Grid for character + vault columns (`Inventory.tsx`, `minmax(0,1fr)`) | Grid `repeat(numChars)` + vault `1fr` |
+| **Item Size** | **`--item-size`**, **`--item-gap`** via `useResponsiveItemSize` + `index.css` breakpoints | `--item-size` + scaled px |
+| **Performance** | Virtual lists where needed; optional future: `contain:` on tiles | `contain: layout paint style size` on `.item` |
+| **Vault Flow** | Flex-wrap groups in `VirtualVaultGrid` | Inline mode uses `display: contents` |
+| **Scaling** | JS-driven `--item-size` from window width | SCSS `dim-item-px()` |

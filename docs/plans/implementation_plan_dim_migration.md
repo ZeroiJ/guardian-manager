@@ -71,11 +71,8 @@ Each character column is identical in structure:
 -   [x] Implement the "Border-only" rarity style.
 -   [x] Add distinct overlays for Power, Element, and Season.
 
-### Phase 4: Drag & Drop Implementation
--   Install `@dnd-kit/core` (or similar library).
--   make `ItemCard` draggable.
--   Make `CharacterColumn` and `Vault` droppable zones.
--   Implement the API logic to moving items (TransferItem endpoint).
+### Phase 4: Drag & Drop Implementation [x] DONE
+-   `@dnd-kit/core` on `Inventory.tsx`; `StoreBucket` / `VirtualVaultGrid` droppables; transfers via inventory store / Worker.
 
 ### Phase 5: The Header & Navigation
 -   Re-implement the top search bar (Logic exists, just UI move).

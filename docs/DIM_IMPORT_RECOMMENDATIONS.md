@@ -1,215 +1,123 @@
 # DIM Feature Import Recommendations
 
-Analysis of which DIM features to port to Guardian Nexus, prioritized by value and complexity.
+Analysis of which DIM features to port to Guardian Manager, prioritized by value and complexity.
 
-**Legend:** ✅ Implemented | 🚧 Partial | ❌ Not Started
+**Legend:** ✅ Implemented | 🚧 Partial | ❌ Not Started  
+**Audit:** 2026-05-13 — statuses verified against `src/` (see codebase, not historical labels alone).
 
 ---
 
 ## High Priority (Immediate Value)
 
-### 1. Interaction Model (Click-to-Move) ✅
+### 1. Interaction Model ✅
 
 **Source:** `app/item-popup/`
 
-DIM's primary interaction model is clicking an item to open a detailed menu with transfer controls.
+Primary flow: click item → popup with transfers. **Additionally**, inventory supports `@dnd-kit` drag-and-drop between buckets/vault (see `Inventory.tsx`).
 
-**Status:** IMPLEMENTED — Replaced unstable Drag-and-Drop with robust Click-to-Move.
+**Status:** IMPLEMENTED
 
-- ✅ **Item Popup**: Detailed floating modal with stats, perks, and mods.
-- ✅ **Transfer Controls**: "Store in Vault", "Transfer to Character".
-- ✅ **Optimistic UI**: Instant visual feedback.
-- ❌ **Drag-and-Drop**: Reverted due to complexity/instability. (Future consideration)
+- ✅ **Item popup**: Floating `ItemDetailModal` via global `ItemPopupContainer` / `useItemPopupStore` (DIM-style single popup).
+- ✅ **Transfer controls**: Vault / character moves from popup and bulk bar.
+- ✅ **Optimistic UI**: Store-driven updates.
+- ✅ **Drag-and-drop**: `@dnd-kit/core` on inventory grid (contradicts older “click-only”-only docs — both coexist).
 
 ### 2. Wishlist System ✅
 
 **Source:** `app/wishlists/`
 
-Tag rolls as "god roll" / "trash" based on community data. Instant engagement feature.
+**Status:** IMPLEMENTED — parser, matcher, settings UI, indicators on tiles/popup.
 
-**Status:** IMPLEMENTED — Full wishlist system with Voltron auto-load:
-
-- ✅ Parser for DIM/DTR/Banshee formats (`src/lib/wishlist/parser.ts`)
-- ✅ Matcher for perk combinations (`src/lib/wishlist/matcher.ts`)
-- ✅ React hook with localStorage (`src/hooks/useWishlist.ts`)
-- ✅ Global context provider (`src/contexts/WishlistContext.tsx`)
-- ✅ 👍/👎 indicators on vault and character items
-- ✅ Green border + badge on matching perks in popup
-- ✅ Settings UI for managing sources (`src/components/settings/WishlistSettings.tsx`)
-
-### 2. Item Comparisons ✅
+### 3. Item Comparisons ✅ / 🚧
 
 **Source:** `app/compare/`
 
-Side-by-side weapon/armor comparison with stat deltas. Core power-user feature.
+**Status:** IMPLEMENTED — `CompareModal` with multi-item columns (`items[]`), stat highlights, sockets. DIM extras like auto-picking “similar rolls” may still differ.
 
-**Status:** IMPLEMENTED — Full comparison modal with DIM-style layout:
-
-- ✅ **Stat Engine**: DIM-ported `calculateStats` with base stats, socket bonuses, interpolation (`src/lib/destiny/stat-manager.ts`)
-- ✅ **Delta Calculator**: `compareStats` with stat-by-stat difference (`src/lib/inventory/statMath.ts`)
-- ✅ **Stat Categorization**: `categorizeStatDeltas` groups stats into Weapon / Armor / Hidden
-- ✅ **Tier Break Info**: `getTierBreakInfo` shows T1–T10 breakpoints for armor stats
-- ✅ **Side-by-Side Item Cards**: Icon, name, power, rarity border with "VS" divider
-- ✅ **Socket Comparison Grid**: Intrinsic / Perks / Mods aligned horizontally using `ItemSocket`
-- ✅ **Dual-Layer Stat Bars**: Ghost bar (Item A) + solid bar (Item B) with green/red delta badges
-- ✅ **Recoil Direction**: Two SVG arcs rendered side-by-side via `RecoilStat`
-- ✅ **Zustand Integration**: `toggleCompare` / `clearCompare` actions in `useInventoryStore`
-
-### 3. Search Filter Language ✅
+### 4. Search Filter Language ✅
 
 **Source:** `app/search/`
 
-`is:dupe`, `perk:outlaw`, `stat:recovery:>60` syntax. Makes the app 10x more useful.
-
-**Status:** IMPLEMENTED — Advanced syntax engine operational in `src/lib/search/itemFilter.ts`.
-
-- ✅ `is:exotic`, `is:legendary`, `is:rare`, `is:common` (rarity)
-- ✅ `is:weapon`, `is:armor` (category)
-- ✅ `is:kinetic`, `is:arc`, `is:solar`, `is:void`, `is:stasis`, `is:strand` (element)
-- ✅ `is:dupe` (duplicate detection via Set<InstanceId>)
-- ✅ `perk:*` (perk filtering via socket plugs)
-- ✅ `stat:*:>N` (stat comparison with aliases like `res`, `rec`)
+**Status:** IMPLEMENTED — `query-parser` + `itemFilter.ts` with boolean queries and filters.
 
 ---
 
-### 4. Progress Page (v0.23.0) 🚧
+### 5. Progress Page 🚧
 
 **Source:** `app/progress/`
 
-Comprehensive dashboard for Ranks, Challenges, and Triumphs.
-
-**Status:** BETA / MAINTENANCE MODE
-
-- ✅ **Seasonal Rank**: Full XP bar & prestige logic.
-- ✅ **Challenges**: Tree traversal for Seasonal Challenges.
-- ✅ **Event Cards**: Active event detection.
-- 🚧 **Faction Ranks**: Logic ported (`useProgressStore`), UI needs detailed "diamond" steps.
-- 🚧 **Milestones**: Logic exists, needs "Challenge" specific filtering.
+**Status:** SHIPPED AS BETA — Seasonal rank, challenges, events; some sections (faction diamonds, milestone filtering) remain polish items.
 
 ---
 
 ## Medium Priority (Quality of Life)
 
-### 5. Loadout System 🚧
+### 6. Loadout System 🚧
 
 **Source:** `app/loadout-drawer/`, `app/loadout/`
 
-Save/restore full equipment sets with one click.
+**Status:** PARTIAL — editor drawer, subclass plugs, mods capture, validation UI, `equipManager.applyLoadout` with transfers, socket overrides (`InsertSocketPlugFree`), and naive armor mod application. Remaining: share codes, robust exotic/mod ordering parity with DIM, optional “analyzer”.
 
-**Status:** PARTIAL — Core functionality implemented in v0.24.0-v0.27.0
+### 7. Masterwork Detection & Display ✅
 
-- ✅ **Loadout Card**: Standalone "Tactical Briefing" card component with class-colored accents
-- ✅ **Loadout Page**: `/loadouts` hub with card grid, equip/delete actions
-- ✅ **Loadout Editor Drawer**: Full slide-up drawer for creating/editing loadouts
-- ✅ **Class Filtering**: Armor and subclass filtering by character class (like DIM's `isItemLoadoutCompatible`)
-- ✅ **Item Picker**: Full drawer showing all items from inventory + vault, filtered by bucket and class
-- ✅ **Subclass Configuration**: `SubclassPlugDrawer` for configuring abilities, aspects, and fragments
-- ✅ **Socket Overrides**: Save subclass plug selections with loadout
-- ✅ **Manifest Integration**: `DestinyPlugSetDefinition` loading for plug set lookups
-- ✅ **Inline Mod Slots**: 4 mod boxes per armor piece (1 general + 3 slot-specific) shown directly in editor
-- ✅ **ModPicker Categorization**: Tabbed by slot (Helmet, Gauntlets, Chest, Legs, Class Item, General)
-- ✅ **ModPicker Armor Context**: Shows selected armor piece at top of each tab
-- ✅ **ModPicker Auto-Tab**: `targetBucket` prop auto-selects the correct slot tab when opened from a mod box
-- 🚧 **Equip Action**: Basic equip flow wired up
-- ❌ **Loadout Sharing**: DIM-style share codes
-- ❌ **Auto-Equip**: One-click equip from saved loadouts
-- ❌ **Loadout Analyzer**: What-if scenarios
+**Status:** IMPLEMENTED — `item.state` bitmask, gold treatment on `InventoryItem`.
 
-### 6. Masterwork Detection & Display ✅
-
-**Source:** `app/inventory/store/masterwork.ts`, `app/utils/socket-utils.ts`
-
-DIM uses socket plug analysis to determine masterwork status and display gold borders.
-
-**Status:** IMPLEMENTED — Using Bungie API `item.state` bitmask (`& 4`):
-
-- ✅ **Gold Border**: Masterworked items show `#eade8b` border instead of rarity color
-- ✅ **Gold Background**: Warm golden tint behind masterworked item icons
-- ✅ **Gold Power Badge**: Solid gold compact badge with dark text (bottom-right corner)
-- ✅ **Normal Items**: Dark badge with white text, rarity-based border unchanged
-
-### 7. Organizer View ❌
+### 8. Organizer View ✅
 
 **Source:** `app/organizer/`
 
-Sortable table view with bulk actions for 500+ vault items.
+**Status:** IMPLEMENTED — `src/pages/Organizer.tsx`, CSV export (`exportToCSV` / `downloadCSV`).
 
-**Status:** Not implemented.
-
-### 8. Infusion Finder ❌
+### 9. Infusion Finder ✅
 
 **Source:** `app/infuse/`
 
-Shows what items can infuse into what.
+**Status:** IMPLEMENTED — `InfusionFinder.tsx` + `infusionFinder.ts`, wired from `ItemDetailModal`.
 
-**Status:** Not implemented.
+### 10. Item Detail Overlay (Armory-style) ✅
 
-### 9. Item Detail Overlay (Armory View) ✅
-
-**Source:** `app/armory/`, `app/item-popup/`
-
-Full item breakdown modal with stats, perks, lore, and advanced metadata. DIM splits this across Armory (full page) and Item Popup (floating). We unified both into a single overlay modal.
-
-**Status:** IMPLEMENTED — v0.28.0 (base) + v0.29.0 (advanced metadata)
-
-- ✅ **Screenshot Header**: Full-width weapon screenshot with gradient overlay, season watermark
-- ✅ **Segmented Stat Bars**: Color-coded segments (base/parts/traits/mod/masterwork) with hover tooltips
-- ✅ **Key Stats on Intrinsic**: Inline RPM/Impact display on frame perk
-- ✅ **Socket Override / Perk Swap Preview**: Click alternative perks to preview stat changes live
-- ✅ **SVG Perk Circles**: DIM-accurate circular perk rendering with enhanced perk gold treatment
-- ✅ **Perk Grid/List Toggle**: Two view modes with full perk descriptions in list mode
-- ✅ **"Your Items" Grid**: All owned copies with power, owner tooltip, Compare button
-- ✅ **Season Info**: Watermark-to-season mapping (80 URLs, 28 seasons)
-- ✅ **Kill Tracker**: PvP/PvE/Gambit classification from 10 known objective hashes
-- ✅ **Crafted Weapon Info**: Shaped badge with level + progress bar
-- ✅ **Deepsight Pattern Progress**: Pattern completion via DestinyRecordDefinition lookup
-- ✅ **Exotic Catalyst Progress**: Objective bars via exotic-to-catalyst-record mapping
-- ✅ **Armor Energy Meter**: 10-slot used/available/locked bar from instanceData.energy
-- ✅ **Lore & Flavor Text**: Full lore from DestinyLoreDefinition, source from DestinyCollectibleDefinition
-- ✅ **External Links**: light.gg and D2 Foundry
-- ✅ **Wishlist Badge in Overlay**: Show wishlist match status in the overlay with detailed verdict banners
+**Status:** IMPLEMENTED — `ItemDetailOverlay.tsx` (full breakdown; overlaps DIM Armory + popup concepts).
 
 ---
 
 ## Low Priority (Nice to Have)
 
-- 🚧 **Armory/Database** (`app/armory/`) — All possible rolls for a weapon. Partial: Item Detail Overlay covers most of the Armory view (stats, perks, perk swap preview, lore, season info). Missing: community roll ratings, all possible random rolls grid.
-- ❌ **Farming Mode** (`app/farming/`) — Auto-move to vault during activities
+- 🚧 **Armory / all-rolls grid** — Overlay covers most; dedicated “every roll” grid not a priority.
+- ✅ **Farming mode** — `useFarmingMode`, store toggle, auto-move (`Inventory.tsx` top bar).
 
 ---
 
-## Do NOT Import
+## Do NOT Import (historical)
 
 | Feature | Reason |
 |---------|--------|
-| Redux State | Using React Context + SWR |
-| D1 Support | Legacy code not needed |
-| IndexedDB | Cloudflare worker handles caching |
-| Service Workers | Different deployment model |
+| Redux layout | We use Zustand |
+| D1 game | Out of scope |
+
+**Note:** Older drafts said “IndexedDB / Cloudflare” contradictions — we use **IDB for profile + manifest** and **Cloudflare Worker + D1** for API/sync; both are intentional.
 
 ---
 
-## Implementation Summary
+## Implementation Summary (audit snapshot)
 
 | Feature | Status | Priority |
 |---------|--------|----------|
-| Interaction Model | ✅ | High |
-| Wishlist System | ✅ | High |
-| Item Comparisons | ✅ | High |
-| Search Filters | ✅ | High |
-| Progress Page | 🚧 | High |
-| Loadout System | 🚧 | Medium |
-| Masterwork Detection | ✅ | Medium |
-| Organizer View | ❌ | Medium |
-| Infusion Finder | ❌ | Medium |
-| Item Detail Overlay | ✅ | Medium |
-| Armory/Database | 🚧 | Low |
-| Farming Mode | ❌ | Low |
+| Interaction + popup + DnD | ✅ | High |
+| Wishlist | ✅ | High |
+| Compare | ✅ / 🚧 | High |
+| Search | ✅ | High |
+| Progress | 🚧 | High |
+| Loadouts | 🚧 | Medium |
+| Masterwork | ✅ | Medium |
+| Organizer | ✅ | Medium |
+| Infusion | ✅ | Medium |
+| Item overlay | ✅ | Medium |
+| Farming | ✅ | Low |
 
 ---
 
 ## Recommended Next Steps
 
-1. **Complete Loadout System** — Auto-equip, loadout sharing, analyzer
-2. **Review Progress Page Beta** — Ensure Ranks and Challenges remain stable
-3. **Organizer View** — Sortable table for bulk vault management
+1. **Loadout parity** — Share codes, DIM-grade mod assignment ordering, clearer exotic conflict UX.
+2. **Progress polish** — Faction / milestone UX where still generic.
+3. **Compare** — Optional “suggest similar” from wishlist or stat proximity.

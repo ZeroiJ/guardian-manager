@@ -4,6 +4,10 @@ All notable changes to **Guardian Manager** will be documented in this file.
 
 ## [0.39.0] - 2026-05-13
 
+### Documentation audit (`docs/`)
+
+Reconciled **DIM_IMPORT_RECOMMENDATIONS**, **DIM_GAP_ANALYSIS_ROADMAP**, **DIM_LOADOUT_PARITY**, **DEVELOPER_GUIDE**, **DIM_UI_PATTERNS**, **GEMINI**, and **plans/** with the current codebase (Organizer, infusion, farming, item feed, Clarity, CSV export, strip sockets, loadout apply pipeline, drag-and-drop). Marked complete vs partial vs open accordingly.
+
 ### Item Popup — DIM `ItemPopupContainer` Pattern
 
 Mirrors Destiny Item Manager’s `item-popup.ts` + `ItemPopupContainer` + `ItemPopup` flow (DIM does not use names “ItemOverlay” / “ItemOverlayPopup”; `ItemDetailOverlay` remains our full-screen overlay when expanding from the popup header):
