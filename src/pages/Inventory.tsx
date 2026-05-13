@@ -20,6 +20,7 @@ import { useInGameLoadouts } from "@/hooks/useInGameLoadouts";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useFarmingMode } from "@/hooks/useFarmingMode";
+import { useResponsiveItemSize } from "@/hooks/useResponsiveItemSize";
 import { useBulkSelectStore } from "@/store/useBulkSelectStore";
 import { filterItems } from "@/lib/search/itemFilter";
 import { calculateMaxPower } from "@/lib/destiny/powerUtils";
@@ -69,6 +70,9 @@ export default function Inventory() {
 
   // Cloud sync — init on first authenticated load, periodic incremental sync
   useCloudSync({ enabled: !profileLoading && !profileError && !!profile });
+
+  // Responsive item sizing - DIM-style scaling based on window width
+  useResponsiveItemSize();
 
   // Extract hashes for manifest lookup
   // Include both item hashes AND plug hashes from sockets (perks, mods, etc.)

@@ -5,6 +5,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   RESPONSIVE ITEM SCALING - DIM-style CSS Variables
+   ========================================================================== */
+
+:root {
+  /* Base item size - controls the entire UI scale */
+  --item-size: 64px;
+  --item-size-num: 64; /* numeric value for calculations */
+  
+  /* Derived spacing */
+  --item-gap: 8px;
+  --item-margin: calc(var(--item-size) / 16);
+  
+  /* Badge sizing */
+  --badge-font-size: calc(var(--item-size) / 4.5);
+  --badge-height: calc(var(--item-size) / 3.5);
+  --power-font-size: calc(var(--item-size) / 3.5);
+  
+  /* Character column width */
+  --character-column-width: calc(var(--item-size) * 6 + var(--item-gap) * 5);
+  
+  /* Header height scales with item size */
+  --header-height: calc(var(--item-size) * 1.2);
+  
+  /* Border widths */
+  --item-border-width: 1px;
+}
+
+/* Responsive breakpoints - DIM-style scaling */
+@media (max-width: 1600px) {
+  :root {
+    --item-size: 60px;
+    --item-size-num: 60;
+  }
+}
+
+@media (max-width: 1400px) {
+  :root {
+    --item-size: 56px;
+    --item-size-num: 56;
+  }
+}
+
+@media (max-width: 1200px) {
+  :root {
+    --item-size: 52px;
+    --item-size-num: 52;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --item-size: 48px;
+    --item-size-num: 48;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --item-size: 44px;
+    --item-size-num: 44;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --item-size: 40px;
+    --item-size-num: 40;
+    --item-gap: 6px;
+  }
+}
+
+@media (max-width: 540px) {
+  :root {
+    --item-size: 36px;
+    --item-size-num: 36;
+    --item-gap: 4px;
+  }
+}
+
+/* High DPI / 4K screens can handle larger items */
+@media (min-width: 2000px) {
+  :root {
+    --item-size: 72px;
+    --item-size-num: 72;
+  }
+}
+
+@media (min-width: 2500px) {
+  :root {
+    --item-size: 80px;
+    --item-size-num: 80;
+  }
+}
+
+/* Utility class for item sizing */
+.item-size {
+  width: var(--item-size);
+  height: var(--item-size);
+}
+
+.item-size-square {
+  width: var(--item-size);
+  height: var(--item-size);
+  min-width: var(--item-size);
+  min-height: var(--item-size);
+}
+
 @layer base {
     body {
         @apply bg-void-bg text-void-text font-sans antialiased relative;

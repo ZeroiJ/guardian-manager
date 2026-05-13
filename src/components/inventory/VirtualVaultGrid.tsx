@@ -31,15 +31,38 @@ const SeparatorTile: React.FC<{ type: string }> = ({ type }) => {
 
     return (
         <div
-            className="w-16 h-16 flex items-center justify-center bg-dim-surface rounded-sm border border-dim-border"
+            className="flex items-center justify-center bg-dim-surface rounded-sm border border-dim-border"
             title={type}
+            style={{
+                width: 'var(--item-size)',
+                height: 'var(--item-size)',
+            }}
         >
             {iconUrl ? (
-                <img src={iconUrl} className="w-8 h-8 invert opacity-50" alt={type} />
+                <img 
+                    src={iconUrl} 
+                    className="invert opacity-50" 
+                    alt={type}
+                    style={{
+                        width: 'calc(var(--item-size) * 0.5)',
+                        height: 'calc(var(--item-size) * 0.5)',
+                    }}
+                />
             ) : ArmorIcon ? (
-                <ArmorIcon className="w-6 h-6 text-white/50" />
+                <ArmorIcon 
+                    className="text-white/50"
+                    style={{
+                        width: 'calc(var(--item-size) * 0.375)',
+                        height: 'calc(var(--item-size) * 0.375)',
+                    }}
+                />
             ) : (
-                <span className="text-[8px] text-white/40 font-bold uppercase text-center leading-none px-1">{type}</span>
+                <span 
+                    className="text-white/40 font-bold uppercase text-center leading-none px-1"
+                    style={{ fontSize: 'calc(var(--item-size) / 8)' }}
+                >
+                    {type}
+                </span>
             )}
         </div>
     );
@@ -51,7 +74,7 @@ const ItemTile: React.FC<{
     onClick?: (item: any, definition: any, e: React.MouseEvent) => void;
 }> = ({ item, definition, onClick }) => {
     return (
-        <div className="w-16 h-16">
+        <div style={{ width: 'var(--item-size)', height: 'var(--item-size)' }}>
             <InventoryItem
                 item={item}
                 definition={definition}

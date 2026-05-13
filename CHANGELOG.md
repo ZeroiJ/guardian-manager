@@ -2,6 +2,66 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.39.0] - 2026-05-13
+
+### Responsive UI Scaling — DIM-Style Auto-Resizing
+
+The entire inventory UI now scales proportionally based on window size, just like DIM. No more horizontal scrolling or cramped views on smaller screens!
+
+#### CSS Variable-Based Scaling
+
+- **New CSS Variables**: `--item-size`, `--item-gap`, `--badge-font-size`, etc.
+- **10 Responsive Breakpoints**: From 36px (mobile) to 80px (4K) item sizes
+- **Automatic Adjustment**: Window resize triggers smooth recalculation
+- **Proportional Scaling**: Everything scales together - items, text, badges, gaps
+
+#### Breakpoints
+
+| Window Width | Item Size | Description |
+|--------------|-----------|-------------|
+| ≥2500px | 80px | 4K ultra-wide |
+| ≥2000px | 72px | Large monitors |
+| ≥1600px | 60px | Desktop default |
+| ≥1400px | 56px | Small desktop |
+| ≥1200px | 52px | Large tablets |
+| ≥1024px | 48px | Tablets |
+| ≥900px | 44px | Small tablets |
+| ≥768px | 40px | Large phones |
+| ≥540px | 36px | Phones |
+
+#### Components Updated
+
+- `InventoryItem` — Uses `var(--item-size)` for width/height
+- `StoreBucket` — Grid gaps and empty slots use CSS variables
+- `VirtualVaultGrid` — Separator tiles and item tiles scale proportionally
+- `Inventory.tsx` — Added `useResponsiveItemSize()` hook
+
+#### New Hook: `useResponsiveItemSize()`
+
+```typescript
+// Automatically handles window resize
+useResponsiveItemSize();
+
+// Or with options
+useResponsiveItemSize({ enableDynamic: true, debounceMs: 100 });
+```
+
+Includes utility functions:
+- `setCustomItemSize(size)` — Manual override (32-100px)
+- `resetToResponsiveSizing()` — Return to auto mode
+
+#### Files Added
+
+- `src/hooks/useResponsiveItemSize.ts` — Resize detection and CSS variable management
+
+#### Files Modified
+
+- `src/index.css` — Added CSS variables and media queries
+- `src/components/inventory/InventoryItem.tsx` — Responsive badges, power level, crafted indicator
+- `src/components/inventory/StoreBucket.tsx` — Responsive grid and gaps
+- `src/components/inventory/VirtualVaultGrid.tsx` — Responsive separator tiles
+- `src/pages/Inventory.tsx` — Added hook integration
+
 ## [0.38.0] - 2026-05-13
 
 ### Compare Feature Enhancement — DIM-Style Side-by-Side Comparison

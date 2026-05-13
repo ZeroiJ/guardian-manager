@@ -23,10 +23,14 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ storeId, bucketHash, e
     });
 
     return (
-        // Container: No fixed width, content-sized
+        // Container: Responsive sizing based on CSS variables
         <div 
             ref={setNodeRef}
-            className={`flex items-start min-h-[68px] flex-shrink-0 gap-2 p-1 -m-1 rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
+            className={`flex items-start flex-shrink-0 p-1 -m-1 rounded transition-colors ${isOver ? 'bg-white/10 ring-1 ring-white/30' : ''}`}
+            style={{
+                minHeight: 'calc(var(--item-size) + 4px)',
+                gap: 'var(--item-gap)',
+            }}
         >
             {/* Equipped Item (Left) */}
             <div className="flex-shrink-0">
@@ -37,14 +41,31 @@ export const StoreBucket: React.FC<StoreBucketProps> = ({ storeId, bucketHash, e
                         onClick={(e) => onItemClick && onItemClick(equippedItem, definitions[equippedItem.itemHash], e)}
                     />
                 ) : (
-                    <div className="w-16 h-16 bg-dim-bg border border-dim-border flex items-center justify-center">
-                        <span className="opacity-20 text-[8px] uppercase tracking-widest font-semibold text-dim-text-muted">—</span>
+                    <div 
+                        className="bg-dim-bg border border-dim-border flex items-center justify-center"
+                        style={{
+                            width: 'var(--item-size)',
+                            height: 'var(--item-size)',
+                        }}
+                    >
+                        <span 
+                            className="opacity-20 uppercase tracking-widest font-semibold text-dim-text-muted"
+                            style={{ fontSize: 'calc(var(--item-size) / 8)' }}
+                        >
+                            —
+                        </span>
                     </div>
                 )}
             </div>
 
-            {/* Inventory Grid (Right) - 3x3 grid, only actual items */}
-            <div className="grid grid-cols-3 gap-2 content-start min-w-[208px]">
+            {/* Inventory Grid (Right) - 3 columns using CSS variables */}
+            <div 
+                className="grid grid-cols-3 content-start"
+                style={{
+                    gap: 'var(--item-gap)',
+                    minWidth: 'calc(var(--item-size) * 3 + var(--item-gap) * 2)',
+                }}
+            >
                 {bucketItems.map((item, idx) => (
                     <InventoryItem
                         key={idx}

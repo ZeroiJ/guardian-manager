@@ -104,9 +104,13 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             ref={setNodeRef}
             {...(canDrag ? listeners : {})}
             {...(canDrag ? attributes : {})}
-            className={`relative w-16 h-16 box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200 overflow-hidden ${isMasterwork ? 'masterwork-shimmer' : ''} ${isSelected ? 'ring-2 ring-[#f5dc56] ring-offset-1 ring-offset-black' : ''}`}
+            className={`relative box-border border cursor-pointer hover:brightness-125 hover:scale-105 hover:z-10 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 transition-all duration-200 overflow-hidden ${isMasterwork ? 'masterwork-shimmer' : ''} ${isSelected ? 'ring-2 ring-[#f5dc56] ring-offset-1 ring-offset-black' : ''}`}
             style={{
                 ...style,
+                width: 'var(--item-size)',
+                height: 'var(--item-size)',
+                minWidth: 'var(--item-size)',
+                minHeight: 'var(--item-size)',
                 borderColor: hasDeepsight ? '#22d3ee' : effectiveBorderColor,
                 backgroundColor: isMasterwork ? '#3d3523' : undefined,
                 boxShadow: hasDeepsight ? 'inset 0 0 10px rgba(34,211,238,0.25), 0 0 6px rgba(34,211,238,0.15)' : undefined,
@@ -141,7 +145,14 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
             {/* Bulk selection checkbox */}
             {(bulkActive || isSelected) && item?.itemInstanceId && (
                 <div className="absolute top-0 right-0 z-[3] pointer-events-none">
-                    <div className={`w-4 h-4 rounded-bl flex items-center justify-center text-[10px] font-bold ${isSelected ? 'bg-[#f5dc56] text-black' : 'bg-black/60 text-gray-400'}`}>
+                    <div 
+                        className={`rounded-bl flex items-center justify-center font-bold ${isSelected ? 'bg-[#f5dc56] text-black' : 'bg-black/60 text-gray-400'}`}
+                        style={{
+                            width: 'calc(var(--item-size) / 3.5)',
+                            height: 'calc(var(--item-size) / 3.5)',
+                            fontSize: 'calc(var(--item-size) / 5)',
+                        }}
+                    >
                         {isSelected ? '\u2713' : ''}
                     </div>
                 </div>
@@ -152,8 +163,18 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
                 <div
                     className="absolute top-0 left-0 z-[2] pointer-events-none"
                     title="Shaped weapon"
+                    style={{
+                        width: 'calc(var(--item-size) / 4)',
+                        height: 'calc(var(--item-size) / 4)',
+                    }}
                 >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg 
+                        width="100%" 
+                        height="100%" 
+                        viewBox="0 0 14 14" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
                         <polygon
                             points="0,0 14,0 0,14"
                             fill="rgba(251,191,36,0.85)"
@@ -166,8 +187,19 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({ item, definition, 
 
             {/* Overlay: Power Level - bottom-right compact badge */}
             {power && (
-                <div className={`absolute bottom-0 right-0 px-[2px] leading-[13px] pointer-events-none z-[2] ${isMasterwork ? 'bg-[#eade8b]' : 'bg-black/75'}`}>
-                    <span className={`text-[9px] font-bold font-mono font-tabular ${isMasterwork ? 'text-black' : 'text-white'}`}>
+                <div 
+                    className={`absolute bottom-0 right-0 pointer-events-none z-[2] ${isMasterwork ? 'bg-[#eade8b]' : 'bg-black/75'}`}
+                    style={{
+                        padding: '1px 2px',
+                        lineHeight: 'var(--badge-height)',
+                    }}
+                >
+                    <span 
+                        className={`font-bold font-mono font-tabular ${isMasterwork ? 'text-black' : 'text-white'}`}
+                        style={{
+                            fontSize: 'var(--badge-font-size)',
+                        }}
+                    >
                         {power}
                     </span>
                 </div>
