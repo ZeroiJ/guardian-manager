@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Lock, Unlock, Tag, RefreshCw, Maximize2, Diamond, ChevronDown, LayoutGrid, Anchor, Archive, GitCompare, Swords, ArrowRightLeft } from 'lucide-react';
+import { X, Lock, Unlock, Tag, RefreshCw, Maximize2, Diamond, ChevronDown, LayoutGrid, Anchor, Archive, GitCompare, ArrowRightLeft } from 'lucide-react';
 import { ElementIcon } from '../destiny/ElementIcons';
 import RecoilStat from '../destiny/RecoilStat';
 import { calculateStats } from '../../lib/destiny/stat-manager';
@@ -81,7 +81,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
     const moveItem = useInventoryStore(state => state.moveItem);
     const startCompare = useInventoryStore(state => state.startCompare);
-    const setLockState = useInventoryStore(state => state.setLockState);
 
     if (!item || !definition || !referenceElement) return null;
 
@@ -341,7 +340,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             </div>
 
                             {/* RIGHT: Action Sidebar (DIM-style) */}
-                            <div className="w-[160px] bg-[#0a0a0a] border-l border-[#333] flex flex-col">
+                            <div className="w-[140px] bg-[#0a0a0a] border-l border-[#333] flex flex-col">
                                 {/* Sidebar Header */}
                                 <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
                                     <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Actions</span>
@@ -356,14 +355,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     </button>
 
                                     {/* Lock Status */}
-                                    <button 
-                                        onClick={async () => {
-                                            if (item.itemInstanceId) {
-                                                await setLockState(item.itemInstanceId, !isLocked);
-                                            }
-                                        }}
-                                        className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 rounded transition-colors"
-                                    >
+                                    <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 rounded transition-colors">
                                         {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
                                         <span>{isLocked ? 'Locked' : 'Unlocked'}</span>
                                     </button>
@@ -404,23 +396,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {/* Equip On Section */}
                                 <div className="px-3 py-2">
                                     <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Equip on</span>
-                                    <div className="flex gap-1 mt-2">
-                                        {characters.map(char => (
+                                    <div className="flex gap-1 mt-2 flex-wrap">
+                                        {characters.slice(0, 3).map(char => (
                                             <button
                                                 key={char.characterId}
-                                                onClick={() => {
-                                                    // Equip logic here
-                                                    onClose();
-                                                }}
                                                 className="w-8 h-8 rounded border border-white/20 hover:border-white/40 transition-colors overflow-hidden"
-                                                title={`${char.classType} - ${char.lightLevel}`}
+                                                title={`${char.classType}`}
                                             >
-                                                {char.emblem && (
-                                                    <img 
-                                                        src={`https://www.bungie.net${char.emblem}`} 
-                                                        alt=""
+                                                {char.emblemPath ? (
+                                                    <BungieImage 
+                                                        src={char.emblemPath}
                                                         className="w-full h-full object-cover"
                                                     />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-700" />
                                                 )}
                                             </button>
                                         ))}
@@ -430,8 +419,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {/* Pull to Section */}
                                 <div className="px-3 py-2">
                                     <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Pull to</span>
-                                    <div className="flex gap-1 mt-2">
-                                        {characters.map(char => (
+                                    <div className="flex gap-1 mt-2 flex-wrap">
+                                        {characters.slice(0, 3).map(char => (
                                             <button
                                                 key={char.characterId}
                                                 onClick={() => {
@@ -441,12 +430,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                 className="w-8 h-8 rounded border border-white/20 hover:border-white/40 transition-colors overflow-hidden"
                                                 title={`${char.classType}`}
                                             >
-                                                {char.emblem && (
-                                                    <img 
-                                                        src={`https://www.bungie.net${char.emblem}`} 
-                                                        alt=""
+                                                {char.emblemPath ? (
+                                                    <BungieImage 
+                                                        src={char.emblemPath}
                                                         className="w-full h-full object-cover"
                                                     />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-700" />
                                                 )}
                                             </button>
                                         ))}
