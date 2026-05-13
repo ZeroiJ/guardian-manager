@@ -2,6 +2,48 @@
 
 All notable changes to **Guardian Manager** will be documented in this file.
 
+## [0.38.0] - 2026-05-13
+
+### Compare Feature Enhancement — DIM-Style Side-by-Side Comparison
+
+Major visual and UX improvements to the item comparison system, bringing it closer to DIM's polished compare experience.
+
+#### Visual Enhancements
+
+- **Framer Motion Animations**: Smooth slide-up animation with spring physics when opening the compare sheet
+- **Stat Bars**: Visual progress bars under each stat value showing relative performance across compared items
+- **Color-Coded Highlighting**:
+  - **Green** = Best value (bold text + green bar + green background tint)
+  - **Red** = Worst value (red bar + red background tint)
+  - **Yellow** = Middle values (yellow bar)
+- **Power Level Row**: Dedicated row for power comparison with highlighting for highest/lowest
+
+#### Improved Item Headers
+
+- Rarity-colored borders (exotic gold, legendary purple, rare blue, etc.)
+- Masterwork crown indicator for masterworked items
+- Lock status icon for locked items
+- Power level badge overlay
+- "Initial" badge highlighting the original compared item
+
+#### UI Controls
+
+- **Bars Toggle**: Button to show/hide stat visualization bars
+- **Perks Toggle**: Button to show/hide perks and mods in the comparison
+- **Remove Button (×)**: Click to remove individual items from comparison
+- Auto-closes when last item is removed
+
+#### Technical Improvements
+
+- Better responsive layout with CSS Grid
+- Sticky headers that stay visible while scrolling
+- Footer legend explaining color coding
+
+#### Files Modified
+
+- `src/components/CompareModal.tsx` — Complete overhaul with animations, stat bars, and enhanced styling
+- `src/lib/destiny/stat-utils.ts` — New utility functions for stat calculations and comparisons
+
 ## [0.37.0] - 2026-03-16
 
 ### 🌟 Core Feature Parity Update: Clarity, Item Feed, & Loadout Mods
