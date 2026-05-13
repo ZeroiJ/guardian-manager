@@ -244,35 +244,38 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     </div>
                                 )}
 
-                                {/* STATS */}
-                                <div className="p-3 text-[13px]">
-                                    {calculatedStats.filter(stat => stat.displayValue > 0 || stat.statHash === StatHashes.RecoilDirection).length > 0 ? calculatedStats.filter(stat => stat.displayValue > 0 || stat.statHash === StatHashes.RecoilDirection).map(stat => (
-                                        <div key={stat.statHash} className="flex items-center gap-3 mb-1">
-                                            <div className="w-28 text-right text-gray-300">{stat.label}</div>
-                                            <div className={clsx("w-6 text-right font-bold tabular-nums font-mono", stat.bonusValue > 0 ? "text-orange-400" : "text-white")}>
-                                                {stat.displayValue}
-                                            </div>
-                                            <div className="flex-1 flex items-center">
-                                                {stat.statHash === StatHashes.RecoilDirection ? (
-                                                    <div className="w-full"><RecoilStat value={stat.displayValue} /></div>
-                                                ) : stat.isBar ? (
-                                                    <div className="w-full h-[12px] bg-[#333] flex">
-                                                        {stat.segments.map(([value, type], i) => (
-                                                            <div
-                                                                key={i}
-                                                                className="h-full"
-                                                                style={{
-                                                                    width: `${Math.min(100, (value / stat.maximumValue) * 100)}%`,
-                                                                    backgroundColor: SEGMENT_COLORS[type],
-                                                                }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                ) : null}
-                                            </div>
+                            {/* STATS - Right to left aligned like DIM */}
+                            <div className="px-3 py-2 text-[13px]">
+                                {calculatedStats.filter(stat => stat.displayValue > 0 || stat.statHash === StatHashes.RecoilDirection).length > 0 ? calculatedStats.filter(stat => stat.displayValue > 0 || stat.statHash === StatHashes.RecoilDirection).map(stat => (
+                                    <div key={stat.statHash} className="flex items-center gap-2 mb-[2px]">
+                                        {/* Stat Name - Left aligned */}
+                                        <div className="flex-1 text-right text-gray-300 pr-2">{stat.label}</div>
+                                        {/* Value - Right aligned next to bar */}
+                                        <div className={clsx("w-6 text-right font-bold tabular-nums font-mono", stat.bonusValue > 0 ? "text-orange-400" : "text-white")}>
+                                            {stat.displayValue}
                                         </div>
-                                    )) : <div className="text-gray-500 italic text-xs p-2">No stats</div>}
-                                </div>
+                                        {/* Bar - Fill remaining space to right edge */}
+                                        <div className="w-[90px] flex items-center shrink-0">
+                                            {stat.statHash === StatHashes.RecoilDirection ? (
+                                                <RecoilStat value={stat.displayValue} />
+                                            ) : stat.isBar ? (
+                                                <div className="w-full h-[10px] bg-[#222] flex">
+                                                    {stat.segments.map(([value, type], i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="h-full"
+                                                            style={{
+                                                                width: `${Math.min(100, (value / stat.maximumValue) * 100)}%`,
+                                                                backgroundColor: SEGMENT_COLORS[type],
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                )) : <div className="text-gray-500 italic text-xs p-2">No stats</div>}
+                            </div>
 
                                 {/* Intrinsic Frame (at bottom like DIM) */}
                                 {sockets.intrinsic && (
@@ -339,24 +342,19 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* RIGHT: Action Sidebar (DIM-style) */}
-                            <div className="w-[140px] bg-[#0a0a0a] border-l border-[#333] flex flex-col">
-                                {/* Sidebar Header */}
-                                <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
-                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Actions</span>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex flex-col gap-1 p-2">
+                            {/* RIGHT: Action Sidebar - Compact & Chonky */}
+                            <div className="w-[120px] bg-[#0a0a0a] border-l border-[#333] flex flex-col">
+                                {/* Action Buttons - No header, compact */}
+                                <div className="flex flex-col">
                                     {/* Tag Item */}
-                                    <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 rounded transition-colors">
-                                        <Tag size={14} />
+                                    <button className="flex items-center gap-2 px-2 py-[5px] text-[11px] text-gray-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                        <Tag size={12} />
                                         <span>Tag Item</span>
                                     </button>
 
                                     {/* Lock Status */}
-                                    <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 rounded transition-colors">
-                                        {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                                    <button className="flex items-center gap-2 px-2 py-[5px] text-[11px] text-gray-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                        {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
                                         <span>{isLocked ? 'Locked' : 'Unlocked'}</span>
                                     </button>
 
@@ -366,15 +364,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             startCompare(item);
                                             onClose();
                                         }}
-                                        className="flex items-center gap-2 px-2 py-1.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-colors"
+                                        className="flex items-center gap-2 px-2 py-[5px] text-[11px] text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors border-b border-white/5"
                                     >
-                                        <GitCompare size={14} />
+                                        <GitCompare size={12} />
                                         <span>Compare</span>
                                     </button>
 
                                     {/* Loadout */}
-                                    <button className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 rounded transition-colors">
-                                        <LayoutGrid size={14} />
+                                    <button className="flex items-center gap-2 px-2 py-[5px] text-[11px] text-gray-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5">
+                                        <LayoutGrid size={12} />
                                         <span>Loadout</span>
                                     </button>
 
@@ -382,25 +380,22 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     {power && (
                                         <button
                                             onClick={() => setShowInfusion(true)}
-                                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-[#f5dc56] hover:bg-white/5 rounded transition-colors"
+                                            className="flex items-center gap-2 px-2 py-[5px] text-[11px] text-gray-300 hover:text-[#f5dc56] hover:bg-white/5 transition-colors border-b border-white/5"
                                         >
-                                            <ArrowRightLeft size={14} />
+                                            <ArrowRightLeft size={12} />
                                             <span>Infuse</span>
                                         </button>
                                     )}
                                 </div>
 
-                                {/* Divider */}
-                                <div className="border-t border-[#333] my-2" />
-
-                                {/* Equip On Section */}
-                                <div className="px-3 py-2">
-                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Equip on</span>
-                                    <div className="flex gap-1 mt-2 flex-wrap">
+                                {/* Equip On Section - Compact */}
+                                <div className="px-2 py-1 border-b border-[#333]">
+                                    <span className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Equip on</span>
+                                    <div className="flex gap-[2px] mt-1">
                                         {characters.slice(0, 3).map(char => (
                                             <button
                                                 key={char.characterId}
-                                                className="w-8 h-8 rounded border border-white/20 hover:border-white/40 transition-colors overflow-hidden"
+                                                className="w-7 h-7 rounded-[2px] border border-white/20 hover:border-white/50 transition-colors overflow-hidden"
                                                 title={`${char.classType}`}
                                             >
                                                 {char.emblemPath ? (
@@ -416,10 +411,10 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Pull to Section */}
-                                <div className="px-3 py-2">
-                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Pull to</span>
-                                    <div className="flex gap-1 mt-2 flex-wrap">
+                                {/* Pull to Section - Compact */}
+                                <div className="px-2 py-1">
+                                    <span className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Pull to</span>
+                                    <div className="flex gap-[2px] mt-1">
                                         {characters.slice(0, 3).map(char => (
                                             <button
                                                 key={char.characterId}
@@ -427,7 +422,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                     moveItem(item.itemInstanceId, item.itemHash, char.characterId, false);
                                                     onClose();
                                                 }}
-                                                className="w-8 h-8 rounded border border-white/20 hover:border-white/40 transition-colors overflow-hidden"
+                                                className="w-7 h-7 rounded-[2px] border border-white/20 hover:border-white/50 transition-colors overflow-hidden"
                                                 title={`${char.classType}`}
                                             >
                                                 {char.emblemPath ? (
@@ -446,10 +441,10 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                 moveItem(item.itemInstanceId, item.itemHash, 'vault', true);
                                                 onClose();
                                             }}
-                                            className="w-8 h-8 rounded border border-white/20 hover:border-white/40 bg-[#1a1a1a] flex items-center justify-center"
+                                            className="w-7 h-7 rounded-[2px] border border-white/20 hover:border-white/50 bg-[#1a1a1a] flex items-center justify-center"
                                             title="Vault"
                                         >
-                                            <Archive size={14} className="text-gray-400" />
+                                            <Archive size={12} className="text-gray-400" />
                                         </button>
                                     </div>
                                 </div>
