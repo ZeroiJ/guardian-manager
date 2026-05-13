@@ -55,6 +55,9 @@ export default function Inventory() {
     refresh,
   } = useProfile();
 
+  /** Full Bungie profile envelope (needed before itemHashes for currency item defs). */
+  const bungieProfile = useInventoryStore((state) => state.profile);
+
   // Auto-refresh system (30s polling with visibility check)
   const { lastUpdated, isRefreshing, triggerRefresh } = useAutoRefresh({
     onRefresh: refresh,
@@ -130,7 +133,6 @@ export default function Inventory() {
   const pullAllFromPostmaster = useInventoryStore((state) => state.pullAllFromPostmaster);
   const farmingMode = useInventoryStore((state) => state.farmingMode);
   const toggleFarmingMode = useInventoryStore((state) => state.toggleFarmingMode);
-  const bungieProfile = useInventoryStore((state) => state.profile);
 
   // Farming mode auto-move hook
   useFarmingMode();
